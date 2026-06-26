@@ -9,9 +9,13 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import net.querz.mcaselector.changer.fields.ReplaceBlocksField;
@@ -30,12 +34,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 	private static final PseudoClass error = PseudoClass.getPseudoClass("error");
 	private static final PseudoClass warning = PseudoClass.getPseudoClass("warning");
-	private static final int MAX_BLOCK_SUGGESTIONS = 120;
 	private static final String DEFAULT_FROM_BLOCK = "minecraft:stone";
 	private static final String DEFAULT_TO_BLOCK = "minecraft:dirt";
 
 	private final BlockStateCatalog catalog = BlockStateCatalog.latestJava();
-	private final ObservableList<String> blockNames = FXCollections.observableArrayList(catalog.blockNames());
+	private final ObservableList<String> blockNames = FXCollections.observableArrayList(catalog.blockNames().stream().sorted().collect(Collectors.toList()));
 	private final BlockInput from = new BlockInput(true);
 	private final BlockInput to = new BlockInput(false);
 	private final TableView<Rule> rules = new TableView<>();
@@ -252,6 +255,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		private final GridPane properties = new GridPane();
 		private final Map<String, ComboBox<String>> propertyEditors = new LinkedHashMap<>();
 		private boolean updatingItems;
+		private boolean suppressSuggestions;
 
 		private BlockInput(boolean source) {
 			this.source = source;
@@ -267,17 +271,24 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			block.setVisibleRowCount(12);
 			block.setPromptText(source ? DEFAULT_FROM_BLOCK : DEFAULT_TO_BLOCK);
 			block.setItems(blockNames);
+			block.setCellFactory(v -> new HighlightedBlockCell());
 			block.getEditor().setAlignment(Pos.CENTER);
 			block.getEditor().setOnAction(ReplaceBlocksRuleBuilderDialog.this::addRule);
+			block.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPressed);
 			block.getEditor().textProperty().addListener((a, o, n) -> {
 				if (!updatingItems) {
 					updateBlockSuggestions(n);
 					rebuildProperties(n);
+					showBlockSuggestions(n);
 				}
 			});
 			block.valueProperty().addListener((a, o, n) -> {
-				if (!updatingItems && n != null) {
-					rebuildProperties(n);
+				if (!updatingItems && !suppressSuggestions && n != null) {
+					if (blockNames.contains(n)) {
+						completeSuggestion(n);
+					} else {
+						rebuildProperties(n);
+					}
 				}
 			});
 
@@ -292,10 +303,15 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 
 		private void setText(String text) {
-			block.getEditor().setText(text);
-			block.setValue(text);
-			updateBlockSuggestions(text);
-			rebuildProperties(text);
+			suppressSuggestions = true;
+			try {
+				block.getEditor().setText(text);
+				block.setValue(text);
+				updateBlockSuggestions(text);
+				rebuildProperties(text);
+			} finally {
+				suppressSuggestions = false;
+			}
 		}
 
 		private ValueResult value() {
@@ -338,11 +354,16 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 
 		private void clear() {
-			block.setValue(null);
-			block.getEditor().clear();
-			propertyEditors.clear();
-			properties.getChildren().clear();
-			updateBlockSuggestions("");
+			suppressSuggestions = true;
+			try {
+				block.setValue(null);
+				block.getEditor().clear();
+				propertyEditors.clear();
+				properties.getChildren().clear();
+				updateBlockSuggestions("");
+			} finally {
+				suppressSuggestions = false;
+			}
 		}
 
 		private void focusInput() {
@@ -368,12 +389,57 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			} else {
 				suggestions = FXCollections.observableArrayList(blockNames.stream()
 						.filter(name -> matchesBlockSearch(name, text))
-						.limit(MAX_BLOCK_SUGGESTIONS)
 						.collect(Collectors.toList()));
 			}
 			updatingItems = true;
 			block.setItems(suggestions);
 			updatingItems = false;
+		}
+
+		private void showBlockSuggestions(String query) {
+			if (suppressSuggestions) {
+				return;
+			}
+			String text = query == null ? "" : query.trim();
+			if (text.isEmpty() || text.startsWith("{") || source && isSourceModeExpression(text) || block.getItems().isEmpty()) {
+				block.hide();
+				return;
+			}
+			block.show();
+		}
+
+		private void handleKeyPressed(KeyEvent event) {
+			if (event.getCode() != KeyCode.TAB || !block.isShowing()) {
+				return;
+			}
+			String suggestion = selectedSuggestion();
+			if (suggestion == null) {
+				return;
+			}
+			completeSuggestion(suggestion);
+			event.consume();
+		}
+
+		private String selectedSuggestion() {
+			String selected = block.getSelectionModel().getSelectedItem();
+			if (selected != null && block.getItems().contains(selected)) {
+				return selected;
+			}
+			return block.getItems().isEmpty() ? null : block.getItems().get(0);
+		}
+
+		private void completeSuggestion(String suggestion) {
+			suppressSuggestions = true;
+			try {
+				block.setValue(suggestion);
+				block.getEditor().setText(suggestion);
+				block.getEditor().positionCaret(suggestion.length());
+				updateBlockSuggestions(suggestion);
+				rebuildProperties(suggestion);
+				block.hide();
+			} finally {
+				suppressSuggestions = false;
+			}
 		}
 
 		private boolean matchesBlockSearch(String name, String query) {
@@ -411,6 +477,56 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				properties.add(value, 1, row);
 				GridPane.setHgrow(value, Priority.ALWAYS);
 				row++;
+			}
+		}
+
+		private class HighlightedBlockCell extends ListCell<String> {
+
+			@Override
+			protected void updateItem(String item, boolean empty) {
+				super.updateItem(item, empty);
+				if (empty || item == null) {
+					setText(null);
+					setGraphic(null);
+					return;
+				}
+				setText(null);
+				setGraphic(highlightedText(item, currentText()));
+			}
+
+			private TextFlow highlightedText(String item, String query) {
+				TextFlow flow = new TextFlow();
+				flow.getStyleClass().add("replace-blocks-builder-suggestion-text");
+				String needle = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+				if (needle.isEmpty()) {
+					flow.getChildren().add(text(item, false));
+					return flow;
+				}
+
+				String haystack = item.toLowerCase(Locale.ROOT);
+				int offset = 0;
+				int match;
+				while ((match = haystack.indexOf(needle, offset)) >= 0) {
+					if (match > offset) {
+						flow.getChildren().add(text(item.substring(offset, match), false));
+					}
+					int end = match + needle.length();
+					flow.getChildren().add(text(item.substring(match, end), true));
+					offset = end;
+				}
+				if (offset < item.length()) {
+					flow.getChildren().add(text(item.substring(offset), false));
+				}
+				if (flow.getChildren().isEmpty()) {
+					flow.getChildren().add(text(item, false));
+				}
+				return flow;
+			}
+
+			private Text text(String value, boolean highlight) {
+				Text text = new Text(value);
+				text.getStyleClass().add(highlight ? "replace-blocks-builder-suggestion-highlight" : "replace-blocks-builder-suggestion-normal");
+				return text;
 			}
 		}
 	}

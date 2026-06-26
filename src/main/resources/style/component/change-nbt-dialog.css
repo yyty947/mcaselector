@@ -79,6 +79,15 @@
     -fx-text-fill: -color-text-light;
 }
 
+.replace-blocks-builder-suggestion-normal {
+    -fx-fill: -color-text-light;
+}
+
+.replace-blocks-builder-suggestion-highlight {
+    -fx-fill: #4aa3ff;
+    -fx-font-weight: bold;
+}
+
 .change-nbt-dialog-pane .scroll-pane {
     -fx-pref-height: 1000;
     -fx-max-height: 1000;

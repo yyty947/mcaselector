@@ -90,6 +90,7 @@ Manual checks:
 - In the NBT Changer field row, type `minecraft:stone=minecraft:dirt` directly into ReplaceBlocks. The field should stay visually neutral while typing and only show valid/invalid feedback after a short pause.
 - With the default NBT Changer dialog size, the ReplaceBlocks `Builder` button should be visible without dragging the horizontal scrollbar.
 - Open an empty builder and press `Add rule` without editing the default from/to values. It should add a valid `literal(minecraft:stone)=minecraft:dirt` rule instead of showing an invalid-source message.
+- In the builder From/To fields, type `oak` or `sto`. The candidate list should open automatically, show every matching block ID in A-Z order, highlight the typed substring in blue, allow mouse scrolling, and collapse after Tab completion or clicking a candidate.
 
 ## Per-rule preview counts
 
