@@ -3,7 +3,7 @@
 Date: 2026-06-04
 Last updated: 2026-06-26
 
-Scope: ReplaceBlocks reconnaissance plus implemented phases 1-4D. Java source now includes a rule builder, validation diagnostics, modern preview/dry-run, exact source block-state matching, a Java 1.21.9 block-state catalog foundation, a property-aware catalog-backed builder UI, and explicit source modes. Gradle build logic and Minecraft world data were not modified by these development notes.
+Scope: ReplaceBlocks reconnaissance plus implemented phases 1-5A. Java source now includes a rule builder, validation diagnostics, modern preview/dry-run with per-rule counts, exact source block-state matching, a Java 1.21.9 block-state catalog foundation, a property-aware catalog-backed builder UI, and explicit source modes. Gradle build logic and Minecraft world data were not modified by these development notes.
 
 ## Project stack
 
@@ -102,7 +102,7 @@ CLI path:
 - The NBT Changer dialog shows ReplaceBlocks validation messages and warnings after a short typing pause, so incomplete in-progress input does not flash errors on every character.
 - The default NBT Changer dialog width keeps the ReplaceBlocks `Builder` button visible without horizontal scrolling.
 - When opened without an existing value, the builder starts with real default inputs `minecraft:stone` and `minecraft:dirt`, so `Add rule` immediately creates a valid example rule.
-- The NBT Changer dialog offers ReplaceBlocks preview/dry-run counts for modern 1.18+ formats.
+- The NBT Changer dialog offers ReplaceBlocks preview/dry-run counts for modern 1.18+ formats, including per-rule rows and overlap warnings.
 - `BlockStateCatalog.latestJava()` loads the generated Java 1.21.9 block-state catalog used by the builder dropdown UI.
 - For modern versions, replacement iterates all 4096 blocks per section.
 - Palette entries are added as needed and unused palette entries are cleaned up.
@@ -138,17 +138,17 @@ Implemented:
 - `ReplaceBlocksRuleBuilderDialog` uses `BlockStateCatalog.latestJava()` for searchable from/to block selectors and property dropdown rows.
 - Builder inputs accept block IDs, unknown/modded resource locations, and block state SNBT.
 - Empty builders prefill real `minecraft:stone` -> `minecraft:dirt` inputs, and `Add rule` generates a valid `literal(...)` source rule.
-- `ChangeNBTDialog` has a `Preview` button for ReplaceBlocks dry-run counts.
+- `ChangeNBTDialog` has a `Preview` button for ReplaceBlocks dry-run counts, per-rule matched block rows, and overlap warnings.
 - `ReplaceBlocksDiagnostics` surfaces common validation errors and regex warnings.
 - `BlockStateCatalog` provides the UI data source for vanilla block IDs and properties.
 
 Recommended next work:
 
-- Add per-rule preview counts before adding tile filters, Y range, biome restrictions, or presets.
-- Include source mode and generated source text in each per-rule preview row.
-- Make overlapping source rules visible because execution can apply multiple matching rules to the same original block state.
+- Add tile entity source safety controls before Y range, biome restrictions, or presets.
+- Verify duplicate block-entity behavior on copied worlds before exposing target tile NBT editing.
+- Keep per-rule preview rows and overlap warnings intact as tile filters are added.
 - Add tile entity editing only after duplicate block-entity behavior is tested on copied worlds.
-- Consider Y range controls after preview can show counts by vertical range.
+- Consider Y range controls after tile safety work, using per-rule preview rows to verify scope.
 
 ## Risks
 
@@ -164,7 +164,7 @@ Recommended next work:
 - Builder, preview, UI field, and advanced query must continue to round-trip through the ReplaceBlocks text format.
 - Catalog data must remain a UI/help source until a later phase explicitly changes matching semantics.
 - Do not overload existing source SNBT as selected-property matching; exact state matching must remain exact. Use `props(...)` for selected-property matching.
-- Per-rule preview is now a prerequisite for safely adding more rule conditions.
+- Per-rule preview is now implemented and is the baseline for safely adding more rule conditions.
 
 ## Test plan summary
 
@@ -189,6 +189,7 @@ Detailed roadmap: `docs/ROADMAP.md`.
 - Phase 1: rule builder UI implemented.
 - Phase 2: validation and error messages implemented.
 - Phase 3: preview/dry-run counts implemented for modern 1.18+.
-- Phase 4: exact source block-state matching implemented; Phase 4A 1.21.9 block-state catalog implemented; Phase 4B property-aware builder UI implemented; Gate A source matching design completed; Phase 4C/4D explicit source modes implemented. Next route is per-rule preview counts, tile safety, Y range, biome restrictions, presets, and release hardening.
+- Phase 4: exact source block-state matching implemented; Phase 4A 1.21.9 block-state catalog implemented; Phase 4B property-aware builder UI implemented; Gate A source matching design completed; Phase 4C/4D explicit source modes implemented.
+- Phase 5A: per-rule preview counts, source-mode rows, and overlap warnings implemented. Next route is tile safety, Y range, biome restrictions, presets, and release hardening.
 
 Detailed next-development plan: `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.

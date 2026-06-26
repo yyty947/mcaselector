@@ -21,10 +21,11 @@ Implemented behavior:
 - Explicit literal source mode is available through `literal(...)`.
 - Selected-property source matching is available through `props(...)`.
 - Preview is non-mutating and supports modern 1.18+ chunk formats.
+- Preview shows aggregate counts plus one per-rule row with source mode, generated source text, target text, and matched block count.
+- Preview warns when more than one rule matches the same original block position.
 
 Not implemented:
 
-- Per-rule preview counts.
 - Dedicated source-mode selector UI and per-property subset checkboxes.
 - Tile source filters.
 - Y range, biome restrictions, and presets.
@@ -131,11 +132,11 @@ Current execution scans rules in insertion order for each original block state. 
 
 Phase 4C/4D preserves this behavior unless a later phase explicitly changes and tests rule conflict semantics.
 
-Phase 5A per-rule preview should therefore report:
+Phase 5A per-rule preview now reports:
 
 - aggregate matched blocks, counting each block position once when any rule matches.
 - per-rule matched blocks, counting each rule match separately.
-- a visible overlap/conflict indicator when per-rule counts sum higher than aggregate matched blocks.
+- a visible overlap warning when multiple rules match the same original block position.
 
 ## Acceptance Tests For 4C/4D
 
@@ -161,19 +162,20 @@ Matching tests:
 - Selected-properties mode does not match another block name with the same property key.
 - Preview and execution use the same matching result on copied worlds.
 
-## Preview Comes Before More Conditions
+## Preview Baseline Before More Conditions
 
-Source modes are now represented internally. Add per-rule preview counts before implementing tile filters or Y range.
+Source modes are now represented internally, and per-rule preview counts are implemented. Preserve this preview baseline while implementing tile filters or Y range.
 
 Reason:
 
 - Total matched block counts are too coarse once rules can use literal, regex, exact-state, and selected-property matching.
 - Per-rule counts make later tile/Y/biome work much easier to validate.
 
-Preview requirements:
+Preview baseline:
 
 - Keep the aggregate summary.
-- Add one row per rule with its generated text, source mode, and matched block count.
+- Keep one row per rule with generated source text, source mode, target text, and matched block count.
+- Keep the overlap warning because execution can apply multiple matching rules to the same original state.
 - Preserve warnings for air replacement, tile entities, lighting, heightmaps, and unsupported chunks.
 - Keep preview non-mutating.
 

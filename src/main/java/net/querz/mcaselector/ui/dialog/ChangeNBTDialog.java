@@ -269,6 +269,10 @@ public class ChangeNBTDialog extends Dialog<ChangeNBTDialog.Result> implements P
 				result.getTileEntityAdditions(),
 				result.getTileEntityRemovals()
 		));
+		appendPreviewRules(builder, result);
+		if (result.getOverlappingBlocks() > 0) {
+			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_OVERLAP.format(result.getOverlappingBlocks()));
+		}
 		if (result.replacesAir()) {
 			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_AIR.format(result.getCompletedAirSections()));
 		}
@@ -291,6 +295,22 @@ public class ChangeNBTDialog extends Dialog<ChangeNBTDialog.Result> implements P
 			}
 		}
 		return builder.toString();
+	}
+
+	private void appendPreviewRules(StringBuilder builder, ReplaceBlocksPreviewer.Result result) {
+		if (result.getRules().isEmpty()) {
+			return;
+		}
+		builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_RULES.toString());
+		for (ReplaceBlocksPreviewer.RulePreview rule : result.getRules()) {
+			builder.append("\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_RULE.format(
+					rule.getIndex(),
+					rule.getSourceMode(),
+					rule.getSourceText(),
+					rule.getTargetText(),
+					rule.getBlocks()
+			));
+		}
 	}
 
 	private void readSingleChunkAsync(TileMap tileMap, FieldView fieldView) {

@@ -207,7 +207,7 @@ public class ChunkFilter_21w37a {
 		}
 
 		protected ChunkFilter.BlockReplacePreviewData previewReplaceBlocks(CompoundTag root, ListTag sections, String tileEntitiesKey, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
-			ChunkFilter.BlockReplacePreviewData result = ChunkFilter.BlockReplacePreviewData.supported();
+			ChunkFilter.BlockReplacePreviewData result = ChunkFilter.BlockReplacePreviewData.supported(replace);
 			if (root == null || sections == null) {
 				return result;
 			}
@@ -291,11 +291,16 @@ public class ChunkFilter_21w37a {
 		private boolean countMatchingBlock(CompoundTag blockState, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, ChunkFilter.BlockReplacePreviewData result, boolean hasTileEntity) {
 			boolean matched = false;
 			boolean tileEntityPresent = hasTileEntity;
+			int matchedRules = 0;
+			int ruleIndex = 0;
 			for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
 				if (!entry.getKey().matches(blockState)) {
+					ruleIndex++;
 					continue;
 				}
 				matched = true;
+				matchedRules++;
+				result.incrementRuleBlocks(ruleIndex);
 				if (entry.getValue().getTile() != null) {
 					result.incrementTileEntityAdditions();
 					tileEntityPresent = true;
@@ -303,6 +308,10 @@ public class ChunkFilter_21w37a {
 					result.incrementTileEntityRemovals();
 					tileEntityPresent = false;
 				}
+				ruleIndex++;
+			}
+			if (matchedRules > 1) {
+				result.incrementOverlappingBlocks();
 			}
 			return matched;
 		}

@@ -17,11 +17,11 @@ Implemented:
 - Phase 4B: property-aware builder UI backed by `BlockStateCatalog.latestJava()`.
 - Gate A: source matching design for Phase 4C/4D is decided in `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.
 - Phase 4C/4D: explicit source modes implemented with `regex(...)`, `literal(...)`, and `props(...)`.
+- Phase 5A: per-rule preview counts, source-mode rows, and overlap warning in the ReplaceBlocks preview dialog.
 - UI polish: ReplaceBlocks field-row diagnostics are debounced, the main dialog defaults wide enough to show `Builder`, and the empty builder's default example can be added directly.
 
 Still not implemented:
 
-- Per-rule preview counts and richer preview summaries.
 - Tile entity include/exclude controls.
 - Y range restrictions.
 - Biome restrictions.
@@ -119,6 +119,8 @@ Implementation notes:
 
 ### Phase 5A: Per-Rule Preview Counts
 
+Status: implemented on 2026-06-26.
+
 Goal: make later condition work testable before adding tile and spatial restrictions.
 
 Why this moves before tile/Y/biome:
@@ -128,16 +130,17 @@ Why this moves before tile/Y/biome:
 
 Work:
 
-- Extend preview data to count matches by rule.
-- Show per-rule counts in the preview dialog.
-- Keep aggregate scanned chunks, affected chunks, affected sections, matched blocks, tile estimates, and warnings.
-- Keep preview non-mutating.
+- Done: preview data counts matches by rule.
+- Done: preview dialog shows one row per rule with source mode, source text, target text, and matched block count.
+- Done: aggregate scanned chunks, affected chunks, affected sections, matched blocks, tile estimates, and warnings remain visible.
+- Done: overlapping source rules produce a visible overlap warning; aggregate matched blocks count positions once, while per-rule rows count every rule match.
+- Done: preview remains non-mutating.
 
 Success criteria:
 
-- A user can identify which rule will make changes.
-- Per-rule counts sum to the aggregate matched block count, or any deduplication/ordering behavior is explicitly documented.
-- Unsupported chunks remain visible before execution.
+- Met: a user can identify which rule will make changes.
+- Met: deduplication/overlap behavior is documented in the dialog and tests.
+- Met: unsupported chunks remain visible before execution.
 
 ### Phase 4E: Tile Entity Safety
 
@@ -241,7 +244,7 @@ When a future phase lands, update these docs in the same turn:
 - Current builder generates `literal(...)` for simple source IDs and `props(...)` for catalog-backed source property rules.
 - Current empty-builder defaults are real `minecraft:stone` -> `minecraft:dirt` inputs, so the example can be added as a valid rule immediately.
 - Current ReplaceBlocks field-row diagnostics wait for a short typing pause before showing valid/invalid feedback.
-- Current preview is implemented for modern 1.18+ paths and reports unsupported older chunks instead of guessing.
+- Current preview is implemented for modern 1.18+ paths, reports unsupported older chunks instead of guessing, and shows per-rule counts plus overlap warnings.
 - Current source-state support remains exact matching; selected-property subset matching is explicit through `props(...)`.
 - Current catalog support exposes Java 1.21.9 block IDs, properties, allowed values, and defaults; the builder consumes it for dropdowns.
 - `BlockRegistry` validates IDs but does not provide per-block property schema.

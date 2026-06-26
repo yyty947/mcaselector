@@ -290,7 +290,7 @@ Preview path:
 - `ReplaceBlocksPreviewer.preview(...)`
 - read selected region data
 - for each real region chunk, call `ChunkFilter.Blocks.previewReplaceBlocks(...)`
-- show scanned regions/chunks, affected chunks/sections, matched block count, tile-entity add/remove estimates, and warnings
+- show scanned regions/chunks, affected chunks/sections, aggregate matched block count, per-rule matched block rows, tile-entity add/remove estimates, overlap warnings, and other warnings
 
 Safety behavior:
 
@@ -305,6 +305,12 @@ Modern preview coverage:
 - `ChunkFilter_21w43a.Blocks.previewReplaceBlocks(...)`
 
 Preview uses the same `BlockReplaceSource.matches(...)` source semantics as real replacement, including exact source-state SNBT matching.
+
+Per-rule preview behavior:
+
+- Aggregate matched blocks count each block position once if any rule matches.
+- Per-rule rows count every rule match separately and show source mode, generated source text, target text, and matched block count.
+- If more than one rule matches the same original block position, preview reports an overlap warning because per-rule row totals can exceed aggregate matched blocks.
 
 ## Block-state catalog foundation
 

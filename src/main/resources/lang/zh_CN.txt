@@ -242,7 +242,10 @@ dialog.replace_blocks.preview.button;预览
 dialog.replace_blocks.preview.title;ReplaceBlocks 预览
 dialog.replace_blocks.preview.no_field;请先输入有效的 ReplaceBlocks 值，再运行预览。
 dialog.replace_blocks.preview.result;Dry-run 完成。\n扫描 region：%d\n扫描 chunk：%d\n受影响 chunk：%d\n受影响 section：%d\n匹配方块数：%d\n将新增方块实体：%d\n将移除方块实体：%d
+dialog.replace_blocks.preview.rules;规则命中：
+dialog.replace_blocks.preview.rule;#%d [%s] %s -> %s：%d
 dialog.replace_blocks.preview.warning_air;替换 air 可能会先补全缺失 section。预览已计入 %d 个缺失或不完整的 air section。
+dialog.replace_blocks.preview.warning_overlap;%d 个方块位置同时命中多条规则。逐规则计数会分别计入每条命中规则，所以合计可能高于匹配方块数。
 dialog.replace_blocks.preview.warning_tile;方块实体替换可能新增或移除 block entity。正式应用前请先用复制世界测试。
 dialog.replace_blocks.preview.warning_light;当前 ReplaceBlocks 实现可能会移除 %d 个已处理 section 的光照数组。
 dialog.replace_blocks.preview.warning_heightmaps;真实修改时会对已处理 chunk 重算 heightmap。预览扫描了 %d 个 chunk。

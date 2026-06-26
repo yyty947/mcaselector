@@ -93,18 +93,22 @@ Manual checks:
 
 ## Per-rule preview counts
 
-Implement before tile filters, Y range, biome restrictions, or presets.
+Implemented as Phase 5A. Preserve these checks before tile filters, Y range, biome restrictions, or presets.
 
 Checks:
 
 - Preview still reports aggregate scanned chunks, affected chunks, affected sections, matched blocks, tile estimates, and warnings.
 - Preview also reports one row per rule.
-- Per-rule rows show source mode, generated source text, and matched block count.
+- Per-rule rows show source mode, generated source text, target text, and matched block count.
 - Aggregate matched blocks count each block position once when any rule matches.
 - Per-rule counts count each rule match separately, so the per-rule sum may be higher than the aggregate when source rules overlap.
-- Overlapping source rules are visible through an overlap/conflict indicator or equivalent warning.
+- Overlapping source rules are visible through an overlap warning.
 - Preview remains non-mutating and does not change region modified times.
 - Unsupported older preview chunks are still reported instead of silently counted.
+
+Automated coverage:
+
+- `ReplaceBlocksPreviewCountsTest` builds an in-memory modern section and verifies aggregate matched blocks, per-rule counts, and overlap count without touching world files.
 
 ## Test world preparation
 

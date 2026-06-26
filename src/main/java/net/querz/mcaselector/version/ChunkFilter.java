@@ -422,12 +422,14 @@ public interface ChunkFilter {
 	class BlockReplacePreviewData {
 
 		private final boolean supported;
+		private final List<BlockReplaceRulePreviewData> rules = new ArrayList<>();
 		private long blocks;
 		private int sections;
 		private int lightSections;
 		private int completedAirSections;
 		private long tileEntityAdditions;
 		private long tileEntityRemovals;
+		private long overlappingBlocks;
 
 		private BlockReplacePreviewData(boolean supported) {
 			this.supported = supported;
@@ -435,6 +437,12 @@ public interface ChunkFilter {
 
 		public static BlockReplacePreviewData supported() {
 			return new BlockReplacePreviewData(true);
+		}
+
+		public static BlockReplacePreviewData supported(Map<BlockReplaceSource, BlockReplaceData> replace) {
+			BlockReplacePreviewData result = supported();
+			result.setRules(replace);
+			return result;
 		}
 
 		public static BlockReplacePreviewData unsupported() {
@@ -450,6 +458,21 @@ public interface ChunkFilter {
 				this.blocks += blocks;
 				sections++;
 			}
+		}
+
+		private void setRules(Map<BlockReplaceSource, BlockReplaceData> replace) {
+			int index = 1;
+			for (Map.Entry<BlockReplaceSource, BlockReplaceData> rule : replace.entrySet()) {
+				rules.add(new BlockReplaceRulePreviewData(index++, rule.getKey(), rule.getValue()));
+			}
+		}
+
+		public void incrementRuleBlocks(int index) {
+			rules.get(index).incrementBlocks();
+		}
+
+		public void incrementOverlappingBlocks() {
+			overlappingBlocks++;
 		}
 
 		public void incrementLightSections() {
@@ -490,6 +513,52 @@ public interface ChunkFilter {
 
 		public long getTileEntityRemovals() {
 			return tileEntityRemovals;
+		}
+
+		public long getOverlappingBlocks() {
+			return overlappingBlocks;
+		}
+
+		public List<BlockReplaceRulePreviewData> getRules() {
+			return Collections.unmodifiableList(rules);
+		}
+	}
+
+	class BlockReplaceRulePreviewData {
+
+		private final int index;
+		private final BlockReplaceSource source;
+		private final BlockReplaceData target;
+		private long blocks;
+
+		private BlockReplaceRulePreviewData(int index, BlockReplaceSource source, BlockReplaceData target) {
+			this.index = index;
+			this.source = source;
+			this.target = target;
+		}
+
+		private void incrementBlocks() {
+			blocks++;
+		}
+
+		public int getIndex() {
+			return index;
+		}
+
+		public BlockReplaceSourceType getSourceType() {
+			return source.getType();
+		}
+
+		public String getSourceText() {
+			return source.toString();
+		}
+
+		public String getTargetText() {
+			return target.toString();
+		}
+
+		public long getBlocks() {
+			return blocks;
 		}
 	}
 

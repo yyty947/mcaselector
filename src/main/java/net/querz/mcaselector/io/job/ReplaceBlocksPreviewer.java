@@ -13,7 +13,10 @@ import net.querz.mcaselector.util.progress.Progress;
 import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.mcaselector.version.VersionHandler;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public final class ReplaceBlocksPreviewer {
 
@@ -26,6 +29,7 @@ public final class ReplaceBlocksPreviewer {
 			return result;
 		}
 
+		result.initializeRules(field.getNewValue());
 		result.replaceAir = field.getNewValue().keySet().stream().anyMatch(ChunkFilter.BlockReplaceSource::matchesAir);
 		field.getNewValue().values().forEach(v -> {
 			if (v.getTile() != null) {
@@ -101,12 +105,21 @@ public final class ReplaceBlocksPreviewer {
 		private long completedAirSections;
 		private long tileEntityAdditions;
 		private long tileEntityRemovals;
+		private long overlappingBlocks;
 		private long unsupportedChunks;
 		private long errorChunks;
 		private long errorRegions;
 		private boolean replaceAir;
 		private boolean replaceWithTileEntity;
 		private final List<String> errors = new ArrayList<>(5);
+		private final List<RulePreview> rules = new ArrayList<>();
+
+		private void initializeRules(Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
+			int index = 1;
+			for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
+				rules.add(new RulePreview(index++, entry.getKey(), entry.getValue()));
+			}
+		}
 
 		private void addChunk(ChunkFilter.BlockReplacePreviewData preview) {
 			if (preview.getBlocks() > 0) {
@@ -114,6 +127,13 @@ public final class ReplaceBlocksPreviewer {
 				affectedSections += preview.getSections();
 				matchedBlocks += preview.getBlocks();
 			}
+			for (ChunkFilter.BlockReplaceRulePreviewData rule : preview.getRules()) {
+				int index = rule.getIndex() - 1;
+				if (index >= 0 && index < rules.size()) {
+					rules.get(index).addBlocks(rule.getBlocks());
+				}
+			}
+			overlappingBlocks += preview.getOverlappingBlocks();
 			lightSections += preview.getLightSections();
 			completedAirSections += preview.getCompletedAirSections();
 			tileEntityAdditions += preview.getTileEntityAdditions();
@@ -162,6 +182,10 @@ public final class ReplaceBlocksPreviewer {
 			return tileEntityRemovals;
 		}
 
+		public long getOverlappingBlocks() {
+			return overlappingBlocks;
+		}
+
 		public long getUnsupportedChunks() {
 			return unsupportedChunks;
 		}
@@ -184,6 +208,50 @@ public final class ReplaceBlocksPreviewer {
 
 		public List<String> getErrors() {
 			return errors;
+		}
+
+		public List<RulePreview> getRules() {
+			return Collections.unmodifiableList(rules);
+		}
+	}
+
+	public static class RulePreview {
+
+		private final int index;
+		private final String sourceMode;
+		private final String sourceText;
+		private final String targetText;
+		private long blocks;
+
+		private RulePreview(int index, ChunkFilter.BlockReplaceSource source, ChunkFilter.BlockReplaceData target) {
+			this.index = index;
+			sourceMode = source.getType().name().toLowerCase(Locale.ROOT).replace('_', '-');
+			sourceText = source.toString();
+			targetText = target.toString();
+		}
+
+		private void addBlocks(long blocks) {
+			this.blocks += blocks;
+		}
+
+		public int getIndex() {
+			return index;
+		}
+
+		public String getSourceMode() {
+			return sourceMode;
+		}
+
+		public String getSourceText() {
+			return sourceText;
+		}
+
+		public String getTargetText() {
+			return targetText;
+		}
+
+		public long getBlocks() {
+			return blocks;
 		}
 	}
 }

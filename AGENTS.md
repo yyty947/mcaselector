@@ -93,7 +93,7 @@ Then manually inspect the relevant dialog. Do not claim world mutation behavior 
 - Phase 4C/4D source modes are implemented; do not change `regex(...)`, `literal(...)`, or `props(...)` semantics without updating parser tests, preview expectations, and docs together.
 - Keep legacy bare/quoted sources as regex compatibility syntax.
 - Keep bare source SNBT as exact-state matching.
-- Add per-rule preview counts before piling on tile, Y range, biome, or preset conditions.
+- Preserve per-rule preview counts before piling on tile, Y range, biome, or preset conditions.
 - Warn about air replacement because it can create missing sections.
 - Keep preview/dry-run paths non-mutating: do not call `replaceBlocks(...)`, do not save regions, and do not enqueue save jobs from preview.
 - Verify tile/block entity replacement for duplicate entities before expanding tile UI support.
@@ -109,5 +109,6 @@ Then manually inspect the relevant dialog. Do not claim world mutation behavior 
 - Phase 4B property-aware rule builder UI is implemented.
 - Gate A source matching design is completed.
 - Phase 4C/4D explicit source modes are implemented.
+- Phase 5A per-rule preview counts are implemented.
 - ReplaceBlocks UI polish is implemented: debounced field-row diagnostics, visible default Builder button, and addable empty-builder example defaults.
-- Remaining work should follow the revised route: add per-rule preview counts, then tile entity safety, Y range, biome restrictions, presets, and release hardening.
+- Remaining work should follow the revised route: tile entity safety, Y range, biome restrictions, presets, and release hardening.

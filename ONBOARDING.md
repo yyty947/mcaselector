@@ -35,26 +35,27 @@ Implemented:
 - Phase 4B: property-aware rule builder UI using the Java 1.21.9 catalog.
 - Gate A: source matching design for Phase 4C/4D is decided in `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.
 - Phase 4C/4D: explicit source modes and selected-property matching using `regex(...)`, `literal(...)`, and `props(...)`.
+- Phase 5A: per-rule preview counts with source-mode rows and overlap warnings.
 - UI polish: ReplaceBlocks field-row validation waits for a short typing pause, the default NBT Changer width shows the Builder button, and the empty builder's default example can be added directly.
 
 Not implemented yet:
 
 - Phase 4E: tile entity safety controls.
 - Phase 4F: Y range and biome restrictions.
-- Phase 5: richer preview UX, including per-rule counts.
+- Phase 5 follow-ups: richer preview UX beyond per-rule counts.
 - Phase 6: copied-world test hardening and release prep.
 
 ## Next Recommended Task
 
-Next best target: Phase 5A, per-rule preview counts.
+Next best target: Phase 4E, tile entity source safety controls.
 
 Goal:
 
-- Extend preview data to count matches by ReplaceBlocks rule.
-- Keep the existing aggregate preview summary.
-- Show source mode and generated source text for each preview row.
-- Make overlap/conflict behavior visible when multiple source rules match the same original block state.
-- Keep preview non-mutating.
+- Verify current duplicate block-entity behavior on copied worlds.
+- Add include/exclude controls for source blocks that already have tile/block entities.
+- Keep target tile NBT editing out of scope until duplicate/stale block entity behavior is fixed or clearly guarded.
+- Reflect tile eligibility and estimated add/remove/update counts in preview before mutation.
+- Keep preview and execution behavior aligned.
 
 Completed Phase 4B manual validation checklist:
 
@@ -111,7 +112,7 @@ Tests:
 - `BlockRegistry` validates block IDs but does not provide per-block property schema.
 - Modern colored wool blocks are separate IDs, for example `minecraft:yellow_wool=minecraft:blue_wool`, not a color property replacement.
 - Preview must stay non-mutating: do not call `replaceBlocks(...)`, do not save regions, and do not enqueue save jobs.
-- Per-rule preview counts are not implemented yet and should come before tile/Y/biome condition work.
+- Per-rule preview counts are implemented and should be preserved before tile/Y/biome condition work.
 
 ## Forbidden Actions
 

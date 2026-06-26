@@ -138,6 +138,7 @@ Implemented controls:
 - Generated values are validated through `ReplaceBlocksField.parseNewValue(...)`.
 - Empty builders prefill real `minecraft:stone` and `minecraft:dirt` inputs, so pressing `Add rule` immediately creates a valid example rule.
 - The `Preview` button runs dry-run counts without saving region data.
+- Preview output includes aggregate counts, one row per rule with source mode/source text/target text/matched blocks, and an overlap warning when multiple rules match the same original position.
 - Error text distinguishes common invalid values and source regex warnings.
 - Java 1.21.9 catalog data is wired into the builder for property dropdowns.
 
@@ -215,6 +216,6 @@ Current 4B usage:
 - Treat the generated string as compatibility output.
 - Do not reinterpret generated source SNBT as selected-property matching; use `props(...)` for selected-property matching.
 - Dedicated source-mode UI controls and per-property subset checkboxes are still pending polish.
-- Add per-rule preview counts before layering on more conditions.
+- Preserve per-rule preview counts before layering on more conditions.
 - Tile entity UI is still pending.
 - Y range, biome restrictions, and presets are still pending.
