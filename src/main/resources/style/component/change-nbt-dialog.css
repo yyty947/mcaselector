@@ -1,6 +1,9 @@
 * {
     -color-field-valid-shadow: #00ff40;
     -color-field-valid-background: #489d5e;
+    -color-field-invalid-shadow: #ff4000;
+    -color-field-invalid-background: #9e494a;
+    -color-field-warning-text: #f0c36a;
 }
 
 .change-nbt-dialog-pane .text-field {
@@ -23,7 +26,7 @@
     -fx-background-color: -color-field-cell-odd;
 }
 
-.change-nbt-dialog-pane .field-view .field-cell .label {
+.change-nbt-dialog-pane .field-view .field-cell .field-cell-input > .label {
     -fx-text-fill: -color-text-light;
     -fx-pref-width: 150;
     -fx-min-width: 150;
@@ -34,8 +37,46 @@
     -fx-effect: dropshadow(gaussian, -color-field-valid-shadow, 4, 0, 0, 0);
 }
 
+.change-nbt-dialog-pane .field-view .field-cell-text:invalid {
+    -fx-background-color: -color-field-invalid-background;
+    -fx-effect: dropshadow(gaussian, -color-field-invalid-shadow, 4, 0, 0, 0);
+}
+
 .change-nbt-dialog-pane .field-view .field-cell-text {
     -fx-min-width: 130;
+}
+
+.change-nbt-dialog-pane .field-view .field-cell-validation {
+    -fx-padding: 2 5 3 155;
+    -fx-wrap-text: true;
+    -fx-text-fill: -color-error-text;
+}
+
+.change-nbt-dialog-pane .field-view .field-cell-validation:warning {
+    -fx-text-fill: -color-field-warning-text;
+}
+
+.change-nbt-dialog-pane .change-query-validation {
+    -fx-padding: 3 5 0 5;
+    -fx-wrap-text: true;
+    -fx-text-fill: -color-error-text;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-validation {
+    -fx-wrap-text: true;
+    -fx-text-fill: -color-error-text;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-validation:warning {
+    -fx-text-fill: -color-field-warning-text;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-block {
+    -fx-min-width: 300;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-properties .label {
+    -fx-text-fill: -color-text-light;
 }
 
 .change-nbt-dialog-pane .scroll-pane {

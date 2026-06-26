@@ -74,7 +74,7 @@ public class ChunkFilter_21w37a {
 		}
 
 		@Override
-		public void replaceBlocks(ChunkData data, Map<String, ChunkFilter.BlockReplaceData> replace) {
+		public void replaceBlocks(ChunkData data, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
 			CompoundTag level = Helper.levelFromRoot(Helper.getRegion(data));
 			ListTag sections = Helper.tagFromCompound(level, "Sections");
 			if (sections == null) {
@@ -90,7 +90,7 @@ public class ChunkFilter_21w37a {
 			Range sectionRange = Helper.findSectionRange(level, sections);
 
 			// handle the special case when someone wants to replace air with something else
-			if (replace.containsKey("minecraft:air")) {
+			if (replace.keySet().stream().anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
 				Map<Integer, CompoundTag> sectionMap = new HashMap<>();
 				List<Integer> heights = new ArrayList<>(sectionRange.num());
 				for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
@@ -148,8 +148,8 @@ public class ChunkFilter_21w37a {
 				for (int i = 0; i < 4096; i++) {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
 
-					for (Map.Entry<String, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-						if (!blockState.getString("Name").matches(entry.getKey())) {
+					for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
+						if (!entry.getKey().matches(blockState)) {
 							continue;
 						}
 						ChunkFilter.BlockReplaceData replacement = entry.getValue();
@@ -197,6 +197,134 @@ public class ChunkFilter_21w37a {
 			}
 
 			level.put("TileEntities", tileEntities);
+		}
+
+		@Override
+		public ChunkFilter.BlockReplacePreviewData previewReplaceBlocks(ChunkData data, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
+			CompoundTag level = Helper.levelFromRoot(Helper.getRegion(data));
+			ListTag sections = Helper.tagFromCompound(level, "Sections");
+			return previewReplaceBlocks(level, sections, "TileEntities", replace);
+		}
+
+		protected ChunkFilter.BlockReplacePreviewData previewReplaceBlocks(CompoundTag root, ListTag sections, String tileEntitiesKey, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
+			ChunkFilter.BlockReplacePreviewData result = ChunkFilter.BlockReplacePreviewData.supported();
+			if (root == null || sections == null) {
+				return result;
+			}
+
+			Range sectionRange = Helper.findSectionRange(root, sections);
+			if (sectionRange == null) {
+				return result;
+			}
+
+			Set<String> tileEntityLocations = getTileEntityLocations(root, tileEntitiesKey);
+
+			if (replace.keySet().stream().anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
+				Map<Integer, CompoundTag> sectionMap = new HashMap<>();
+				for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
+					sectionMap.put(section.getInt("Y"), section);
+				}
+				for (int y = sectionRange.getFrom(); y <= sectionRange.getTo(); y++) {
+					CompoundTag section = sectionMap.get(y);
+					if (section == null || !section.containsKey("block_states")) {
+						result.incrementCompletedAirSections();
+						result.incrementLightSections();
+						result.addSection(countSyntheticAirSection(replace, result));
+					}
+				}
+			}
+
+			Point2i pos = Helper.point2iFromCompound(root, "xPos", "zPos");
+			if (pos == null) {
+				return result;
+			}
+			pos = pos.chunkToBlock();
+
+			for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
+				CompoundTag blockStatesTag = section.getCompoundTag("block_states");
+				if (blockStatesTag == null) {
+					continue;
+				}
+
+				ListTag palette = Helper.tagFromCompound(blockStatesTag, "palette");
+				long[] blockStates = Helper.longArrayFromCompound(blockStatesTag, "data");
+				if (palette == null) {
+					continue;
+				}
+
+				if (palette.size() == 1 && blockStates == null) {
+					blockStates = new long[256];
+				}
+
+				int y = Helper.numberFromCompound(section, "Y", sectionRange.getFrom() - 1).intValue();
+				if (!sectionRange.contains(y)) {
+					continue;
+				}
+
+				result.incrementLightSections();
+				long sectionMatches = 0;
+				for (int i = 0; i < 4096; i++) {
+					CompoundTag blockState = getBlockAt(i, blockStates, palette);
+					Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
+					if (countMatchingBlock(blockState, replace, result, tileEntityLocations.contains(locationKey(location)))) {
+						sectionMatches++;
+					}
+				}
+				result.addSection(sectionMatches);
+			}
+
+			return result;
+		}
+
+		private long countSyntheticAirSection(Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, ChunkFilter.BlockReplacePreviewData result) {
+			CompoundTag air = new CompoundTag();
+			air.putString("Name", "minecraft:air");
+			long matches = 0;
+			for (int i = 0; i < 4096; i++) {
+				if (countMatchingBlock(air, replace, result, false)) {
+					matches++;
+				}
+			}
+			return matches;
+		}
+
+		private boolean countMatchingBlock(CompoundTag blockState, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, ChunkFilter.BlockReplacePreviewData result, boolean hasTileEntity) {
+			boolean matched = false;
+			boolean tileEntityPresent = hasTileEntity;
+			for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
+				if (!entry.getKey().matches(blockState)) {
+					continue;
+				}
+				matched = true;
+				if (entry.getValue().getTile() != null) {
+					result.incrementTileEntityAdditions();
+					tileEntityPresent = true;
+				} else if (tileEntityPresent) {
+					result.incrementTileEntityRemovals();
+					tileEntityPresent = false;
+				}
+			}
+			return matched;
+		}
+
+		private Set<String> getTileEntityLocations(CompoundTag root, String tileEntitiesKey) {
+			Set<String> locations = new HashSet<>();
+			ListTag tileEntities = Helper.tagFromCompound(root, tileEntitiesKey);
+			if (tileEntities == null) {
+				return locations;
+			}
+			for (CompoundTag tile : tileEntities.iterateType(CompoundTag.class)) {
+				locations.add(locationKey(tile.getInt("x"), tile.getInt("y"), tile.getInt("z")));
+			}
+			return locations;
+		}
+
+		private String locationKey(Point3i location) {
+			return locationKey(location.getX(), location.getY(), location.getZ());
+		}
+
+		private String locationKey(int x, int y, int z) {
+			return x + "," + y + "," + z;
 		}
 
 		protected CompoundTag completeSection(CompoundTag section, int y) {

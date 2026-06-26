@@ -1,0 +1,232 @@
+# ReplaceBlocks Next Development Plan
+
+Date: 2026-06-14
+Gate A decision date: 2026-06-14
+
+Purpose: prevent rework during the remaining ReplaceBlocks phases by separating source-matching semantics, preview observability, tile safety, spatial restrictions, and release hardening.
+
+## Current Baseline
+
+Implemented behavior:
+
+- The builder can create simple block rules.
+- The builder uses `BlockStateCatalog.latestJava()` for searchable block IDs and property dropdowns.
+- Builder-generated target property rules produce full block-state SNBT.
+- Builder-generated simple source block IDs produce `literal(...)`.
+- Builder-generated source property rules produce `props(...)`.
+- Advanced text input remains available.
+- Source name strings still use Java regex matching through `String.matches(...)`.
+- Source SNBT uses exact `CompoundTag` equality against palette block states.
+- Explicit regex source mode is available through `regex(...)`.
+- Explicit literal source mode is available through `literal(...)`.
+- Selected-property source matching is available through `props(...)`.
+- Preview is non-mutating and supports modern 1.18+ chunk formats.
+
+Not implemented:
+
+- Per-rule preview counts.
+- Dedicated source-mode selector UI and per-property subset checkboxes.
+- Tile source filters.
+- Y range, biome restrictions, and presets.
+
+## Source Matching Model
+
+Gate A and Phase 4C/4D are implemented. Keep the model below stable unless parser tests, preview expectations, and docs are updated together.
+
+Source modes:
+
+- `legacy-regex-name`: existing bare or quoted source string behavior. This remains compatibility mode and still calls `String.matches(...)` on the palette state's `Name`.
+- `regex-name`: explicit regex source mode using `regex(...)`. Runtime matching is the same as legacy regex mode, but the syntax, labels, and diagnostics show that regex behavior is intentional.
+- `literal-name`: explicit block ID mode using `literal(...)`. Runtime matching compares the palette state's `Name` with `String.equals(...)`; regex metacharacters have no special meaning.
+- `exact-state`: existing source SNBT mode. A source that starts with `{` remains full `CompoundTag.equals(...)` against the palette block-state compound.
+- `selected-properties`: explicit subset mode using `props(...)`. Runtime matching requires exact `Name` equality and equality for every selected property key only.
+
+Compatibility rules:
+
+- Do not change bare source strings. `stone=dirt`, `minecraft:stone=minecraft:dirt`, and quoted legacy sources must behave as they do now.
+- Do not reinterpret existing source SNBT. `{Name:"minecraft:oak_stairs",Properties:{facing:"north"}}=...` remains exact-state matching and may not match stored palette states with additional properties.
+- Add new syntax only for new behavior. Literal and selected-properties matching must be opt-in.
+- The builder generates `literal(...)` for ordinary simple source block IDs.
+
+## Chosen Raw Syntax
+
+New syntax applies only to the source side of `from=to`. Target syntax remains unchanged.
+
+```text
+minecraft:stone=minecraft:dirt
+regex(minecraft:.*_log)=minecraft:stone
+literal(minecraft:stone)=minecraft:dirt
+literal(stone)=minecraft:dirt
+{Name:"minecraft:oak_stairs",Properties:{facing:"north",half:"bottom",shape:"straight",waterlogged:"false"}}=minecraft:stone
+props({Name:"minecraft:oak_stairs",Properties:{facing:"north"}})=minecraft:stone
+```
+
+Meanings:
+
+- `minecraft:stone=minecraft:dirt` is legacy regex-name mode. It happens to behave like a literal match for this ID, but the semantics remain regex.
+- `regex(minecraft:.*_log)=minecraft:stone` is explicit regex-name mode. The argument is the Java regex pattern used by `String.matches(...)`.
+- `literal(minecraft:stone)=minecraft:dirt` is exact block ID mode.
+- `literal(stone)=minecraft:dirt` normalizes the source to `minecraft:stone`.
+- Bare source SNBT remains exact-state mode.
+- `props(...)` parses the inner SNBT as a block state selector, but only the listed `Properties` keys participate in matching.
+
+Wrapper parsing decisions:
+
+- Supported wrappers are `literal(...)`, `regex(...)`, and `props(...)`.
+- Wrapper names are lowercase and source-side only.
+- `literal(...)` accepts a block ID or short vanilla ID. Short IDs normalize to `minecraft:<id>`.
+- `regex(...)` accepts a Java regex pattern and should be validated by compiling the pattern before execution.
+- If a literal or regex argument needs a closing parenthesis or leading/trailing whitespace, allow a single-quoted argument such as `regex('minecraft:(oak|birch)_log')`.
+- `props(...)` must contain valid SNBT whose root compound has `Name` and a non-empty `Properties` compound.
+- `props(...)` with no selected properties should be rejected with a targeted diagnostic; use `literal(...)` for name-only matching.
+
+Selected-properties matching:
+
+- Compare `Name` with exact string equality.
+- Read the selector's `Properties` compound.
+- For every selected property key, require the palette state's `Properties` compound to contain the same key with an equal tag value.
+- Ignore palette properties that are not listed in the selector.
+- If the palette state has no `Properties`, or is missing any selected key, it does not match.
+
+## Builder Contract
+
+The builder now exposes source intent in generated text for the modes it can emit.
+
+Recommended builder source modes:
+
+- `Block ID`: generate `literal(<source>)=<target>`.
+- `Regex`: generate `regex(<pattern>)=<target>`.
+- `Exact state`: generate existing source SNBT directly.
+- `Selected properties`: generate `props(<source-state-selector>)=<target>`.
+
+Builder property behavior:
+
+- Known catalog blocks should let the user choose whether source properties are exact-state or selected-properties.
+- Selected-properties mode should serialize only the properties the user selected.
+- Exact-state mode should serialize the full state that the user selected.
+- Unknown or modded resource locations should still be enterable manually.
+- Advanced text remains the escape hatch for legacy regex values and hand-written SNBT.
+
+## Phase 4C/4D Implementation Status
+
+Implemented:
+
+- Parser and diagnostic tests cover legacy compatibility and new syntax.
+- `ChunkFilter.BlockReplaceSource` carries a source-mode enum and round-trips every source mode.
+- `matches(...)` supports literal-name and selected-properties.
+- `matchesAir()` follows the same source-mode semantics as `matches(...)`.
+- `ReplaceBlocksField.readSource(...)` and `valueToString()` round-trip every source mode.
+- `ReplaceBlocksDiagnostics` reports targeted errors for invalid wrappers, invalid regex patterns, invalid literal IDs, and empty `props(...)` selectors.
+- Preview and execution share `BlockReplaceSource.matches(...)`.
+- Builder-generated simple block ID sources use `literal(...)`.
+
+Known UI follow-up:
+
+- The builder can emit `literal(...)` and `props(...)`, and advanced text can use `regex(...)`.
+- A dedicated source-mode selector and per-property subset checkboxes are still future UX polish.
+
+## Preview And Rule Ordering
+
+Current execution scans rules in insertion order for each original block state. It does not break after the first matching rule. If multiple source rules match the same original state, more than one replacement operation can run for that position.
+
+Phase 4C/4D preserves this behavior unless a later phase explicitly changes and tests rule conflict semantics.
+
+Phase 5A per-rule preview should therefore report:
+
+- aggregate matched blocks, counting each block position once when any rule matches.
+- per-rule matched blocks, counting each rule match separately.
+- a visible overlap/conflict indicator when per-rule counts sum higher than aggregate matched blocks.
+
+## Acceptance Tests For 4C/4D
+
+Parser and round-trip tests:
+
+- `minecraft:stone=minecraft:dirt` parses as `legacy-regex-name` and serializes as the existing syntax.
+- `'custom:block'=minecraft:stone` remains legacy regex-name compatibility syntax.
+- `regex(minecraft:.*_log)=minecraft:stone` parses as `regex-name`.
+- `literal(minecraft:stone)=minecraft:dirt` parses as `literal-name`.
+- `literal(stone)=minecraft:dirt` serializes with `minecraft:stone`.
+- Existing source SNBT parses as `exact-state`.
+- `props({Name:"minecraft:oak_stairs",Properties:{facing:"north"}})=minecraft:stone` parses as `selected-properties`.
+- Empty `props({Name:"minecraft:stone"})=minecraft:dirt` is rejected with a targeted diagnostic.
+- Invalid regex syntax is rejected before execution.
+
+Matching tests:
+
+- Legacy regex behavior remains unchanged.
+- Explicit regex and legacy regex match the same names for the same pattern.
+- Literal mode treats regex metacharacters literally.
+- Exact-state mode requires full compound equality.
+- Selected-properties mode matches all north-facing stairs regardless of unselected `half`, `shape`, or `waterlogged` values.
+- Selected-properties mode does not match another block name with the same property key.
+- Preview and execution use the same matching result on copied worlds.
+
+## Preview Comes Before More Conditions
+
+Source modes are now represented internally. Add per-rule preview counts before implementing tile filters or Y range.
+
+Reason:
+
+- Total matched block counts are too coarse once rules can use literal, regex, exact-state, and selected-property matching.
+- Per-rule counts make later tile/Y/biome work much easier to validate.
+
+Preview requirements:
+
+- Keep the aggregate summary.
+- Add one row per rule with its generated text, source mode, and matched block count.
+- Preserve warnings for air replacement, tile entities, lighting, heightmaps, and unsupported chunks.
+- Keep preview non-mutating.
+
+## Tile Entity Safety
+
+Do not add rich tile NBT editing first.
+
+Recommended order:
+
+- Verify current tile-to-tile replacement behavior on copied worlds.
+- If duplicate block entities are possible, fix or clearly guard it before exposing tile editing.
+- Add include/exclude tile entity source filters.
+- Add preview estimates for tile add/remove/update effects.
+- Add tile NBT editing later, with warning-heavy UI for containers, signs, banners, command blocks, and similar blocks.
+
+## Spatial Restrictions
+
+Implement in two parts:
+
+- Y range first.
+- Biome restriction after Y range is stable.
+
+Y range should be applied identically in preview and execution. Air replacement must be tested on tiny copied selections because it can create sparse sections.
+
+Biome restriction needs a documented granularity decision before coding:
+
+- block-position aware
+- section/palette aware
+- chunk/selection aware
+
+Do not implement biome UI until that decision is explicit.
+
+## Presets
+
+Add presets after source modes, preview, tile safety, and Y range are stable.
+
+Presets should generate editable rules rather than hidden behavior. They must show source mode, target, tile behavior, Y range, and biome conditions when relevant.
+
+## Testing Rhythm
+
+Every remaining phase should include:
+
+- Parser/source-mode tests when syntax or semantics change.
+- Preview tests or manual preview checks before execution checks.
+- Copied-world manual tests for any mutating behavior.
+- JavaFX manual inspection for dialog changes.
+- Documentation updates in the same change set.
+
+Minimum command checks after Java changes:
+
+```powershell
+.\gradlew.bat compileJava
+.\gradlew.bat test
+```
+
+Use narrower tests during development when possible, then broaden before release hardening.

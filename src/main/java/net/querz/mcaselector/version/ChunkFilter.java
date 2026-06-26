@@ -22,7 +22,10 @@ public interface ChunkFilter {
 	interface Blocks {
 		boolean matchBlockNames(ChunkData data, Collection<String> names);
 		boolean matchAnyBlockName(ChunkData data, Collection<String> names);
-		void replaceBlocks(ChunkData data, Map<String, BlockReplaceData> replace);
+		void replaceBlocks(ChunkData data, Map<BlockReplaceSource, BlockReplaceData> replace);
+		default BlockReplacePreviewData previewReplaceBlocks(ChunkData data, Map<BlockReplaceSource, BlockReplaceData> replace) {
+			return BlockReplacePreviewData.unsupported();
+		}
 		int getBlockAmount(ChunkData data, String[] blocks);
 		int getAverageHeight(ChunkData data);
 	}
@@ -210,6 +213,124 @@ public interface ChunkFilter {
 
 	interface MergePOI extends Merge {}
 
+	class BlockReplaceSource {
+
+		private final BlockReplaceSourceType type;
+		private final String name;
+		private final CompoundTag state;
+
+		public BlockReplaceSource(String name) {
+			this.type = BlockReplaceSourceType.LEGACY_REGEX_NAME;
+			this.name = name;
+			state = null;
+		}
+
+		public BlockReplaceSource(CompoundTag state) {
+			this.type = BlockReplaceSourceType.EXACT_STATE;
+			this.state = state;
+			name = state.getString("Name");
+		}
+
+		private BlockReplaceSource(BlockReplaceSourceType type, String name, CompoundTag state) {
+			this.type = type;
+			this.name = name;
+			this.state = state;
+		}
+
+		public static BlockReplaceSource regexName(String pattern) {
+			return new BlockReplaceSource(BlockReplaceSourceType.REGEX_NAME, pattern, null);
+		}
+
+		public static BlockReplaceSource literalName(String name) {
+			return new BlockReplaceSource(BlockReplaceSourceType.LITERAL_NAME, name, null);
+		}
+
+		public static BlockReplaceSource selectedProperties(CompoundTag state) {
+			return new BlockReplaceSource(BlockReplaceSourceType.SELECTED_PROPERTIES, state.getString("Name"), state);
+		}
+
+		public boolean matches(CompoundTag blockState) {
+			String blockName = blockState.getString("Name");
+			switch (type) {
+				case EXACT_STATE:
+					return state.equals(blockState);
+				case SELECTED_PROPERTIES:
+					return Objects.equals(name, blockName) && matchesSelectedProperties(blockState);
+				case LITERAL_NAME:
+					return Objects.equals(name, blockName);
+				case LEGACY_REGEX_NAME:
+				case REGEX_NAME:
+					return blockName != null && blockName.matches(name);
+				default:
+					return false;
+			}
+		}
+
+		private boolean matchesSelectedProperties(CompoundTag blockState) {
+			CompoundTag selectedProperties = state.getCompoundTag("Properties");
+			if (selectedProperties == null || selectedProperties.isEmpty()) {
+				return false;
+			}
+			CompoundTag blockProperties = blockState.getCompoundTag("Properties");
+			if (blockProperties == null) {
+				return false;
+			}
+			for (Map.Entry<String, Tag> property : selectedProperties) {
+				Tag blockValue = blockProperties.get(property.getKey());
+				if (!property.getValue().equals(blockValue)) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		public boolean matchesAir() {
+			CompoundTag air = new CompoundTag();
+			air.putString("Name", "minecraft:air");
+			return matches(air);
+		}
+
+		public BlockReplaceSourceType getType() {
+			return type;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		@Override
+		public String toString() {
+			switch (type) {
+				case EXACT_STATE:
+					return NBTUtil.toSNBT(state);
+				case SELECTED_PROPERTIES:
+					return "props(" + NBTUtil.toSNBT(state) + ")";
+				case REGEX_NAME:
+					return "regex(" + formatWrapperArgument(name) + ")";
+				case LITERAL_NAME:
+					return "literal(" + formatWrapperArgument(name) + ")";
+				case LEGACY_REGEX_NAME:
+					if (name.startsWith("minecraft:")) {
+						return name;
+					}
+					return "'" + name + "'";
+				default:
+					return null;
+			}
+		}
+
+		private static String formatWrapperArgument(String value) {
+			if (!value.equals(value.trim()) || value.contains(")")) {
+				return "'" + value + "'";
+			}
+			return value;
+		}
+	}
+
+	enum BlockReplaceSourceType {
+		LEGACY_REGEX_NAME, REGEX_NAME, LITERAL_NAME, EXACT_STATE, SELECTED_PROPERTIES
+	}
+
 	class BlockReplaceData {
 
 		private String name;
@@ -295,6 +416,80 @@ public interface ChunkFilter {
 				default:
 					return null;
 			}
+		}
+	}
+
+	class BlockReplacePreviewData {
+
+		private final boolean supported;
+		private long blocks;
+		private int sections;
+		private int lightSections;
+		private int completedAirSections;
+		private long tileEntityAdditions;
+		private long tileEntityRemovals;
+
+		private BlockReplacePreviewData(boolean supported) {
+			this.supported = supported;
+		}
+
+		public static BlockReplacePreviewData supported() {
+			return new BlockReplacePreviewData(true);
+		}
+
+		public static BlockReplacePreviewData unsupported() {
+			return new BlockReplacePreviewData(false);
+		}
+
+		public boolean isSupported() {
+			return supported;
+		}
+
+		public void addSection(long blocks) {
+			if (blocks > 0) {
+				this.blocks += blocks;
+				sections++;
+			}
+		}
+
+		public void incrementLightSections() {
+			lightSections++;
+		}
+
+		public void incrementCompletedAirSections() {
+			completedAirSections++;
+		}
+
+		public void incrementTileEntityAdditions() {
+			tileEntityAdditions++;
+		}
+
+		public void incrementTileEntityRemovals() {
+			tileEntityRemovals++;
+		}
+
+		public long getBlocks() {
+			return blocks;
+		}
+
+		public int getSections() {
+			return sections;
+		}
+
+		public int getLightSections() {
+			return lightSections;
+		}
+
+		public int getCompletedAirSections() {
+			return completedAirSections;
+		}
+
+		public long getTileEntityAdditions() {
+			return tileEntityAdditions;
+		}
+
+		public long getTileEntityRemovals() {
+			return tileEntityRemovals;
 		}
 	}
 

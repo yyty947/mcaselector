@@ -282,7 +282,7 @@ public class ChunkFilter_21w06a {
 	public static class Blocks extends ChunkFilter_20w17a.Blocks {
 
 		@Override
-		public void replaceBlocks(ChunkData data, Map<String, ChunkFilter.BlockReplaceData> replace) {
+		public void replaceBlocks(ChunkData data, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
 			CompoundTag level = Helper.levelFromRoot(Helper.getRegion(data));
 			ListTag sections = Helper.tagFromLevelFromRoot(level, "Sections");
 			if (sections == null) {
@@ -298,7 +298,7 @@ public class ChunkFilter_21w06a {
 			Range sectionRange = Helper.findSectionRange(level, sections);
 
 			// handle the special case when someone wants to replace air with something else
-			if (replace.containsKey("minecraft:air")) {
+			if (replace.keySet().stream().anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
 				Map<Integer, CompoundTag> sectionMap = new HashMap<>();
 				List<Integer> heights = new ArrayList<>(sectionRange.num());
 				for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
@@ -353,8 +353,8 @@ public class ChunkFilter_21w06a {
 				for (int i = 0; i < 4096; i++) {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
 
-					for (Map.Entry<String, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-						if (!blockState.getString("Name").matches(entry.getKey())) {
+					for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
+						if (!entry.getKey().matches(blockState)) {
 							continue;
 						}
 						ChunkFilter.BlockReplaceData replacement = entry.getValue();

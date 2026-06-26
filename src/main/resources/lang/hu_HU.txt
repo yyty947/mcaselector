@@ -1,4 +1,4 @@
-status.region;régió
+﻿status.region;régió
 status.chunk;chunk
 status.block;block
 status.selected;kijelölve
@@ -206,3 +206,47 @@ dialog.request_number.title.array_length;A tömb hossza
 dialog.request_number.title.enter_number;Érték
 button.cancel;Visszavonás
 button.ok;OK
+dialog.replace_blocks.builder.button;Builder
+dialog.replace_blocks.builder.title;ReplaceBlocks Builder
+dialog.replace_blocks.builder.from;From block
+dialog.replace_blocks.builder.to;To block
+dialog.replace_blocks.builder.add_rule;Add rule
+dialog.replace_blocks.builder.delete_rule;Delete rule
+dialog.replace_blocks.builder.rules;Rules
+dialog.replace_blocks.builder.result;Generated ReplaceBlocks
+dialog.replace_blocks.builder.invalid;Invalid block id or generated rule.
+dialog.replace_blocks.builder.duplicate;This rule already exists.
+dialog.replace_blocks.builder.empty;Add at least one rule.
+dialog.replace_blocks.builder.advanced;Advanced text input remains available; from/to also accept block state SNBT with Name.
+dialog.replace_blocks.validation.source_empty;Enter a source block id.
+dialog.replace_blocks.validation.target_empty;Enter a target block id.
+dialog.replace_blocks.validation.source_unknown;Unknown source block "%s".
+dialog.replace_blocks.validation.target_unknown;Unknown target block "%s".
+dialog.replace_blocks.validation.source_format;Source block id must look like minecraft:stone or modid:block_name.
+dialog.replace_blocks.validation.target_format;Target block id must look like minecraft:dirt or modid:block_name.
+dialog.replace_blocks.validation.missing_equals;Each ReplaceBlocks rule needs from=to.
+dialog.replace_blocks.validation.state_snbt;Block state SNBT must be a valid compound, for example {Name:"minecraft:stone"}.
+dialog.replace_blocks.validation.tile_empty;Tile entity SNBT is missing after ;.
+dialog.replace_blocks.validation.tile_snbt;Tile entity SNBT must be a valid compound.
+dialog.replace_blocks.validation.trailing;Unexpected text after this rule. Separate rules with commas.
+dialog.replace_blocks.validation.target_quote;Quoted target block is missing a closing quote.
+dialog.replace_blocks.validation.quoted_target_ambiguous;Quoted target blocks are fragile before another rule or tile SNBT. Use {Name:"modid:block"} instead.
+dialog.replace_blocks.validation.source_regex;Source "%s" is treated as a Java regex when matching blocks.
+dialog.replace_blocks.validation.source_mode_wrapper;Source mode wrappers must be literal(...), regex(...), or props(...).
+dialog.replace_blocks.validation.source_literal;literal(...) source must contain a valid block id. Invalid source: "%s".
+dialog.replace_blocks.validation.source_regex_syntax;regex(...) source must contain a valid Java regex.
+dialog.replace_blocks.validation.source_props;props(...) source must contain block-state SNBT with Name and at least one selected property.
+dialog.change_nbt.query_invalid;Invalid change query: %s
+dialog.change_nbt.replace_blocks_query_quote;In the advanced query field, wrap ReplaceBlocks values in double quotes, for example ReplaceBlocks = "minecraft:stone=minecraft:dirt".
+dialog.replace_blocks.preview.button;Preview
+dialog.replace_blocks.preview.title;ReplaceBlocks Preview
+dialog.replace_blocks.preview.no_field;Enter a valid ReplaceBlocks value before running preview.
+dialog.replace_blocks.preview.result;Dry-run completed.\nScanned regions: %d\nScanned chunks: %d\nAffected chunks: %d\nAffected sections: %d\nMatched blocks: %d\nTile entities to add: %d\nTile entities to remove: %d
+dialog.replace_blocks.preview.warning_air;Air replacement may complete missing sections before replacement. Preview counted %d missing or incomplete air sections.
+dialog.replace_blocks.preview.warning_tile;Tile entity replacement can add or remove block entities. Test on copied worlds before applying.
+dialog.replace_blocks.preview.warning_light;The current ReplaceBlocks implementation may remove light arrays from %d processed sections.
+dialog.replace_blocks.preview.warning_heightmaps;Heightmaps are recomputed for processed chunks during the real change. Preview scanned %d chunks.
+dialog.replace_blocks.preview.warning_unsupported;Preview is not implemented for %d scanned chunks in older or unsupported versions.
+dialog.replace_blocks.preview.warning_errors;Preview skipped %d chunks and %d regions because of errors:
+dialog.progress.title.preview_replace_blocks;Preview ReplaceBlocks
+dialog.replace_blocks.validation.source_state_snbt;Source block state SNBT must be a valid compound with a Name value.

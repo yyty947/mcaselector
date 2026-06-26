@@ -1,4 +1,4 @@
-status.region;區域
+﻿status.region;區域
 status.chunk;區塊
 status.block;方塊
 status.selected;已選擇
@@ -206,3 +206,47 @@ dialog.request_number.title.array_length;數組的長度
 dialog.request_number.title.enter_number;價值
 button.cancel;取消
 button.ok;確定
+dialog.replace_blocks.builder.button;Builder
+dialog.replace_blocks.builder.title;ReplaceBlocks Builder
+dialog.replace_blocks.builder.from;From block
+dialog.replace_blocks.builder.to;To block
+dialog.replace_blocks.builder.add_rule;Add rule
+dialog.replace_blocks.builder.delete_rule;Delete rule
+dialog.replace_blocks.builder.rules;Rules
+dialog.replace_blocks.builder.result;Generated ReplaceBlocks
+dialog.replace_blocks.builder.invalid;Invalid block id or generated rule.
+dialog.replace_blocks.builder.duplicate;這條規則已存在。
+dialog.replace_blocks.builder.empty;Add at least one rule.
+dialog.replace_blocks.builder.advanced;高级文本输入仍可用；from/to 也可输入包含 Name 的方块状态 SNBT。
+dialog.replace_blocks.validation.source_empty;请输入来源方块 ID。
+dialog.replace_blocks.validation.target_empty;请输入目标方块 ID。
+dialog.replace_blocks.validation.source_unknown;未知来源方块 "%s"。
+dialog.replace_blocks.validation.target_unknown;未知目标方块 "%s"。
+dialog.replace_blocks.validation.source_format;来源方块 ID 应类似 minecraft:stone 或 modid:block_name。
+dialog.replace_blocks.validation.target_format;目标方块 ID 应类似 minecraft:dirt 或 modid:block_name。
+dialog.replace_blocks.validation.missing_equals;每条 ReplaceBlocks 规则都需要 from=to。
+dialog.replace_blocks.validation.state_snbt;方块状态 SNBT 必须是合法 compound，例如 {Name:"minecraft:stone"}。
+dialog.replace_blocks.validation.tile_empty;; 后缺少方块实体 SNBT。
+dialog.replace_blocks.validation.tile_snbt;方块实体 SNBT 必须是合法 compound。
+dialog.replace_blocks.validation.trailing;规则后有意外文本。多条规则请用逗号分隔。
+dialog.replace_blocks.validation.target_quote;带引号的目标方块缺少结束引号。
+dialog.replace_blocks.validation.quoted_target_ambiguous;带引号的目标方块接多规则或 tile SNBT 时较脆弱。请改用 {Name:"modid:block"}。
+dialog.replace_blocks.validation.source_regex;来源 "%s" 在匹配方块时会被当作 Java 正则。
+dialog.replace_blocks.validation.source_mode_wrapper;來源模式包裝器必須是 literal(...)、regex(...) 或 props(...)。
+dialog.replace_blocks.validation.source_literal;literal(...) 來源必須包含有效方塊 ID。無效來源：「%s」。
+dialog.replace_blocks.validation.source_regex_syntax;regex(...) 來源必須包含有效的 Java 正則。
+dialog.replace_blocks.validation.source_props;props(...) 來源必須包含帶 Name 且至少選擇一個屬性的方塊狀態 SNBT。
+dialog.change_nbt.query_invalid;更改查询无效：%s
+dialog.change_nbt.replace_blocks_query_quote;在高级查询框中，ReplaceBlocks 的值需要用英文双引号包住，例如 ReplaceBlocks = "minecraft:stone=minecraft:dirt"。
+dialog.replace_blocks.preview.button;预览
+dialog.replace_blocks.preview.title;ReplaceBlocks 预览
+dialog.replace_blocks.preview.no_field;请先输入有效的 ReplaceBlocks 值，再运行预览。
+dialog.replace_blocks.preview.result;Dry-run 完成。\n扫描 region：%d\n扫描 chunk：%d\n受影响 chunk：%d\n受影响 section：%d\n匹配方块数：%d\n将新增方块实体：%d\n将移除方块实体：%d
+dialog.replace_blocks.preview.warning_air;替换 air 可能会先补全缺失 section。预览已计入 %d 个缺失或不完整的 air section。
+dialog.replace_blocks.preview.warning_tile;方块实体替换可能新增或移除 block entity。正式应用前请先用复制世界测试。
+dialog.replace_blocks.preview.warning_light;当前 ReplaceBlocks 实现可能会移除 %d 个已处理 section 的光照数组。
+dialog.replace_blocks.preview.warning_heightmaps;真实修改时会对已处理 chunk 重算 heightmap。预览扫描了 %d 个 chunk。
+dialog.replace_blocks.preview.warning_unsupported;有 %d 个已扫描 chunk 属于较旧或暂不支持版本，未进行预览。
+dialog.replace_blocks.preview.warning_errors;预览因错误跳过了 %d 个 chunk 和 %d 个 region：
+dialog.progress.title.preview_replace_blocks;预览 ReplaceBlocks
+dialog.replace_blocks.validation.source_state_snbt;来源方块状态 SNBT 必须是包含 Name 的合法 compound。

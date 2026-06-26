@@ -219,14 +219,14 @@ public class ChunkFilter_15w32a {
 		}
 
 		@Override
-		public void replaceBlocks(ChunkData data, Map<String, ChunkFilter.BlockReplaceData> replace) {
+		public void replaceBlocks(ChunkData data, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
 			ListTag sections = Helper.tagFromLevelFromRoot(Helper.getRegion(data), "Sections");
 			if (sections == null) {
 				return;
 			}
 
 			// handle the special case when someone wants to replace air with something else
-			if (replace.containsKey("minecraft:air")) {
+			if (replace.keySet().stream().anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
 				Map<Integer, CompoundTag> sectionMap = new HashMap<>();
 				List<Integer> heights = new ArrayList<>(18);
 				for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
@@ -255,8 +255,8 @@ public class ChunkFilter_15w32a {
 			}
 
 			for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
-				for (Map.Entry<String, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-					BlockData[] bd = mapping.get(entry.getKey());
+				for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
+					BlockData[] bd = mapping.get(entry.getKey().getName());
 					BlockData bdr = mapping.get(entry.getValue().getName())[0];
 
 					byte[] blocks = section.getByteArray("Blocks");

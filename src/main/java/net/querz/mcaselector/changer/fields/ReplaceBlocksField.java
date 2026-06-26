@@ -7,12 +7,17 @@ import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.mcaselector.version.VersionHandler;
 import net.querz.mcaselector.version.mapping.registry.BlockRegistry;
 import net.querz.nbt.CompoundTag;
+import net.querz.nbt.Tag;
 import net.querz.nbt.io.snbt.ParseException;
 import net.querz.nbt.io.snbt.SNBTParser;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
-public class ReplaceBlocksField extends Field<Map<String, ChunkFilter.BlockReplaceData>> {
+public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData>> {
+
+	private static final Pattern RESOURCE_LOCATION = Pattern.compile("[a-z0-9_.-]+:[a-z0-9_./-]+");
 
 	public ReplaceBlocksField() {
 		super(FieldType.REPLACE_BLOCKS);
@@ -25,33 +30,32 @@ public class ReplaceBlocksField extends Field<Map<String, ChunkFilter.BlockRepla
 		// from format: minecraft:<block-name>
 		//              <block-name>
 		//              '<custom-block-name-with-namespace>'
+		//              <snbt-string-block-state>
+		//              literal(<block-name>)
+		//              regex(<java-regex>)
+		//              props(<snbt-string-block-state-with-properties>)
 		// to format:   minecraft:<block-name>
 		//              <block-name>
 		//              '<custom-block-name-with-namespace>'
 		//              <snbt-string-block-state>
 		//              <to>;<snbt-string-tile-entity>
 
-		Map<String, ChunkFilter.BlockReplaceData> newValue = new HashMap<>();
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> newValue = new LinkedHashMap<>();
 
 		String trimmed = s.trim();
 
 		while (!trimmed.isEmpty()) {
-			String[] fromTo = trimmed.split("=", 2);
-			if (fromTo.length != 2) {
+			SourceReadResult source = readSource(trimmed);
+			if (source == null) {
 				return super.parseNewValue(s);
 			}
 
-			String from = fromTo[0].trim();
-			if (from.startsWith("'") && from.endsWith("'") && from.length() > 2) {
-				from = from.substring(1, from.length() - 1);
-			} else if (!from.startsWith("minecraft:")) {
-				from = "minecraft:" + from;
-				if (!BlockRegistry.isValidName(from)) {
-					return super.parseNewValue(s);
-				}
+			String to = trimmed.substring(source.read()).trim();
+			if (!to.startsWith("=")) {
+				return super.parseNewValue(s);
 			}
+			to = to.substring(1).trim();
 
-			String to = fromTo[1].trim();
 			int read = 0;
 			CompoundTag toState = null;
 			String toName = null;
@@ -59,9 +63,13 @@ public class ReplaceBlocksField extends Field<Map<String, ChunkFilter.BlockRepla
 				// block state
 				try {
 					SNBTParser parser = new SNBTParser(to);
-					toState = (CompoundTag) parser.parse(true);
+					Tag parsed = parser.parse(true);
+					if (!(parsed instanceof CompoundTag compound) || compound.getString("Name") == null) {
+						return super.parseNewValue(s);
+					}
+					toState = compound;
 					read += parser.getReadChars() - 1;
-				} catch (ParseException ex) {
+				} catch (ParseException | RuntimeException ex) {
 					return super.parseNewValue(s);
 				}
 			} else if (to.startsWith("'")) {
@@ -129,7 +137,7 @@ public class ReplaceBlocksField extends Field<Map<String, ChunkFilter.BlockRepla
 			} else {
 				return super.parseNewValue(s);
 			}
-			newValue.put(from, data);
+			newValue.put(source.source(), data);
 
 			to = to.trim();
 
@@ -150,8 +158,155 @@ public class ReplaceBlocksField extends Field<Map<String, ChunkFilter.BlockRepla
 		return true;
 	}
 
+	private SourceReadResult readSource(String s) {
+		if (s.startsWith("{")) {
+			try {
+				SNBTParser parser = new SNBTParser(s);
+				Tag parsed = parser.parse(true);
+				if (!(parsed instanceof CompoundTag state) || state.getString("Name") == null) {
+					return null;
+				}
+				return new SourceReadResult(new ChunkFilter.BlockReplaceSource(state), parser.getReadChars() - 1);
+			} catch (ParseException | RuntimeException ex) {
+				return null;
+			}
+		}
+
+		if (startsWithSourceWrapper(s)) {
+			return readWrappedSource(s);
+		}
+
+		int equals = s.indexOf('=');
+		if (equals < 0) {
+			return null;
+		}
+
+		String from = s.substring(0, equals).trim();
+		if (from.startsWith("'") && from.endsWith("'") && from.length() > 2) {
+			from = from.substring(1, from.length() - 1);
+		} else if (!from.startsWith("minecraft:")) {
+			from = "minecraft:" + from;
+			if (!BlockRegistry.isValidName(from)) {
+				return null;
+			}
+		}
+		if (from.isEmpty()) {
+			return null;
+		}
+		return new SourceReadResult(new ChunkFilter.BlockReplaceSource(from), equals);
+	}
+
+	private boolean startsWithSourceWrapper(String s) {
+		return s.startsWith("literal(") || s.startsWith("regex(") || s.startsWith("props(");
+	}
+
+	private SourceReadResult readWrappedSource(String s) {
+		if (s.startsWith("literal(")) {
+			return readNameWrapper(s, "literal(", true);
+		}
+		if (s.startsWith("regex(")) {
+			return readNameWrapper(s, "regex(", false);
+		}
+		if (s.startsWith("props(")) {
+			int end = findWrapperEnd(s, "props(".length());
+			if (end < 0) {
+				return null;
+			}
+			CompoundTag state = parseStateSelector(unwrapWrapperArgument(s.substring("props(".length(), end)));
+			if (state == null || state.getCompoundTag("Properties") == null || state.getCompoundTag("Properties").isEmpty()) {
+				return null;
+			}
+			return new SourceReadResult(ChunkFilter.BlockReplaceSource.selectedProperties(state), end + 1);
+		}
+		return null;
+	}
+
+	private SourceReadResult readNameWrapper(String s, String prefix, boolean literal) {
+		int end = findWrapperEnd(s, prefix.length());
+		if (end < 0) {
+			return null;
+		}
+		String argument = unwrapWrapperArgument(s.substring(prefix.length(), end));
+		if (argument.isEmpty()) {
+			return null;
+		}
+		if (literal) {
+			String name = normalizeLiteralName(argument);
+			if (name == null) {
+				return null;
+			}
+			return new SourceReadResult(ChunkFilter.BlockReplaceSource.literalName(name), end + 1);
+		}
+		try {
+			Pattern.compile(argument);
+		} catch (PatternSyntaxException ex) {
+			return null;
+		}
+		return new SourceReadResult(ChunkFilter.BlockReplaceSource.regexName(argument), end + 1);
+	}
+
+	private int findWrapperEnd(String s, int start) {
+		boolean singleQuoted = false;
+		boolean doubleQuoted = false;
+		boolean escaped = false;
+		for (int i = start; i < s.length(); i++) {
+			char c = s.charAt(i);
+			if (escaped) {
+				escaped = false;
+				continue;
+			}
+			if (doubleQuoted && c == '\\') {
+				escaped = true;
+				continue;
+			}
+			if (c == '\'' && !doubleQuoted) {
+				singleQuoted = !singleQuoted;
+				continue;
+			}
+			if (c == '"' && !singleQuoted) {
+				doubleQuoted = !doubleQuoted;
+				continue;
+			}
+			if (c == ')' && !singleQuoted && !doubleQuoted) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	private String unwrapWrapperArgument(String argument) {
+		String trimmed = argument.trim();
+		if (trimmed.length() >= 2 && trimmed.startsWith("'") && trimmed.endsWith("'")) {
+			return trimmed.substring(1, trimmed.length() - 1);
+		}
+		return trimmed;
+	}
+
+	private String normalizeLiteralName(String name) {
+		if (!name.contains(":")) {
+			name = "minecraft:" + name;
+		}
+		if (name.startsWith("minecraft:")) {
+			return BlockRegistry.isValidName(name) ? name : null;
+		}
+		return RESOURCE_LOCATION.matcher(name).matches() ? name : null;
+	}
+
+	private CompoundTag parseStateSelector(String raw) {
+		try {
+			SNBTParser parser = new SNBTParser(raw);
+			Tag parsed = parser.parse(true);
+			if (!(parsed instanceof CompoundTag state) || state.getString("Name") == null) {
+				return null;
+			}
+			return state;
+		} catch (ParseException | RuntimeException ex) {
+			return null;
+		}
+	}
+
 	@Override
-	public Map<String, ChunkFilter.BlockReplaceData> getOldValue(ChunkData data) {
+	public Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> getOldValue(ChunkData data) {
 		return null;
 	}
 
@@ -172,27 +327,22 @@ public class ReplaceBlocksField extends Field<Map<String, ChunkFilter.BlockRepla
 
 	@Override
 	public String toString() {
-		return getType().toString() + " = \"" + valueToString() + "\"";
+		return getType().toString() + " = \"" + escapeString(valueToString()) + "\"";
 	}
 
 	@Override
 	public String valueToString() {
 		StringBuilder sb = new StringBuilder();
 		boolean first = true;
-		for (Map.Entry<String, ChunkFilter.BlockReplaceData> entry : getNewValue().entrySet()) {
+		for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : getNewValue().entrySet()) {
 			if (first) {
 				first = false;
 			} else {
 				sb.append(", ");
 			}
-			String from = entry.getKey();
-			if (!from.startsWith("minecraft:")) {
-				sb.append("'").append(from).append("'");
-			} else {
-				sb.append(entry.getKey());
-			}
+			sb.append(entry.getKey());
 			sb.append("=");
-			sb.append(escapeString(entry.getValue().toString()));
+			sb.append(entry.getValue());
 		}
 		return sb.toString();
 	}
@@ -200,4 +350,6 @@ public class ReplaceBlocksField extends Field<Map<String, ChunkFilter.BlockRepla
 	private String escapeString(String s) {
 		return s.replace("\\", "\\\\").replace("\"", "\\\"");
 	}
+
+	private record SourceReadResult(ChunkFilter.BlockReplaceSource source, int read) {}
 }

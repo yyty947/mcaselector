@@ -72,7 +72,7 @@ public class ChunkFilter_21w43a {
 		}
 
 		@Override
-		public void replaceBlocks(ChunkData data, Map<String, ChunkFilter.BlockReplaceData> replace) {
+		public void replaceBlocks(ChunkData data, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
 			ListTag sections = Helper.tagFromCompound(Helper.getRegion(data), "sections");
 			if (sections == null) {
 				return;
@@ -87,7 +87,7 @@ public class ChunkFilter_21w43a {
 			Range sectionRange = Helper.findSectionRange(Helper.getRegion(data), sections);
 
 			// handle the special case when someone wants to replace air with something else
-			if (replace.containsKey("minecraft:air")) {
+			if (replace.keySet().stream().anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
 				Map<Integer, CompoundTag> sectionMap = new HashMap<>();
 				List<Integer> heights = new ArrayList<>(sectionRange.num());
 				for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
@@ -145,8 +145,8 @@ public class ChunkFilter_21w43a {
 				for (int i = 0; i < 4096; i++) {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
 
-					for (Map.Entry<String, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-						if (!blockState.getString("Name").matches(entry.getKey())) {
+					for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
+						if (!entry.getKey().matches(blockState)) {
 							continue;
 						}
 						ChunkFilter.BlockReplaceData replacement = entry.getValue();
@@ -194,6 +194,13 @@ public class ChunkFilter_21w43a {
 			}
 
 			Helper.getRegion(data).put("block_entities", tileEntities);
+		}
+
+		@Override
+		public ChunkFilter.BlockReplacePreviewData previewReplaceBlocks(ChunkData data, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
+			CompoundTag root = Helper.getRegion(data);
+			ListTag sections = Helper.tagFromCompound(root, "sections");
+			return previewReplaceBlocks(root, sections, "block_entities", replace);
 		}
 
 		@Override
