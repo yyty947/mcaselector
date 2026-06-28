@@ -19,7 +19,7 @@ Implemented:
 - Phase 4C/4D: explicit source modes implemented with `regex(...)`, `literal(...)`, and `props(...)`.
 - Phase 4E: tile/block entity source safety controls implemented with `tile(...)` and `no_tile(...)`; target tile replacement now removes existing block entities at the target coordinates before adding replacement tile SNBT. The Builder labels this as an "Extra NBT" source condition and includes an extensible Help dialog for this and future Builder explanations.
 - Phase 5A: per-rule preview counts, source-mode rows, and overlap warning in the ReplaceBlocks preview dialog.
-- UI polish: ReplaceBlocks field-row diagnostics are debounced, the main dialog defaults wide enough to show `Builder`, and the empty builder's default example can be added directly.
+- UI polish: ReplaceBlocks field-row diagnostics are debounced, the main dialog defaults wide enough to show `Builder`, empty Builder inputs start blank without immediate empty-rule errors or empty-query full-list popups, block suggestions support Tab and mouse-click completion, and property dropdowns support an `all`/`全部` option.
 
 Still not implemented:
 
@@ -247,7 +247,9 @@ When a future phase lands, update these docs in the same turn:
 
 - Current UI already has a builder, advanced text preservation, validation messages, preview, and property dropdowns.
 - Current builder generates `literal(...)` for simple source IDs and `props(...)` for catalog-backed source property rules.
-- Current empty-builder defaults are real `minecraft:stone` -> `minecraft:dirt` inputs, so the example can be added as a valid rule immediately.
+- Current empty-builder From/To inputs start blank to avoid misleading placeholder behavior; empty dropdown clicks do not show the full catalog list.
+- Current property dropdowns default to `all`/`全部`; source-side all properties generate `literal(...)`, and selected source properties generate `props(...)` with only the non-all properties.
+- Current block suggestion completion has separate keyboard and mouse paths because editable JavaFX ComboBox selection is fragile when items or selection are changed synchronously during popup mouse handling.
 - Current ReplaceBlocks field-row diagnostics wait for a short typing pause before showing valid/invalid feedback.
 - Current preview is implemented for modern 1.18+ paths, reports unsupported older chunks instead of guessing, and shows per-rule counts plus overlap warnings.
 - Current source-state support remains exact matching; selected-property subset matching is explicit through `props(...)`.

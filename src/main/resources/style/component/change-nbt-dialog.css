@@ -75,8 +75,84 @@
     -fx-min-width: 300;
 }
 
+.replace-blocks-builder-pane .replace-blocks-builder-input {
+    -fx-padding: 0 0 2 0;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-add-actions {
+    -fx-spacing: 4;
+}
+
 .replace-blocks-builder-pane .replace-blocks-builder-properties .label {
     -fx-text-fill: -color-text-light;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table {
+    -fx-background-color: -color-field-cell-even;
+    -fx-control-inner-background: -color-field-cell-even;
+    -fx-table-cell-border-color: -color-scroll-pane-border;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .column-header,
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .column-header .filler,
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .column-header-background .filler {
+    -fx-background-color: -color-dialog-header-background;
+    -fx-border-width: 0 0 1 0;
+    -fx-border-color: -color-scroll-pane-border;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .column-header .label {
+    -fx-text-fill: -color-text-light;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .placeholder {
+    -fx-background-color: -color-field-cell-even;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .virtual-flow,
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .virtual-flow .clipped-container,
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .virtual-flow .sheet {
+    -fx-background-color: -color-field-cell-even;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .table-cell {
+    -fx-text-fill: -color-text-light;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .table-row-cell:even {
+    -fx-background-color: -color-field-cell-even;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .table-row-cell:odd {
+    -fx-background-color: -color-field-cell-odd;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .table-row-cell:selected {
+    -fx-background-color: -color-button-hover-background;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .table-row-cell:empty {
+    -fx-background-color: -color-field-cell-even;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-rules-table .table-row-cell:empty .table-cell {
+    -fx-border-color: transparent;
+}
+
+.combo-box-popup .list-view .list-cell:filled:hover,
+.combo-box-popup .list-view .list-cell:filled:focused,
+.combo-box-popup .list-view .list-cell:filled:selected {
+    -fx-background-color: -color-menu-hover-background;
+}
+
+.combo-box-popup .list-view .list-cell:filled:hover,
+.combo-box-popup .list-view .list-cell:filled:focused,
+.combo-box-popup .list-view .list-cell:filled:selected,
+.combo-box-popup .list-view .list-cell:filled:hover .text,
+.combo-box-popup .list-view .list-cell:filled:focused .text,
+.combo-box-popup .list-view .list-cell:filled:selected .text {
+    -fx-text-fill: -color-text-light;
+    -fx-fill: -color-text-light;
 }
 
 .replace-blocks-builder-suggestion-normal {

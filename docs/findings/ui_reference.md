@@ -132,12 +132,12 @@ Recommended use:
 Implemented controls:
 
 - Existing advanced ReplaceBlocks text input remains available.
-- `Builder` dialog has searchable, editable `from` and `to` block selectors with auto-opening A-Z filtered suggestions and Tab/click completion.
+- `Builder` dialog has searchable, editable `from` and `to` block selectors with auto-opening A-Z filtered suggestions, Tab/click completion, and no empty-query full-list popup.
 - Builder helper text below the generated value is shown before manual From/To input and hidden after the user types non-empty text into either field.
 - `Builder` dialog has add/delete controls and a rule table.
 - The generated ReplaceBlocks string is shown and returned to the existing field row.
 - Generated values are validated through `ReplaceBlocksField.parseNewValue(...)`.
-- Empty builders prefill real `minecraft:stone` and `minecraft:dirt` inputs, so pressing `Add rule` immediately creates a valid example rule.
+- Empty builders start with blank From/To inputs and do not show an empty-rule validation error before user action.
 - The `Preview` button runs dry-run counts without saving region data.
 - Preview output includes aggregate counts, one row per rule with source mode/source text/target text/matched blocks, and an overlap warning when multiple rules match the same original position.
 - Error text distinguishes common invalid values and source regex warnings.
@@ -148,7 +148,7 @@ Builder-supported rule syntax:
 
 - simple source block names
 - simple target block names
-- catalog-backed block selection with property dropdowns
+- catalog-backed block selection with property dropdowns; each property has an `all`/`全部` option
 - source block state SNBT for exact block-state matching
 - target block state SNBT
 - source tile/block entity eligibility (`Extra NBT: any`, `tile(...)`, `no_tile(...)`)
@@ -204,12 +204,12 @@ Current 4B usage:
 
 - The catalog populates the block-name search list.
 - Known vanilla blocks render one property row per catalog property.
-- Default properties are the initial dropdown selections.
+- Property dropdowns start at `all`/`全部`; catalog default properties remain available as data, but they are not the current initial UI selections.
 - Unknown/modded IDs remain manual entries without property rows.
 - The builder generates existing ReplaceBlocks text from selected catalog values.
 - Simple source IDs serialize as `literal(...)`.
-- Catalog-backed source property rules serialize as `props(...)`.
-- Target property rules still serialize as full block-state SNBT.
+- Catalog-backed source property rules serialize as `props(...)` when at least one property is not `all`; leaving every source property at `all` serializes as `literal(...)`.
+- Target property dropdowns omit properties left at `all`, and a target with every property at `all` serializes as the simple target block name.
 - Existing source SNBT remains exact matching; selected-property matching is explicit through `props(...)`.
 
 ## Constraints for future implementation
@@ -223,3 +223,10 @@ Current 4B usage:
 - Source tile entity eligibility is implemented and documented in the Builder Help dialog; keep future Builder help content in that dialog instead of adding more permanent helper text to the main form.
 - Rich target tile NBT editing is still pending.
 - Y range, biome restrictions, and presets are still pending.
+
+## Builder UI implementation notes
+
+- The From/To block selector is an editable JavaFX `ComboBox`, so keyboard completion and mouse-click completion are not equivalent internally. Test both paths before shipping input changes.
+- Avoid changing the ComboBox value, selection, or item list synchronously while JavaFX is handling popup mouse selection. This previously caused `ListViewBehavior` index errors when users clicked a suggestion.
+- Keep the empty-query suggestion list empty. Showing the whole block catalog before the user typed made the first popup visually noisy and could place it above the input.
+- Keep hover/focus/selected styling on suggestion and property dropdown cells; otherwise the dark popup looks inert even when it is interactive.

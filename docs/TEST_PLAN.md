@@ -33,9 +33,10 @@ Manual checks:
 
 - Open NBT Changer, choose the ReplaceBlocks field, and open the builder.
 - Search/select `minecraft:stone` as the source and `minecraft:dirt` as the target; adding the rule should generate `literal(minecraft:stone)=minecraft:dirt`.
-- Opening the builder with an empty ReplaceBlocks value should prefill real default inputs, and pressing `Add rule` immediately should add the valid default `literal(minecraft:stone)=minecraft:dirt` rule.
-- Search/select `minecraft:acacia_trapdoor`; the builder should show `facing`, `half`, `open`, `powered`, and `waterlogged` dropdowns with defaults.
-- Change several trapdoor properties and add the rule; the generated text should use full block-state SNBT with `Name` and `Properties`, then parse successfully.
+- Opening the builder with an empty ReplaceBlocks value should leave From/To inputs blank and should not immediately show an empty-rule validation error.
+- Search/select `minecraft:acacia_trapdoor`; the builder should show `facing`, `half`, `open`, `powered`, and `waterlogged` dropdowns.
+- Property dropdowns should default to `all`/`全部`. Leaving all source properties at `all` should generate a simple `literal(...)` source; selecting only `facing=north` should generate `props(...)` with only `facing`.
+- Change several trapdoor properties and add the rule; the generated target text should use block-state SNBT with `Name` and the selected `Properties`, then parse successfully.
 - Search/select `minecraft:blue_ice`; no property rows should appear, and the generated rule should still parse.
 - Enter an unknown/modded ID such as `example:custom_block`; no property rows should appear, and manual entry should remain possible.
 - Paste or type block-state SNBT with `Name` directly in a from/to input; the builder should still accept it through existing validation.
@@ -89,8 +90,11 @@ Manual checks:
 
 - In the NBT Changer field row, type `minecraft:stone=minecraft:dirt` directly into ReplaceBlocks. The field should stay visually neutral while typing and only show valid/invalid feedback after a short pause.
 - With the default NBT Changer dialog size, the ReplaceBlocks `Builder` button should be visible without dragging the horizontal scrollbar.
-- Open an empty builder and press `Add rule` without editing the default from/to values. It should add a valid `literal(minecraft:stone)=minecraft:dirt` rule instead of showing an invalid-source message.
-- In the builder From/To fields, type `oak` or `sto`. The candidate list should open automatically, show every matching block ID in A-Z order, highlight the typed substring in blue, allow mouse scrolling, and collapse after Tab completion or clicking a candidate.
+- Open an empty builder and confirm the From/To fields are blank, the generated value is empty, and no `Add at least one rule` error is shown before user action.
+- Before typing in an empty builder From/To field, click the dropdown arrow. The builder should not show the full block catalog and should not position a popup above the input on first open.
+- In the builder From/To fields, type `oak` or `sto`. The candidate list should open automatically, show every matching block ID in A-Z order, highlight the typed substring in blue, allow mouse scrolling, and collapse after Tab completion.
+- Repeat the same suggestion test with mouse-click completion. The chosen block ID should fill the editor, the matching property rows should appear when applicable, and the JavaFX console should not log `ListViewBehavior` or index errors.
+- Moving the mouse over block suggestions, Extra NBT choices, and property dropdown choices should show a visible hover highlight consistent with the main menu hover color.
 - The builder helper text below the generated value should be visible before manual From/To input, then hide once the user types non-empty text into either From/To field.
 
 ## Per-rule preview counts

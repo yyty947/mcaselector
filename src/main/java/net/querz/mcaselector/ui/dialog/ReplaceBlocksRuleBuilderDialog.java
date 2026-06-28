@@ -1,18 +1,23 @@
 package net.querz.mcaselector.ui.dialog;
 
+import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.geometry.VPos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
@@ -36,9 +41,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 	private static final PseudoClass error = PseudoClass.getPseudoClass("error");
 	private static final PseudoClass warning = PseudoClass.getPseudoClass("warning");
-	private static final String DEFAULT_FROM_BLOCK = "minecraft:stone";
-	private static final String DEFAULT_TO_BLOCK = "minecraft:dirt";
-	private static final ButtonType HELP = new ButtonType("", ButtonBar.ButtonData.OTHER);
+	private static final ButtonType HELP = new ButtonType("", ButtonBar.ButtonData.LEFT);
 
 	private final Stage primaryStage;
 	private final BlockStateCatalog catalog = BlockStateCatalog.latestJava();
@@ -76,6 +79,10 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		Button add = UIFactory.button(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_ADD_RULE);
 		add.setOnAction(this::addRule);
+		VBox addActions = new VBox();
+		addActions.getStyleClass().add("replace-blocks-builder-add-actions");
+		Label addSpacer = new Label(" ");
+		addActions.getChildren().addAll(addSpacer, add);
 
 		GridPane input = new GridPane();
 		input.getStyleClass().add("replace-blocks-builder-input");
@@ -83,9 +90,10 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		input.setVgap(6);
 		input.add(from, 0, 0);
 		input.add(to, 1, 0);
-		input.add(add, 2, 0);
+		input.add(addActions, 2, 0);
 		GridPane.setHgrow(from, Priority.ALWAYS);
 		GridPane.setHgrow(to, Priority.ALWAYS);
+		GridPane.setValignment(addActions, VPos.TOP);
 
 		TableColumn<Rule, String> fromColumn = new TableColumn<>();
 		fromColumn.textProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_FROM.getProperty());
@@ -98,10 +106,15 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		toColumn.setSortable(false);
 
 		rules.setItems(ruleItems);
+		rules.getStyleClass().add("replace-blocks-builder-rules-table");
 		rules.setPlaceholder(new Label());
 		rules.getColumns().add(fromColumn);
 		rules.getColumns().add(toColumn);
 		rules.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+		rules.setMinHeight(150);
+		rules.setPrefHeight(220);
+		ruleItems.addListener((ListChangeListener<Rule>) c -> updateRulesTableHeight());
+		updateRulesTableHeight();
 
 		Button delete = UIFactory.button(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_DELETE_RULE);
 		delete.disableProperty().bind(rules.getSelectionModel().selectedItemProperty().isNull());
@@ -114,7 +127,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		result.setFocusTraversable(false);
 
 		validation.getStyleClass().add("replace-blocks-builder-validation");
-		validation.textProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_EMPTY.getProperty());
+		validation.setText("");
 
 		VBox content = new VBox();
 		content.getStyleClass().add("replace-blocks-builder");
@@ -126,15 +139,16 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		Label rulesLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_RULES);
 		Label resultLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_RESULT);
 		content.getChildren().addAll(input, rulesLabel, rules, delete, resultLabel, result, validation, advanced);
+		VBox.setMargin(rulesLabel, new Insets(8, 0, 0, 0));
 		VBox.setVgrow(rules, Priority.ALWAYS);
 		getDialogPane().setContent(content);
 
 		loadSimpleRules(initialValue);
-		if (initialValue == null || initialValue.isBlank()) {
-			from.setText(DEFAULT_FROM_BLOCK);
-			to.setText(DEFAULT_TO_BLOCK);
-		}
 		updateResult();
+	}
+
+	private void updateRulesTableHeight() {
+		rules.setMaxHeight(ruleItems.isEmpty() ? 220 : Double.MAX_VALUE);
 	}
 
 	private void addRule(ActionEvent event) {
@@ -185,7 +199,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		if (ruleItems.isEmpty()) {
 			result.clear();
 			validation.textProperty().unbind();
-			validation.textProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_EMPTY.getProperty());
+			validation.setText("");
 			validation.pseudoClassStateChanged(error, false);
 			validation.pseudoClassStateChanged(warning, false);
 			getDialogPane().lookupButton(ButtonType.OK).setDisable(true);
@@ -310,12 +324,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		private final boolean source;
 		private final ComboBox<String> block = new ComboBox<>();
+		private final FilteredList<String> blockSuggestions = new FilteredList<>(blockNames);
 		private final ComboBox<SourceTileMode> tileEntityMode = new ComboBox<>();
 		private final GridPane properties = new GridPane();
-		private final Map<String, ComboBox<String>> propertyEditors = new LinkedHashMap<>();
+		private final Map<String, ComboBox<PropertyChoice>> propertyEditors = new LinkedHashMap<>();
 		private final BooleanProperty userInputPresent = new SimpleBooleanProperty(false);
 		private boolean updatingItems;
 		private boolean suppressSuggestions;
+		private boolean normalizeNextTyped;
 
 		private BlockInput(boolean source) {
 			this.source = source;
@@ -329,16 +345,17 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			block.setEditable(true);
 			block.setMaxWidth(Double.MAX_VALUE);
 			block.setVisibleRowCount(12);
-			block.setPromptText(source ? DEFAULT_FROM_BLOCK : DEFAULT_TO_BLOCK);
-			block.setItems(blockNames);
+			block.setItems(blockSuggestions);
 			block.setCellFactory(v -> new HighlightedBlockCell());
 			block.getEditor().setAlignment(Pos.CENTER);
 			block.getEditor().setOnAction(ReplaceBlocksRuleBuilderDialog.this::addRule);
 			block.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPressed);
+			block.getEditor().addEventFilter(KeyEvent.KEY_TYPED, this::handleKeyTyped);
 			block.getEditor().textProperty().addListener((a, o, n) -> {
-				if (!suppressSuggestions) {
-					userInputPresent.set(n != null && !n.isBlank());
+				if (suppressSuggestions) {
+					return;
 				}
+				userInputPresent.set(n != null && !n.isBlank());
 				if (!updatingItems) {
 					updateBlockSuggestions(n);
 					rebuildProperties(n);
@@ -348,7 +365,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			block.valueProperty().addListener((a, o, n) -> {
 				if (!updatingItems && !suppressSuggestions && n != null) {
 					if (blockNames.contains(n)) {
-						completeSuggestion(n);
+						Platform.runLater(() -> {
+							if (!suppressSuggestions && Objects.equals(block.getValue(), n)) {
+								acceptSelectedValue(n);
+							}
+						});
 					} else {
 						rebuildProperties(n);
 					}
@@ -374,18 +395,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		private BooleanProperty userInputPresentProperty() {
 			return userInputPresent;
-		}
-
-		private void setText(String text) {
-			suppressSuggestions = true;
-			try {
-				block.getEditor().setText(text);
-				block.setValue(text);
-				updateBlockSuggestions(text);
-				rebuildProperties(text);
-			} finally {
-				suppressSuggestions = false;
-			}
 		}
 
 		private ValueResult value() {
@@ -420,15 +429,26 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				return source ? applySourceTileMode(value) : value;
 			}
 			Map<String, String> selectedProperties = new LinkedHashMap<>();
-			for (Map.Entry<String, ComboBox<String>> property : propertyEditors.entrySet()) {
-				String value = property.getValue().getValue();
-				if (value == null || !catalog.isValidPropertyValue(name, property.getKey(), value)) {
+			for (Map.Entry<String, ComboBox<PropertyChoice>> property : propertyEditors.entrySet()) {
+				PropertyChoice choice = property.getValue().getValue();
+				if (choice == null) {
 					return null;
 				}
-				selectedProperties.put(property.getKey(), value);
+				if (choice.all()) {
+					continue;
+				}
+				if (!catalog.isValidPropertyValue(name, property.getKey(), choice.value())) {
+					return null;
+				}
+				selectedProperties.put(property.getKey(), choice.value());
 			}
-			String blockState = blockStateSNBT(name, selectedProperties);
-			String value = source ? "props(" + blockState + ")" : blockState;
+			String value;
+			if (selectedProperties.isEmpty()) {
+				value = source ? "literal(" + formatWrapperArgument(name) + ")" : name;
+			} else {
+				String blockState = blockStateSNBT(name, selectedProperties);
+				value = source ? "props(" + blockState + ")" : blockState;
+			}
 			return source ? applySourceTileMode(value) : value;
 		}
 
@@ -460,27 +480,21 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		private String currentText() {
 			String text = block.getEditor().getText();
-			if ((text == null || text.isBlank()) && block.getValue() != null) {
-				text = block.getValue();
-			}
 			return text == null ? "" : text.trim();
 		}
 
 		private void updateBlockSuggestions(String query) {
 			String text = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
-			ObservableList<String> suggestions;
-			if (text.isEmpty()) {
-				suggestions = blockNames;
-			} else if (text.startsWith("{") || source && isSourceModeExpression(text)) {
-				suggestions = FXCollections.observableArrayList();
-			} else {
-				suggestions = FXCollections.observableArrayList(blockNames.stream()
-						.filter(name -> matchesBlockSearch(name, text))
-						.collect(Collectors.toList()));
-			}
 			updatingItems = true;
-			block.setItems(suggestions);
-			updatingItems = false;
+			try {
+				if (text.isEmpty() || text.startsWith("{") || source && isSourceModeExpression(text)) {
+					blockSuggestions.setPredicate(name -> false);
+				} else {
+					blockSuggestions.setPredicate(name -> matchesBlockSearch(name, text));
+				}
+			} finally {
+				updatingItems = false;
+			}
 		}
 
 		private void showBlockSuggestions(String query) {
@@ -507,6 +521,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			event.consume();
 		}
 
+		private void handleKeyTyped(KeyEvent event) {
+			if (!normalizeNextTyped) {
+				return;
+			}
+			normalizeNextTyped = false;
+			collapseEditorCaretToEnd();
+		}
+
 		private String selectedSuggestion() {
 			String selected = block.getSelectionModel().getSelectedItem();
 			if (selected != null && block.getItems().contains(selected)) {
@@ -515,18 +537,43 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			return block.getItems().isEmpty() ? null : block.getItems().get(0);
 		}
 
+		private void acceptSelectedValue(String value) {
+			commitEditorText(value);
+		}
+
 		private void completeSuggestion(String suggestion) {
+			commitEditorText(suggestion);
+		}
+
+		private void commitEditorText(String text) {
 			suppressSuggestions = true;
 			try {
-				block.setValue(suggestion);
-				block.getEditor().setText(suggestion);
-				block.getEditor().positionCaret(suggestion.length());
-				updateBlockSuggestions(suggestion);
-				rebuildProperties(suggestion);
+				block.setValue(null);
+				block.getSelectionModel().clearSelection();
+				block.getEditor().setText(text);
+				userInputPresent.set(text != null && !text.isBlank());
+				updateBlockSuggestions(text);
+				rebuildProperties(text);
 				block.hide();
+				collapseEditorCaretToEnd();
+				collapseEditorCaretToEndLater();
+				normalizeNextTyped = true;
 			} finally {
 				suppressSuggestions = false;
 			}
+		}
+
+		private void collapseEditorCaretToEnd() {
+			String text = block.getEditor().getText();
+			if (text != null) {
+				block.getEditor().selectRange(text.length(), text.length());
+			}
+		}
+
+		private void collapseEditorCaretToEndLater() {
+			Platform.runLater(() -> {
+				collapseEditorCaretToEnd();
+			});
 		}
 
 		private boolean matchesBlockSearch(String name, String query) {
@@ -552,13 +599,17 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				return;
 			}
 
-			Map<String, String> defaults = catalog.defaultProperties(blockName);
 			int row = 0;
 			for (Map.Entry<String, List<String>> property : catalogProperties.entrySet()) {
 				Label name = new Label(property.getKey());
-				ComboBox<String> value = new ComboBox<>(FXCollections.observableArrayList(property.getValue()));
+				ObservableList<PropertyChoice> choices = FXCollections.observableArrayList();
+				choices.add(PropertyChoice.allChoice());
+				choices.addAll(property.getValue().stream().map(PropertyChoice::value).collect(Collectors.toList()));
+				ComboBox<PropertyChoice> value = new ComboBox<>(choices);
 				value.setMaxWidth(Double.MAX_VALUE);
-				value.setValue(defaults.getOrDefault(property.getKey(), property.getValue().isEmpty() ? null : property.getValue().get(0)));
+				value.setCellFactory(v -> new PropertyChoiceCell());
+				value.setButtonCell(new PropertyChoiceCell());
+				value.setValue(PropertyChoice.allChoice());
 				propertyEditors.put(property.getKey(), value);
 				properties.add(name, 0, row);
 				properties.add(value, 1, row);
@@ -568,6 +619,15 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 
 		private class HighlightedBlockCell extends ListCell<String> {
+
+			private HighlightedBlockCell() {
+				addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+					if (!isEmpty() && getItem() != null) {
+						completeSuggestion(getItem());
+						event.consume();
+					}
+				});
+			}
 
 			@Override
 			protected void updateItem(String item, boolean empty) {
@@ -621,6 +681,32 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private record ValueResult(String value, ReplaceBlocksDiagnostics.Diagnostic diagnostic) {}
 
 	private record Rule(String from, String to) {}
+
+	private record PropertyChoice(String value, boolean all) {
+
+		private static PropertyChoice allChoice() {
+			return new PropertyChoice(null, true);
+		}
+
+		private static PropertyChoice value(String value) {
+			return new PropertyChoice(value, false);
+		}
+
+		@Override
+		public String toString() {
+			return all ? Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PROPERTY_ALL.toString() : value;
+		}
+	}
+
+	private static class PropertyChoiceCell extends ListCell<PropertyChoice> {
+
+		@Override
+		protected void updateItem(PropertyChoice item, boolean empty) {
+			super.updateItem(item, empty);
+			setText(empty || item == null ? null : item.toString());
+			setGraphic(null);
+		}
+	}
 
 	private enum SourceTileMode {
 		ANY(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_TILE_SOURCE_ANY, null),

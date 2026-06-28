@@ -340,8 +340,10 @@ Data source:
 Current catalog and UI behavior impact:
 
 - Phase 4B builder UI uses the catalog to populate searchable block selectors and property dropdown choices.
-- Builder-generated target property choices serialize as full block-state SNBT in the existing ReplaceBlocks value format.
+- Builder-generated target property choices serialize as block-state SNBT with `Name` and only the properties not left at `all`.
 - Builder-generated simple source choices serialize as `literal(...)`.
 - Builder-generated source property choices serialize as `props(...)`.
-- Empty builders prefill real `minecraft:stone` and `minecraft:dirt` inputs so the example can be added as a valid `literal(...)` source rule.
+- Empty builders start with blank From/To inputs and stay visually quiet until user action produces a real diagnostic.
+- Empty block selector queries do not show the full catalog; suggestion completion should be verified through both Tab and mouse-click paths because JavaFX handles those paths differently.
+- Property dropdowns default to `all`/`全部`; source properties left at `all` are omitted from `props(...)`, and a source with every property at `all` serializes as `literal(...)`.
 - Existing source SNBT remains exact matching; selected-property subset matching is explicit through `props(...)`.

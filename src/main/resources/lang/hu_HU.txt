@@ -221,6 +221,7 @@ dialog.replace_blocks.builder.advanced;Advanced text input remains available; fr
 dialog.replace_blocks.builder.tile_source.any;Extra NBT: any
 dialog.replace_blocks.builder.tile_source.require;Extra NBT: present
 dialog.replace_blocks.builder.tile_source.exclude;Extra NBT: absent
+dialog.replace_blocks.builder.property.all;all
 dialog.replace_blocks.builder.help.button;Help
 dialog.replace_blocks.builder.help.title;ReplaceBlocks Builder Help
 dialog.replace_blocks.builder.help.nbt.title;Extra NBT source condition

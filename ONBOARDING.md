@@ -37,7 +37,7 @@ Implemented:
 - Phase 4C/4D: explicit source modes and selected-property matching using `regex(...)`, `literal(...)`, and `props(...)`.
 - Phase 4E: tile/block entity source safety controls using `tile(...)` and `no_tile(...)`, with duplicate target tile cleanup, preview add/remove/update estimates, Extra NBT Builder labels, and copied-world in-game validation reported complete on 2026-06-28.
 - Phase 5A: per-rule preview counts with source-mode rows and overlap warnings.
-- UI polish: ReplaceBlocks field-row validation waits for a short typing pause, the default NBT Changer width shows the Builder button, the empty builder's default example can be added directly, and Builder From/To inputs have auto-opening A-Z filtered suggestions with blue match highlights, Tab/click completion, pre-input helper text that hides after manual typing, and a Help dialog for Builder-specific explanations.
+- UI polish: ReplaceBlocks field-row validation waits for a short typing pause, the default NBT Changer width shows the Builder button, empty Builder From/To inputs start blank, Builder validation stays quiet until user action creates a real diagnostic, and Builder From/To inputs have auto-opening A-Z filtered suggestions with blue match highlights, Tab/click completion, no empty-query full-list popup, pre-input helper text that hides after manual typing or selection, and a Help dialog for Builder-specific explanations.
 
 Not implemented yet:
 
@@ -66,10 +66,12 @@ Current builder/UI manual validation checklist:
 - Generated values parse through the existing `ReplaceBlocksField`.
 - Unknown or modded IDs can still be entered manually.
 - Existing advanced text workflows still work.
-- Typing `oak` or `sto` in Builder From/To opens a scrollable A-Z filtered candidate list, highlights the typed substring in blue, and collapses after Tab or mouse-click completion.
+- Typing `oak` or `sto` in Builder From/To opens a scrollable A-Z filtered candidate list, highlights the typed substring in blue, and collapses after Tab or mouse-click completion without JavaFX selection errors.
+- Opening an empty Builder From/To dropdown before typing should not show a full block list or position the popup above the input.
 - The Builder helper text below the generated value is visible before manual From/To input and hides once the user types non-empty text into either field.
 - The Builder source tile selector can generate `tile(literal(minecraft:chest))=...` and `no_tile(literal(minecraft:chest))=...`, and the generated values parse through the existing `ReplaceBlocksField`.
 - The Builder source tile selector is labeled as `Extra NBT` in the UI, and its Help button explains the any/present/absent choices without closing the Builder.
+- Builder property dropdowns default to `all`/`全部`; source-side `all` omits that property from `props(...)`, and all properties set to `all` generates `literal(...)`.
 
 ## Important Files
 
@@ -169,6 +171,8 @@ For JavaFX UI work:
 ```
 
 Then manually inspect the relevant dialog. If `processResources` fails because a running MCA Selector window locks a file under `build/resources/main`, close the running JavaFX app and rerun.
+
+For editable JavaFX ComboBox work, manually test both keyboard completion and mouse selection. Avoid synchronously replacing items or clearing selection from inside the ComboBox mouse-selection event path; this previously produced `ListViewBehavior` index errors.
 
 ## Dirty Worktree Rule
 

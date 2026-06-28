@@ -191,6 +191,7 @@ public enum Translation {
 	DIALOG_REPLACE_BLOCKS_BUILDER_TILE_SOURCE_ANY("dialog.replace_blocks.builder.tile_source.any"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_TILE_SOURCE_REQUIRE("dialog.replace_blocks.builder.tile_source.require"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_TILE_SOURCE_EXCLUDE("dialog.replace_blocks.builder.tile_source.exclude"),
+	DIALOG_REPLACE_BLOCKS_BUILDER_PROPERTY_ALL("dialog.replace_blocks.builder.property.all"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_HELP_BUTTON("dialog.replace_blocks.builder.help.button"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_HELP_TITLE("dialog.replace_blocks.builder.help.title"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_HELP_NBT_TITLE("dialog.replace_blocks.builder.help.nbt.title"),

@@ -221,6 +221,7 @@ dialog.replace_blocks.builder.advanced;高级文本输入仍可用；from/to 也
 dialog.replace_blocks.builder.tile_source.any;附加NBT：不限
 dialog.replace_blocks.builder.tile_source.require;附加NBT：有
 dialog.replace_blocks.builder.tile_source.exclude;附加NBT：无
+dialog.replace_blocks.builder.property.all;全部
 dialog.replace_blocks.builder.help.button;帮助
 dialog.replace_blocks.builder.help.title;ReplaceBlocks Builder 帮助
 dialog.replace_blocks.builder.help.nbt.title;附加 NBT 条件

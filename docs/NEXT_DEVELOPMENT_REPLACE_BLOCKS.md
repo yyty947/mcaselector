@@ -11,9 +11,10 @@ Implemented behavior:
 
 - The builder can create simple block rules.
 - The builder uses `BlockStateCatalog.latestJava()` for searchable block IDs and property dropdowns.
-- Builder-generated target property rules produce full block-state SNBT.
+- Builder-generated target property rules produce block-state SNBT containing the properties not left at `all`.
 - Builder-generated simple source block IDs produce `literal(...)`.
-- Builder-generated source property rules produce `props(...)`.
+- Builder-generated source property rules produce `props(...)` when at least one property is not left at `all`; all-source-properties `all` produces `literal(...)`.
+- Empty builder From/To inputs start blank, do not immediately show validation errors, and do not show the full block catalog before the user types.
 - Advanced text input remains available.
 - Source name strings still use Java regex matching through `String.matches(...)`.
 - Source SNBT uses exact `CompoundTag` equality against palette block states.
@@ -106,9 +107,9 @@ Recommended builder source modes:
 
 Builder property behavior:
 
-- Known catalog blocks should let the user choose whether source properties are exact-state or selected-properties.
-- Selected-properties mode should serialize only the properties the user selected.
-- Exact-state mode should serialize the full state that the user selected.
+- Known catalog block properties default to `all`.
+- Selected source properties serialize through `props(...)`; source properties left at `all` are omitted.
+- Target properties left at `all` are omitted; if every target property is `all`, the target serializes as a simple block name.
 - Unknown or modded resource locations should still be enterable manually.
 - Advanced text remains the escape hatch for legacy regex values and hand-written SNBT.
 

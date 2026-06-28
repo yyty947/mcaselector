@@ -99,11 +99,11 @@ CLI path:
 - Multiple rules are supported in one ReplaceBlocks value.
 - Legacy bare or quoted source block-name matching still uses Java regex matching via `String.matches(...)`.
 - Builder inputs accept simple block IDs, source wrappers, or block state SNBT with `Name`.
-- Builder inputs can search/select Java 1.21.9 catalog block IDs, generate `literal(...)` for simple source IDs, generate `props(...)` for source property dropdowns, and generate full-state SNBT for target property dropdowns.
+- Builder inputs can search/select Java 1.21.9 catalog block IDs, generate `literal(...)` for simple source IDs, generate `props(...)` for selected source property dropdowns, and omit properties whose dropdown is left at `all`.
 - Builder source tile filters are labeled as `Extra NBT: any/present/absent`; the Builder Help dialog explains the choices and is the intended home for future Builder-specific help text.
 - The NBT Changer dialog shows ReplaceBlocks validation messages and warnings after a short typing pause, so incomplete in-progress input does not flash errors on every character.
 - The default NBT Changer dialog width keeps the ReplaceBlocks `Builder` button visible without horizontal scrolling.
-- When opened without an existing value, the builder starts with real default inputs `minecraft:stone` and `minecraft:dirt`, so `Add rule` immediately creates a valid example rule.
+- When opened without an existing value, the builder starts with blank From/To inputs and does not immediately show an empty-rule validation error.
 - The builder helper text below the generated value is only a pre-input hint; it hides after the user manually types non-empty From/To text.
 - The NBT Changer dialog offers ReplaceBlocks preview/dry-run counts for modern 1.18+ formats, including per-rule rows and overlap warnings.
 - `BlockStateCatalog.latestJava()` loads the generated Java 1.21.9 block-state catalog used by the builder dropdown UI.
@@ -142,10 +142,22 @@ Implemented:
 - `ReplaceBlocksRuleBuilderDialog` uses `BlockStateCatalog.latestJava()` for searchable from/to block selectors and property dropdown rows.
 - `ReplaceBlocksRuleBuilderDialog` exposes an additive source tile selector that generates `tile(...)` or `no_tile(...)`.
 - Builder inputs accept block IDs, unknown/modded resource locations, and block state SNBT.
-- Empty builders prefill real `minecraft:stone` -> `minecraft:dirt` inputs, and `Add rule` generates a valid `literal(...)` source rule.
+- Empty builders start with blank From/To inputs and no empty-query full-list popup. Property dropdowns default to `all`/`全部`; selecting specific source properties generates `props(...)`, while leaving every property at `all` generates a simple `literal(...)` source.
 - `ChangeNBTDialog` has a `Preview` button for ReplaceBlocks dry-run counts, per-rule matched block rows, and overlap warnings.
 - `ReplaceBlocksDiagnostics` surfaces common validation errors and regex warnings.
 - `BlockStateCatalog` provides the UI data source for vanilla block IDs and properties.
+
+## Builder JavaFX input lessons
+
+The current From/To block inputs use editable JavaFX `ComboBox` controls backed by a filtered block catalog. This area took several UI iterations, so future polish should keep these constraints in mind:
+
+- Do not prefill or prompt the From/To fields with example block IDs. It makes the editor feel like it already contains user text and made selection/typing behavior harder to reason about.
+- Keep initial validation quiet. An empty new builder should not show `Add at least one rule` until the user tries to add/confirm an invalid rule.
+- Empty block queries should not expose the full block catalog. The full-list popup was visually noisy and could be positioned above the input the first time the dialog opened.
+- Use a filtered backing list/predicate rather than replacing the ComboBox items list on every keystroke.
+- Do not synchronously clear selection, clear value, or refilter items from inside the ComboBox popup mouse-selection event path. That produced JavaFX `ListViewBehavior` `IndexOutOfBoundsException` errors when users clicked suggestions, while Tab completion could still appear fine.
+- Mouse-click completion and Tab completion both need explicit manual tests. They can travel different JavaFX event paths even though they look like the same feature to the user.
+- Candidate hover/focus/selected styles should stay visible in dark theme and should match the main menu hover tone closely enough that dropdowns feel interactive.
 
 Recommended next work:
 
