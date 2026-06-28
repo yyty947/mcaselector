@@ -30,19 +30,20 @@ Implemented:
 - Phase 1: ReplaceBlocks rule builder UI in `ChangeNBTDialog`.
 - Phase 2: ReplaceBlocks-specific validation diagnostics and error messages.
 - Phase 3: non-mutating preview/dry-run for modern 1.18+ chunk formats.
-- Phase 4 partial: exact source block-state SNBT matching.
+- Phase 4: exact source block-state SNBT matching.
 - Phase 4A: Java 1.21.9 block-state catalog data foundation.
 - Phase 4B: property-aware rule builder UI using the Java 1.21.9 catalog.
 - Gate A: source matching design for Phase 4C/4D is decided in `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.
 - Phase 4C/4D: explicit source modes and selected-property matching using `regex(...)`, `literal(...)`, and `props(...)`.
 - Phase 5A: per-rule preview counts with source-mode rows and overlap warnings.
-- UI polish: ReplaceBlocks field-row validation waits for a short typing pause, the default NBT Changer width shows the Builder button, and the empty builder's default example can be added directly.
+- UI polish: ReplaceBlocks field-row validation waits for a short typing pause, the default NBT Changer width shows the Builder button, the empty builder's default example can be added directly, and Builder From/To inputs have auto-opening A-Z filtered suggestions with blue match highlights, Tab/click completion, and pre-input helper text that hides after manual typing.
 
 Not implemented yet:
 
 - Phase 4E: tile entity safety controls.
-- Phase 4F: Y range and biome restrictions.
-- Phase 5 follow-ups: richer preview UX beyond per-rule counts.
+- Phase 4F-1: Y range restrictions.
+- Phase 4F-2: biome restrictions.
+- Phase 4G: presets.
 - Phase 6: copied-world test hardening and release prep.
 
 ## Next Recommended Task
@@ -57,7 +58,7 @@ Goal:
 - Reflect tile eligibility and estimated add/remove/update counts in preview before mutation.
 - Keep preview and execution behavior aligned.
 
-Completed Phase 4B manual validation checklist:
+Current builder/UI manual validation checklist:
 
 - A user can build `literal(minecraft:stone)=minecraft:dirt` through the UI.
 - A user can select `minecraft:acacia_trapdoor` and choose properties such as `facing`, `half`, `open`, `powered`, and `waterlogged`.
@@ -65,6 +66,8 @@ Completed Phase 4B manual validation checklist:
 - Generated values parse through the existing `ReplaceBlocksField`.
 - Unknown or modded IDs can still be entered manually.
 - Existing advanced text workflows still work.
+- Typing `oak` or `sto` in Builder From/To opens a scrollable A-Z filtered candidate list, highlights the typed substring in blue, and collapses after Tab or mouse-click completion.
+- The Builder helper text below the generated value is visible before manual From/To input and hides once the user types non-empty text into either field.
 
 ## Important Files
 
@@ -96,6 +99,9 @@ Version and block-state internals:
 
 Tests:
 
+- `src/test/java/net/querz/mcaselector/changer/fields/ReplaceBlocksFieldTest.java`
+- `src/test/java/net/querz/mcaselector/ui/dialog/ReplaceBlocksDiagnosticsTest.java`
+- `src/test/java/net/querz/mcaselector/version/java_1_18/ReplaceBlocksPreviewCountsTest.java`
 - `src/test/java/net/querz/mcaselector/version/mapping/blockstate/BlockStateCatalogTest.java`
 
 ## Critical Behavior Facts
@@ -160,9 +166,9 @@ For JavaFX UI work:
 
 Then manually inspect the relevant dialog. If `processResources` fails because a running MCA Selector window locks a file under `build/resources/main`, close the running JavaFX app and rerun.
 
-## Current Dirty Worktree Note
+## Dirty Worktree Rule
 
-At the time this onboarding file was created, the worktree already contained many ReplaceBlocks phase changes plus pre-existing Gradle wrapper/property changes. Do not assume every dirty file is from the current task. Always inspect with `git status --short` and preserve unrelated user changes.
+Do not assume every dirty file belongs to the current task. Always inspect with `git status --short` before editing, identify whether existing changes are user changes or prior task leftovers, and preserve unrelated work.
 
 ## Copied-World Testing Rule
 

@@ -1,6 +1,8 @@
 package net.querz.mcaselector.ui.dialog;
 
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
@@ -108,6 +110,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		content.setSpacing(6);
 		content.setPadding(new Insets(4));
 		Label advanced = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_ADVANCED);
+		advanced.visibleProperty().bind(from.userInputPresentProperty().or(to.userInputPresentProperty()).not());
+		advanced.managedProperty().bind(advanced.visibleProperty());
 		Label rulesLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_RULES);
 		Label resultLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_RESULT);
 		content.getChildren().addAll(input, rulesLabel, rules, delete, resultLabel, result, validation, advanced);
@@ -254,6 +258,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		private final ComboBox<String> block = new ComboBox<>();
 		private final GridPane properties = new GridPane();
 		private final Map<String, ComboBox<String>> propertyEditors = new LinkedHashMap<>();
+		private final BooleanProperty userInputPresent = new SimpleBooleanProperty(false);
 		private boolean updatingItems;
 		private boolean suppressSuggestions;
 
@@ -276,6 +281,9 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			block.getEditor().setOnAction(ReplaceBlocksRuleBuilderDialog.this::addRule);
 			block.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPressed);
 			block.getEditor().textProperty().addListener((a, o, n) -> {
+				if (!suppressSuggestions) {
+					userInputPresent.set(n != null && !n.isBlank());
+				}
 				if (!updatingItems) {
 					updateBlockSuggestions(n);
 					rebuildProperties(n);
@@ -300,6 +308,10 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			VBox.setVgrow(properties, Priority.NEVER);
 			updateBlockSuggestions("");
 			rebuildProperties("");
+		}
+
+		private BooleanProperty userInputPresentProperty() {
+			return userInputPresent;
 		}
 
 		private void setText(String text) {
@@ -361,6 +373,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				propertyEditors.clear();
 				properties.getChildren().clear();
 				updateBlockSuggestions("");
+				userInputPresent.set(false);
 			} finally {
 				suppressSuggestions = false;
 			}

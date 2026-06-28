@@ -133,6 +133,7 @@ Implemented controls:
 
 - Existing advanced ReplaceBlocks text input remains available.
 - `Builder` dialog has searchable, editable `from` and `to` block selectors with auto-opening A-Z filtered suggestions and Tab/click completion.
+- Builder helper text below the generated value is shown before manual From/To input and hidden after the user types non-empty text into either field.
 - `Builder` dialog has add/delete controls and a rule table.
 - The generated ReplaceBlocks string is shown and returned to the existing field row.
 - Generated values are validated through `ReplaceBlocksField.parseNewValue(...)`.

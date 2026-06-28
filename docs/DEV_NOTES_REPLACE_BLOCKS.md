@@ -102,6 +102,7 @@ CLI path:
 - The NBT Changer dialog shows ReplaceBlocks validation messages and warnings after a short typing pause, so incomplete in-progress input does not flash errors on every character.
 - The default NBT Changer dialog width keeps the ReplaceBlocks `Builder` button visible without horizontal scrolling.
 - When opened without an existing value, the builder starts with real default inputs `minecraft:stone` and `minecraft:dirt`, so `Add rule` immediately creates a valid example rule.
+- The builder helper text below the generated value is only a pre-input hint; it hides after the user manually types non-empty From/To text.
 - The NBT Changer dialog offers ReplaceBlocks preview/dry-run counts for modern 1.18+ formats, including per-rule rows and overlap warnings.
 - `BlockStateCatalog.latestJava()` loads the generated Java 1.21.9 block-state catalog used by the builder dropdown UI.
 - For modern versions, replacement iterates all 4096 blocks per section.
