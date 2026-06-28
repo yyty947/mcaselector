@@ -119,6 +119,7 @@ public class ChunkFilter_21w43a {
 			if (tileEntities == null) {
 				tileEntities = new ListTag();
 			}
+			Set<String> sourceTileEntityLocations = getTileEntityLocations(tileEntities);
 
 			for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
 				CompoundTag blockStatesTag = section.getCompoundTag("block_states");
@@ -144,9 +145,11 @@ public class ChunkFilter_21w43a {
 
 				for (int i = 0; i < 4096; i++) {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
+					Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
+					boolean sourceHasTileEntity = sourceTileEntityLocations.contains(locationKey(location));
 
 					for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-						if (!entry.getKey().matches(blockState)) {
+						if (!entry.getKey().matches(blockState, sourceHasTileEntity)) {
 							continue;
 						}
 						ChunkFilter.BlockReplaceData replacement = entry.getValue();
@@ -157,24 +160,15 @@ public class ChunkFilter_21w43a {
 							throw new RuntimeException("failed to set block in section " + y, ex);
 						}
 
-						Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
-
 						if (replacement.getTile() != null) {
+							removeTileEntitiesAt(tileEntities, location);
 							CompoundTag tile = replacement.getTile().copy();
 							tile.putInt("x", location.getX());
 							tile.putInt("y", location.getY());
 							tile.putInt("z", location.getZ());
 							tileEntities.add(tile);
 						} else if (!tileEntities.isEmpty()) {
-							for (int t = 0; t < tileEntities.size(); t++) {
-								CompoundTag tile = tileEntities.getCompound(t);
-								if (tile.getInt("x") == location.getX()
-										&& tile.getInt("y") == location.getY()
-										&& tile.getInt("z") == location.getZ()) {
-									tileEntities.remove(t);
-									break;
-								}
-							}
+							removeTileEntitiesAt(tileEntities, location);
 						}
 
 					}

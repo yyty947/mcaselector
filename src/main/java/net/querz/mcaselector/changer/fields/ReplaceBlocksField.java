@@ -34,6 +34,8 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 		//              literal(<block-name>)
 		//              regex(<java-regex>)
 		//              props(<snbt-string-block-state-with-properties>)
+		//              tile(<source>)
+		//              no_tile(<source>)
 		// to format:   minecraft:<block-name>
 		//              <block-name>
 		//              '<custom-block-name-with-namespace>'
@@ -197,10 +199,17 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 	}
 
 	private boolean startsWithSourceWrapper(String s) {
-		return s.startsWith("literal(") || s.startsWith("regex(") || s.startsWith("props(");
+		return s.startsWith("literal(") || s.startsWith("regex(") || s.startsWith("props(")
+				|| s.startsWith("tile(") || s.startsWith("no_tile(");
 	}
 
 	private SourceReadResult readWrappedSource(String s) {
+		if (s.startsWith("tile(")) {
+			return readTileEntityModeWrapper(s, "tile(", ChunkFilter.BlockReplaceTileEntityMode.REQUIRE_TILE_ENTITY);
+		}
+		if (s.startsWith("no_tile(")) {
+			return readTileEntityModeWrapper(s, "no_tile(", ChunkFilter.BlockReplaceTileEntityMode.EXCLUDE_TILE_ENTITY);
+		}
 		if (s.startsWith("literal(")) {
 			return readNameWrapper(s, "literal(", true);
 		}
@@ -219,6 +228,30 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 			return new SourceReadResult(ChunkFilter.BlockReplaceSource.selectedProperties(state), end + 1);
 		}
 		return null;
+	}
+
+	private SourceReadResult readTileEntityModeWrapper(String s, String prefix, ChunkFilter.BlockReplaceTileEntityMode mode) {
+		int end = findWrapperEnd(s, prefix.length());
+		if (end < 0) {
+			return null;
+		}
+		SourceReadResult source = readSourceExpression(unwrapWrapperArgument(s.substring(prefix.length(), end)));
+		if (source == null) {
+			return null;
+		}
+		return new SourceReadResult(source.source().withTileEntityMode(mode), end + 1);
+	}
+
+	private SourceReadResult readSourceExpression(String raw) {
+		String source = raw.trim();
+		if (source.isEmpty()) {
+			return null;
+		}
+		SourceReadResult result = readSource(source + "=minecraft:stone");
+		if (result == null || result.read() != source.length()) {
+			return null;
+		}
+		return result;
 	}
 
 	private SourceReadResult readNameWrapper(String s, String prefix, boolean literal) {
@@ -249,6 +282,7 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 		boolean singleQuoted = false;
 		boolean doubleQuoted = false;
 		boolean escaped = false;
+		int nestedParens = 0;
 		for (int i = start; i < s.length(); i++) {
 			char c = s.charAt(i);
 			if (escaped) {
@@ -267,8 +301,15 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 				doubleQuoted = !doubleQuoted;
 				continue;
 			}
+			if (c == '(' && !singleQuoted && !doubleQuoted) {
+				nestedParens++;
+				continue;
+			}
 			if (c == ')' && !singleQuoted && !doubleQuoted) {
-				return i;
+				if (nestedParens == 0) {
+					return i;
+				}
+				nestedParens--;
 			}
 		}
 		return -1;

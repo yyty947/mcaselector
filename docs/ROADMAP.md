@@ -1,7 +1,7 @@
 # ReplaceBlocks Roadmap
 
 Date: 2026-06-04
-Last updated: 2026-06-26
+Last updated: 2026-06-28
 
 This roadmap is the current source of truth for ReplaceBlocks feature sequencing. The older linear phase list has been replaced with a dependency-driven route so later semantic work does not force repeated rewrites.
 
@@ -17,16 +17,16 @@ Implemented:
 - Phase 4B: property-aware builder UI backed by `BlockStateCatalog.latestJava()`.
 - Gate A: source matching design for Phase 4C/4D is decided in `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.
 - Phase 4C/4D: explicit source modes implemented with `regex(...)`, `literal(...)`, and `props(...)`.
+- Phase 4E: tile/block entity source safety controls implemented with `tile(...)` and `no_tile(...)`; target tile replacement now removes existing block entities at the target coordinates before adding replacement tile SNBT. The Builder labels this as an "Extra NBT" source condition and includes an extensible Help dialog for this and future Builder explanations.
 - Phase 5A: per-rule preview counts, source-mode rows, and overlap warning in the ReplaceBlocks preview dialog.
 - UI polish: ReplaceBlocks field-row diagnostics are debounced, the main dialog defaults wide enough to show `Builder`, and the empty builder's default example can be added directly.
 
 Still not implemented:
 
-- Tile entity include/exclude controls.
 - Y range restrictions.
 - Biome restrictions.
 - Presets.
-- Copied-world release hardening.
+- Release hardening for broader copied-world regression coverage.
 
 ## Non-Negotiable Constraints
 
@@ -144,20 +144,25 @@ Success criteria:
 
 ### Phase 4E: Tile Entity Safety
 
+Status: implemented on 2026-06-28. User-reported in-game copied-world validation completed on 2026-06-28.
+
 Goal: expose tile/block entity safety controls without creating duplicate or stale block entities.
 
 Recommended order:
 
-- First verify current duplicate behavior on copied worlds.
-- Add include/exclude tile-entity-source controls before adding tile NBT editing.
-- Reflect tile eligibility and estimated add/remove/update counts in preview.
+- Done: source-side `tile(...)` and `no_tile(...)` wrappers let rules include only positions with existing block entities or exclude positions with existing block entities.
+- Done: the builder exposes source tile eligibility as an additive source-side "Extra NBT" selector while preserving advanced text input.
+- Done: the builder includes a Help button that opens a dialog explaining the Extra NBT options; keep that dialog extensible for future Builder help sections.
+- Done: preview reflects tile additions, removals, and updates before mutation.
+- Done: modern 1.18+ execution removes existing block entities at the replacement coordinates before adding target tile SNBT, preventing duplicate entries at the same coordinates in the covered path.
 - Add target tile entity editing only after replacement-over-existing-tile behavior is fixed or clearly documented.
 
 Success criteria:
 
-- Users can choose whether tile entity blocks are eligible for replacement.
-- Preview estimates tile effects before mutation.
-- Copied-world tests cover tile-to-non-tile, non-tile-to-tile, and tile-to-tile replacement.
+- Met in UI/parser: users can choose whether tile entity blocks are eligible for replacement.
+- Met in preview: preview estimates add/remove/update tile effects before mutation.
+- Met in automated modern tests: tile-only, no-tile, tile-to-tile preview, and duplicate target tile cleanup are covered.
+- Met in manual validation: user reported copied-world in-game testing completed for Phase 4E on 2026-06-28.
 
 ### Phase 4F-1: Y Range Restrictions
 

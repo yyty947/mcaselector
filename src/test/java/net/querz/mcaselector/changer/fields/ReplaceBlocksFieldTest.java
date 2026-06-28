@@ -125,6 +125,33 @@ class ReplaceBlocksFieldTest {
 		assertFalse(onlySource(parse("literal(minecraft:stone)=minecraft:glass")).matchesAir());
 	}
 
+	@Test
+	void parsesTileEntitySourceFilters() {
+		ReplaceBlocksField tileOnly = parse("tile(literal(chest))=minecraft:stone");
+		ChunkFilter.BlockReplaceSource tileSource = onlySource(tileOnly);
+
+		assertEquals(ChunkFilter.BlockReplaceSourceType.LITERAL_NAME, tileSource.getType());
+		assertEquals(ChunkFilter.BlockReplaceTileEntityMode.REQUIRE_TILE_ENTITY, tileSource.getTileEntityMode());
+		assertEquals("tile(literal(minecraft:chest))=minecraft:stone", tileOnly.valueToString());
+		assertTrue(tileSource.matches(state("minecraft:chest"), true));
+		assertFalse(tileSource.matches(state("minecraft:chest"), false));
+
+		ReplaceBlocksField noTile = parse("no_tile(props({Name:\"minecraft:oak_stairs\",Properties:{facing:\"north\"}}))=minecraft:stone");
+		ChunkFilter.BlockReplaceSource noTileSource = onlySource(noTile);
+
+		assertEquals(ChunkFilter.BlockReplaceSourceType.SELECTED_PROPERTIES, noTileSource.getType());
+		assertEquals(ChunkFilter.BlockReplaceTileEntityMode.EXCLUDE_TILE_ENTITY, noTileSource.getTileEntityMode());
+		assertTrue(noTileSource.matches(state("minecraft:oak_stairs", Map.of("facing", "north", "half", "bottom")), false));
+		assertFalse(noTileSource.matches(state("minecraft:oak_stairs", Map.of("facing", "north", "half", "bottom")), true));
+		assertTrue(new ReplaceBlocksField().parseNewValue(noTile.valueToString()));
+	}
+
+	@Test
+	void tileEntitySourceFiltersParticipateInAirMatching() {
+		assertFalse(onlySource(parse("tile(literal(air))=minecraft:glass")).matchesAir());
+		assertTrue(onlySource(parse("no_tile(literal(air))=minecraft:glass")).matchesAir());
+	}
+
 	private ReplaceBlocksField parse(String value) {
 		ReplaceBlocksField field = new ReplaceBlocksField();
 		assertTrue(field.parseNewValue(value));

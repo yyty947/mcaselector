@@ -122,6 +122,7 @@ public class ChunkFilter_21w37a {
 			if (tileEntities == null) {
 				tileEntities = new ListTag();
 			}
+			Set<String> sourceTileEntityLocations = getTileEntityLocations(tileEntities);
 
 			for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
 				CompoundTag blockStatesTag = section.getCompoundTag("block_states");
@@ -147,9 +148,11 @@ public class ChunkFilter_21w37a {
 
 				for (int i = 0; i < 4096; i++) {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
+					Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
+					boolean sourceHasTileEntity = sourceTileEntityLocations.contains(locationKey(location));
 
 					for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-						if (!entry.getKey().matches(blockState)) {
+						if (!entry.getKey().matches(blockState, sourceHasTileEntity)) {
 							continue;
 						}
 						ChunkFilter.BlockReplaceData replacement = entry.getValue();
@@ -160,24 +163,15 @@ public class ChunkFilter_21w37a {
 							throw new RuntimeException("failed to set block in section " + y, ex);
 						}
 
-						Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
-
 						if (replacement.getTile() != null) {
+							removeTileEntitiesAt(tileEntities, location);
 							CompoundTag tile = replacement.getTile().copy();
 							tile.putInt("x", location.getX());
 							tile.putInt("y", location.getY());
 							tile.putInt("z", location.getZ());
 							tileEntities.add(tile);
 						} else if (!tileEntities.isEmpty()) {
-							for (int t = 0; t < tileEntities.size(); t++) {
-								CompoundTag tile = tileEntities.getCompound(t);
-								if (tile.getInt("x") == location.getX()
-										&& tile.getInt("y") == location.getY()
-										&& tile.getInt("z") == location.getZ()) {
-									tileEntities.remove(t);
-									break;
-								}
-							}
+							removeTileEntitiesAt(tileEntities, location);
 						}
 
 					}
@@ -294,7 +288,7 @@ public class ChunkFilter_21w37a {
 			int matchedRules = 0;
 			int ruleIndex = 0;
 			for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-				if (!entry.getKey().matches(blockState)) {
+				if (!entry.getKey().matches(blockState, hasTileEntity)) {
 					ruleIndex++;
 					continue;
 				}
@@ -302,7 +296,11 @@ public class ChunkFilter_21w37a {
 				matchedRules++;
 				result.incrementRuleBlocks(ruleIndex);
 				if (entry.getValue().getTile() != null) {
-					result.incrementTileEntityAdditions();
+					if (tileEntityPresent) {
+						result.incrementTileEntityUpdates();
+					} else {
+						result.incrementTileEntityAdditions();
+					}
 					tileEntityPresent = true;
 				} else if (tileEntityPresent) {
 					result.incrementTileEntityRemovals();
@@ -316,9 +314,13 @@ public class ChunkFilter_21w37a {
 			return matched;
 		}
 
-		private Set<String> getTileEntityLocations(CompoundTag root, String tileEntitiesKey) {
-			Set<String> locations = new HashSet<>();
+		protected Set<String> getTileEntityLocations(CompoundTag root, String tileEntitiesKey) {
 			ListTag tileEntities = Helper.tagFromCompound(root, tileEntitiesKey);
+			return getTileEntityLocations(tileEntities);
+		}
+
+		protected Set<String> getTileEntityLocations(ListTag tileEntities) {
+			Set<String> locations = new HashSet<>();
 			if (tileEntities == null) {
 				return locations;
 			}
@@ -328,11 +330,26 @@ public class ChunkFilter_21w37a {
 			return locations;
 		}
 
-		private String locationKey(Point3i location) {
+		protected int removeTileEntitiesAt(ListTag tileEntities, Point3i location) {
+			int removed = 0;
+			for (int t = 0; t < tileEntities.size(); t++) {
+				CompoundTag tile = tileEntities.getCompound(t);
+				if (tile.getInt("x") == location.getX()
+						&& tile.getInt("y") == location.getY()
+						&& tile.getInt("z") == location.getZ()) {
+					tileEntities.remove(t);
+					t--;
+					removed++;
+				}
+			}
+			return removed;
+		}
+
+		protected String locationKey(Point3i location) {
 			return locationKey(location.getX(), location.getY(), location.getZ());
 		}
 
-		private String locationKey(int x, int y, int z) {
+		protected String locationKey(int x, int y, int z) {
 			return x + "," + y + "," + z;
 		}
 

@@ -23,12 +23,16 @@ Implemented behavior:
 - Preview is non-mutating and supports modern 1.18+ chunk formats.
 - Preview shows aggregate counts plus one per-rule row with source mode, generated source text, target text, and matched block count.
 - Preview warns when more than one rule matches the same original block position.
+- Tile source filters are available through `tile(...)` and `no_tile(...)`.
+- The builder exposes tile source filters as `Extra NBT: any/present/absent` and has an extensible Help dialog for Builder explanations.
+- Preview estimates tile entity additions, removals, and updates.
+- Modern 1.18+ tile-target replacement removes existing block entities at the same coordinates before adding target tile SNBT.
 
 Not implemented:
 
 - Dedicated source-mode selector UI and per-property subset checkboxes.
-- Tile source filters.
 - Y range, biome restrictions, and presets.
+- Rich target tile NBT editing.
 
 ## Source Matching Model
 
@@ -181,14 +185,17 @@ Preview baseline:
 
 ## Tile Entity Safety
 
+Phase 4E is implemented as of 2026-06-28. User-reported in-game copied-world validation completed on 2026-06-28; keep copied-world checks in the release-hardening rhythm for future behavior changes.
+
 Do not add rich tile NBT editing first.
 
 Recommended order:
 
-- Verify current tile-to-tile replacement behavior on copied worlds.
-- If duplicate block entities are possible, fix or clearly guard it before exposing tile editing.
-- Add include/exclude tile entity source filters.
-- Add preview estimates for tile add/remove/update effects.
+- Done: source-side `tile(...)` matches only original positions that already have a block entity.
+- Done: source-side `no_tile(...)` excludes original positions that already have a block entity.
+- Done: builder source controls can generate both wrappers without replacing advanced text input, using clearer Extra NBT labels and a Help dialog that can grow with later Builder documentation.
+- Done: preview estimates tile add/remove/update effects and keeps per-rule rows.
+- Done: target tile replacement removes existing block entities at the same coordinates before adding the new tile SNBT in modern 1.18+ paths.
 - Add tile NBT editing later, with warning-heavy UI for containers, signs, banners, command blocks, and similar blocks.
 
 ## Spatial Restrictions

@@ -1,4 +1,4 @@
-﻿status.region;지역
+status.region;지역
 status.chunk;청크
 status.block;블록
 status.selected;선택됨
@@ -218,6 +218,17 @@ dialog.replace_blocks.builder.invalid;Invalid block id or generated rule.
 dialog.replace_blocks.builder.duplicate;This rule already exists.
 dialog.replace_blocks.builder.empty;Add at least one rule.
 dialog.replace_blocks.builder.advanced;Advanced text input remains available; from/to also accept block state SNBT with Name.
+dialog.replace_blocks.builder.tile_source.any;Extra NBT: any
+dialog.replace_blocks.builder.tile_source.require;Extra NBT: present
+dialog.replace_blocks.builder.tile_source.exclude;Extra NBT: absent
+dialog.replace_blocks.builder.help.button;Help
+dialog.replace_blocks.builder.help.title;ReplaceBlocks Builder Help
+dialog.replace_blocks.builder.help.nbt.title;Extra NBT source condition
+dialog.replace_blocks.builder.help.nbt.intro;Extra NBT is block entity data stored at a block position, such as sign text, container items, furnace progress, or command block commands. This option only checks whether the source position has that data; it does not inspect the contents.
+dialog.replace_blocks.builder.help.nbt.any;Extra NBT: any - match by block name and properties regardless of block entity data. Use this for normal blocks, or when replacing and discarding existing extra data is acceptable.
+dialog.replace_blocks.builder.help.nbt.present;Extra NBT: present - match only positions that already have block entity data. Use this when deliberately targeting chests, barrels, signs, furnaces, spawners, or similar data blocks; generates tile(...).
+dialog.replace_blocks.builder.help.nbt.absent;Extra NBT: absent - match only positions without block entity data. Use this to avoid container contents, sign text, and similar data, or to clean up unusual same-name blocks without entities; generates no_tile(...).
+dialog.replace_blocks.builder.help.nbt.note;This setting filters only the source side. If the target needs block entity SNBT, continue using advanced text input.
 dialog.replace_blocks.validation.source_empty;Enter a source block id.
 dialog.replace_blocks.validation.target_empty;Enter a target block id.
 dialog.replace_blocks.validation.source_unknown;Unknown source block "%s".
@@ -232,7 +243,7 @@ dialog.replace_blocks.validation.trailing;Unexpected text after this rule. Separ
 dialog.replace_blocks.validation.target_quote;Quoted target block is missing a closing quote.
 dialog.replace_blocks.validation.quoted_target_ambiguous;Quoted target blocks are fragile before another rule or tile SNBT. Use {Name:"modid:block"} instead.
 dialog.replace_blocks.validation.source_regex;Source "%s" is treated as a Java regex when matching blocks.
-dialog.replace_blocks.validation.source_mode_wrapper;Source mode wrappers must be literal(...), regex(...), or props(...).
+dialog.replace_blocks.validation.source_mode_wrapper;Source mode wrappers must be literal(...), regex(...), props(...), tile(...), or no_tile(...).
 dialog.replace_blocks.validation.source_literal;literal(...) source must contain a valid block id. Invalid source: "%s".
 dialog.replace_blocks.validation.source_regex_syntax;regex(...) source must contain a valid Java regex.
 dialog.replace_blocks.validation.source_props;props(...) source must contain block-state SNBT with Name and at least one selected property.
@@ -241,12 +252,12 @@ dialog.change_nbt.replace_blocks_query_quote;In the advanced query field, wrap R
 dialog.replace_blocks.preview.button;Preview
 dialog.replace_blocks.preview.title;ReplaceBlocks Preview
 dialog.replace_blocks.preview.no_field;Enter a valid ReplaceBlocks value before running preview.
-dialog.replace_blocks.preview.result;Dry-run completed.\nScanned regions: %d\nScanned chunks: %d\nAffected chunks: %d\nAffected sections: %d\nMatched blocks: %d\nTile entities to add: %d\nTile entities to remove: %d
+dialog.replace_blocks.preview.result;Dry-run completed.\nScanned regions: %d\nScanned chunks: %d\nAffected chunks: %d\nAffected sections: %d\nMatched blocks: %d\nTile entities to add: %d\nTile entities to remove: %d\nTile entities to update: %d
 dialog.replace_blocks.preview.rules;Rule matches:
 dialog.replace_blocks.preview.rule;#%d [%s] %s -> %s: %d
 dialog.replace_blocks.preview.warning_air;Air replacement may complete missing sections before replacement. Preview counted %d missing or incomplete air sections.
 dialog.replace_blocks.preview.warning_overlap;%d block positions matched more than one rule. Per-rule counts include each rule match, so their sum may be higher than matched blocks.
-dialog.replace_blocks.preview.warning_tile;Tile entity replacement can add or remove block entities. Test on copied worlds before applying.
+dialog.replace_blocks.preview.warning_tile;Tile entity replacement can add, remove, or update block entities. Test on copied worlds before applying.
 dialog.replace_blocks.preview.warning_light;The current ReplaceBlocks implementation may remove light arrays from %d processed sections.
 dialog.replace_blocks.preview.warning_heightmaps;Heightmaps are recomputed for processed chunks during the real change. Preview scanned %d chunks.
 dialog.replace_blocks.preview.warning_unsupported;Preview is not implemented for %d scanned chunks in older or unsupported versions.

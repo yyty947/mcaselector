@@ -109,6 +109,7 @@ Then manually inspect the relevant dialog. Do not claim world mutation behavior 
 - Phase 4B property-aware rule builder UI is implemented.
 - Gate A source matching design is completed.
 - Phase 4C/4D explicit source modes are implemented.
+- Phase 4E tile/block entity source safety controls are implemented with `tile(...)` and `no_tile(...)`, clearer Extra NBT Builder labels/help, preview add/remove/update estimates, duplicate target tile cleanup in modern 1.18+ paths, and user-reported copied-world in-game validation.
 - Phase 5A per-rule preview counts are implemented.
 - ReplaceBlocks UI polish is implemented: debounced field-row diagnostics, visible default Builder button, and addable empty-builder example defaults.
-- Remaining work should follow the revised route: tile entity safety, Y range, biome restrictions, presets, and release hardening.
+- Remaining work should follow the revised route: Y range, biome restrictions, presets, and release hardening.

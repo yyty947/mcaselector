@@ -1,7 +1,7 @@
 # ReplaceBlocks Analysis
 
 Date: 2026-06-04
-Last updated: 2026-06-26
+Last updated: 2026-06-28
 
 Scope: targeted reconnaissance of ReplaceBlocks parsing and modern 1.18+ implementation.
 
@@ -86,6 +86,7 @@ chest=minecraft:barrel;{id:"minecraft:barrel"}
 - parses optional tile entity SNBT after `;`
 - stores rules in `Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData>`
 - returns `false` through `super.parseNewValue(...)` on any parse failure
+- parses source tile wrappers `tile(...)` and `no_tile(...)`, which can wrap existing source expressions such as `literal(...)`, `regex(...)`, `props(...)`, source SNBT, or legacy bare sources
 
 Important details:
 
@@ -196,9 +197,9 @@ High-level flow:
   - iterate 4096 block indices
   - get current palette entry using `getBlockAt(...)`
   - match the current palette block state against each `BlockReplaceSource`
-  - source matching dispatches through `BlockReplaceSource.matches(...)`, including legacy regex, explicit regex, literal, exact-state, and selected-property modes
+  - source matching dispatches through `BlockReplaceSource.matches(...)`, including legacy regex, explicit regex, literal, exact-state, selected-property modes, and source tile eligibility
   - write target state using `setBlockAt(...)`
-  - add or remove block entity data at the absolute block location
+  - add, remove, or update block entity data at the absolute block location
   - cleanup palette after the section loop
   - write `block_states.data`, or remove it if the helper returns null
 - write root `block_entities`
@@ -226,14 +227,22 @@ When a replacement has tile entity SNBT:
 
 - the tile compound is copied
 - `x`, `y`, and `z` are set to the absolute replaced block coordinates
+- existing block entities at the same coordinates are removed
 - the tile compound is appended to `block_entities`
 
 When a replacement has no tile entity SNBT:
 
 - the implementation searches `block_entities`
-- if a tile entity at the replaced coordinate exists, it removes the first match
+- if tile entities at the replaced coordinate exist, it removes them
 
-Risk to test: when replacing an existing tile-entity block with another tile-entity target, the implementation appears to append the new tile without first removing the old tile at the same coordinates.
+Source-side tile filters:
+
+- `tile(<source>)` matches only original block positions that already have a block entity.
+- `no_tile(<source>)` matches only original block positions that do not already have a block entity.
+- The Builder labels these source filters as `Extra NBT: any/present/absent`; the Help dialog explains that this only checks whether extra block entity data exists, not its contents.
+- For overlapping rules, the tile source eligibility is based on the original block entity presence at that coordinate; add/remove/update effects still follow rule order.
+
+Automated test coverage now verifies tile-only/no-tile preview counts, tile-to-tile update estimates, and duplicate cleanup for modern 1.18+ target tile replacement. User-reported copied-world in-game validation completed on 2026-06-28; future tile UI expansion still needs its own copied-world checklist.
 
 Older 21w37a-era code uses `TileEntities`/level-style naming in some paths. The modern 21w43a code uses `block_entities`.
 
@@ -290,7 +299,7 @@ Preview path:
 - `ReplaceBlocksPreviewer.preview(...)`
 - read selected region data
 - for each real region chunk, call `ChunkFilter.Blocks.previewReplaceBlocks(...)`
-- show scanned regions/chunks, affected chunks/sections, aggregate matched block count, per-rule matched block rows, tile-entity add/remove estimates, overlap warnings, and other warnings
+- show scanned regions/chunks, affected chunks/sections, aggregate matched block count, per-rule matched block rows, tile-entity add/remove/update estimates, overlap warnings, and other warnings
 
 Safety behavior:
 

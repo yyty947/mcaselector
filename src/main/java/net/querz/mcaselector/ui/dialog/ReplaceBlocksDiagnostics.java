@@ -207,10 +207,17 @@ final class ReplaceBlocksDiagnostics {
 	}
 
 	private static boolean startsWithSourceWrapper(String raw) {
-		return raw.startsWith("literal(") || raw.startsWith("regex(") || raw.startsWith("props(");
+		return raw.startsWith("literal(") || raw.startsWith("regex(") || raw.startsWith("props(")
+				|| raw.startsWith("tile(") || raw.startsWith("no_tile(");
 	}
 
 	private static SourceResult readWrappedSource(String raw) {
+		if (raw.startsWith("tile(")) {
+			return readTileEntityModeWrapper(raw, "tile(");
+		}
+		if (raw.startsWith("no_tile(")) {
+			return readTileEntityModeWrapper(raw, "no_tile(");
+		}
 		if (raw.startsWith("literal(")) {
 			return readNameWrapper(raw, "literal(", true);
 		}
@@ -226,6 +233,33 @@ final class ReplaceBlocksDiagnostics {
 			return new SourceResult(0, error(Translation.DIALOG_REPLACE_BLOCKS_VALIDATION_SOURCE_PROPS.toString()));
 		}
 		return new SourceResult(end + 1, none());
+	}
+
+	private static SourceResult readTileEntityModeWrapper(String raw, String prefix) {
+		int end = findWrapperEnd(raw, prefix.length());
+		if (end < 0) {
+			return new SourceResult(0, error(Translation.DIALOG_REPLACE_BLOCKS_VALIDATION_SOURCE_MODE_WRAPPER.toString()));
+		}
+		SourceResult source = readSourceExpression(unwrapWrapperArgument(raw.substring(prefix.length(), end)));
+		if (source.diagnostic().isError()) {
+			return source;
+		}
+		return new SourceResult(end + 1, source.diagnostic());
+	}
+
+	private static SourceResult readSourceExpression(String raw) {
+		String source = raw.trim();
+		if (source.isEmpty()) {
+			return new SourceResult(0, error(Translation.DIALOG_REPLACE_BLOCKS_VALIDATION_SOURCE_EMPTY.toString()));
+		}
+		SourceResult result = readSource(source + "=minecraft:stone");
+		if (result.diagnostic().isError()) {
+			return result;
+		}
+		if (result.read() != source.length()) {
+			return new SourceResult(0, error(Translation.DIALOG_REPLACE_BLOCKS_VALIDATION_SOURCE_MODE_WRAPPER.toString()));
+		}
+		return result;
 	}
 
 	private static SourceResult readNameWrapper(String raw, String prefix, boolean literal) {
@@ -254,6 +288,7 @@ final class ReplaceBlocksDiagnostics {
 		boolean singleQuoted = false;
 		boolean doubleQuoted = false;
 		boolean escaped = false;
+		int nestedParens = 0;
 		for (int i = start; i < raw.length(); i++) {
 			char c = raw.charAt(i);
 			if (escaped) {
@@ -272,8 +307,15 @@ final class ReplaceBlocksDiagnostics {
 				doubleQuoted = !doubleQuoted;
 				continue;
 			}
+			if (c == '(' && !singleQuoted && !doubleQuoted) {
+				nestedParens++;
+				continue;
+			}
 			if (c == ')' && !singleQuoted && !doubleQuoted) {
-				return i;
+				if (nestedParens == 0) {
+					return i;
+				}
+				nestedParens--;
 			}
 		}
 		return -1;

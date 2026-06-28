@@ -38,7 +38,9 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private static final PseudoClass warning = PseudoClass.getPseudoClass("warning");
 	private static final String DEFAULT_FROM_BLOCK = "minecraft:stone";
 	private static final String DEFAULT_TO_BLOCK = "minecraft:dirt";
+	private static final ButtonType HELP = new ButtonType("", ButtonBar.ButtonData.OTHER);
 
+	private final Stage primaryStage;
 	private final BlockStateCatalog catalog = BlockStateCatalog.latestJava();
 	private final ObservableList<String> blockNames = FXCollections.observableArrayList(catalog.blockNames().stream().sorted().collect(Collectors.toList()));
 	private final BlockInput from = new BlockInput(true);
@@ -49,6 +51,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private final Label validation = new Label();
 
 	public ReplaceBlocksRuleBuilderDialog(Stage primaryStage, String initialValue) {
+		this.primaryStage = primaryStage;
 		titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_TITLE.getProperty());
 		initStyle(StageStyle.UTILITY);
 		setResizable(true);
@@ -56,8 +59,16 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
 		getDialogPane().getStylesheets().add(Objects.requireNonNull(ChangeNBTDialog.class.getClassLoader().getResource("style/component/change-nbt-dialog.css")).toExternalForm());
 		getDialogPane().getStyleClass().add("replace-blocks-builder-pane");
-		getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+		getDialogPane().getButtonTypes().addAll(HELP, ButtonType.OK, ButtonType.CANCEL);
 		getDialogPane().setPrefSize(900, 650);
+		Node help = getDialogPane().lookupButton(HELP);
+		if (help instanceof Button button) {
+			button.textProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_BUTTON.getProperty());
+			button.addEventFilter(ActionEvent.ACTION, event -> {
+				showHelp();
+				event.consume();
+			});
+		}
 		Node ok = getDialogPane().lookupButton(ButtonType.OK);
 		ok.setDisable(true);
 
@@ -194,6 +205,44 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		showDiagnostic(ReplaceBlocksDiagnostics.diagnoseValue(result.getText(), valid));
 	}
 
+	private void showHelp() {
+		Dialog<Void> help = new Dialog<>();
+		help.initOwner(getDialogPane().getScene().getWindow());
+		help.initStyle(StageStyle.UTILITY);
+		help.setResizable(true);
+		help.titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_TITLE.getProperty());
+		help.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+		help.getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
+		help.getDialogPane().getStylesheets().add(Objects.requireNonNull(ChangeNBTDialog.class.getClassLoader().getResource("style/component/change-nbt-dialog.css")).toExternalForm());
+		help.getDialogPane().getStyleClass().add("replace-blocks-builder-help-pane");
+		help.getDialogPane().setPrefSize(560, 380);
+
+		VBox content = new VBox(8);
+		content.getStyleClass().add("replace-blocks-builder-help");
+		content.setPadding(new Insets(8));
+		content.getChildren().addAll(
+				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_NBT_TITLE, "replace-blocks-builder-help-heading"),
+				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_NBT_INTRO, "replace-blocks-builder-help-text"),
+				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_NBT_ANY, "replace-blocks-builder-help-text"),
+				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_NBT_PRESENT, "replace-blocks-builder-help-text"),
+				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_NBT_ABSENT, "replace-blocks-builder-help-text"),
+				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_NBT_NOTE, "replace-blocks-builder-help-text")
+		);
+
+		ScrollPane scroll = new ScrollPane(content);
+		scroll.setFitToWidth(true);
+		scroll.getStyleClass().add("replace-blocks-builder-help-scroll");
+		help.getDialogPane().setContent(scroll);
+		help.showAndWait();
+	}
+
+	private static Label helpLabel(Translation translation, String styleClass) {
+		Label label = UIFactory.label(translation);
+		label.setWrapText(true);
+		label.getStyleClass().add(styleClass);
+		return label;
+	}
+
 	private String formatFrom(String name) {
 		if (name.startsWith("{") || isSourceModeExpression(name)) {
 			return name;
@@ -212,7 +261,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private static boolean isSourceModeExpression(String value) {
-		return value.startsWith("literal(") || value.startsWith("regex(") || value.startsWith("props(");
+		return value.startsWith("literal(") || value.startsWith("regex(") || value.startsWith("props(")
+				|| value.startsWith("tile(") || value.startsWith("no_tile(");
+	}
+
+	private static boolean isTileEntityModeExpression(String value) {
+		return value.startsWith("tile(") || value.startsWith("no_tile(");
 	}
 
 	private static String formatWrapperArgument(String value) {
@@ -256,6 +310,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		private final boolean source;
 		private final ComboBox<String> block = new ComboBox<>();
+		private final ComboBox<SourceTileMode> tileEntityMode = new ComboBox<>();
 		private final GridPane properties = new GridPane();
 		private final Map<String, ComboBox<String>> propertyEditors = new LinkedHashMap<>();
 		private final BooleanProperty userInputPresent = new SimpleBooleanProperty(false);
@@ -304,7 +359,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			properties.setHgap(6);
 			properties.setVgap(4);
 
-			getChildren().addAll(label, block, properties);
+			getChildren().addAll(label, block);
+			if (source) {
+				tileEntityMode.setItems(FXCollections.observableArrayList(SourceTileMode.values()));
+				tileEntityMode.setValue(SourceTileMode.ANY);
+				tileEntityMode.setMaxWidth(Double.MAX_VALUE);
+				getChildren().add(tileEntityMode);
+			}
+			getChildren().add(properties);
 			VBox.setVgrow(properties, Priority.NEVER);
 			updateBlockSuggestions("");
 			rebuildProperties("");
@@ -342,8 +404,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		private String generatedValue() {
 			String text = currentText();
-			if (text.isEmpty() || text.startsWith("{") || source && isSourceModeExpression(text)) {
+			if (text.isEmpty()) {
 				return text;
+			}
+			if (text.startsWith("{") || source && isSourceModeExpression(text)) {
+				return source ? applySourceTileMode(text) : text;
 			}
 			ReplaceBlocksDiagnostics.NameResult normalized = ReplaceBlocksDiagnostics.normalizeBuilderName(text, source);
 			if (normalized.diagnostic().isError()) {
@@ -351,7 +416,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			}
 			String name = normalized.name();
 			if (propertyEditors.isEmpty()) {
-				return source ? "literal(" + formatWrapperArgument(name) + ")" : name;
+				String value = source ? "literal(" + formatWrapperArgument(name) + ")" : name;
+				return source ? applySourceTileMode(value) : value;
 			}
 			Map<String, String> selectedProperties = new LinkedHashMap<>();
 			for (Map.Entry<String, ComboBox<String>> property : propertyEditors.entrySet()) {
@@ -362,7 +428,15 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				selectedProperties.put(property.getKey(), value);
 			}
 			String blockState = blockStateSNBT(name, selectedProperties);
-			return source ? "props(" + blockState + ")" : blockState;
+			String value = source ? "props(" + blockState + ")" : blockState;
+			return source ? applySourceTileMode(value) : value;
+		}
+
+		private String applySourceTileMode(String value) {
+			if (!source || value == null || value.isEmpty() || isTileEntityModeExpression(value)) {
+				return value;
+			}
+			return tileEntityMode.getValue().wrap(value);
 		}
 
 		private void clear() {
@@ -547,4 +621,27 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private record ValueResult(String value, ReplaceBlocksDiagnostics.Diagnostic diagnostic) {}
 
 	private record Rule(String from, String to) {}
+
+	private enum SourceTileMode {
+		ANY(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_TILE_SOURCE_ANY, null),
+		REQUIRE(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_TILE_SOURCE_REQUIRE, "tile"),
+		EXCLUDE(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_TILE_SOURCE_EXCLUDE, "no_tile");
+
+		private final Translation label;
+		private final String wrapper;
+
+		SourceTileMode(Translation label, String wrapper) {
+			this.label = label;
+			this.wrapper = wrapper;
+		}
+
+		private String wrap(String value) {
+			return wrapper == null ? value : wrapper + "(" + value + ")";
+		}
+
+		@Override
+		public String toString() {
+			return label.toString();
+		}
+	}
 }

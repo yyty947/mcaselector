@@ -105,6 +105,7 @@ public final class ReplaceBlocksPreviewer {
 		private long completedAirSections;
 		private long tileEntityAdditions;
 		private long tileEntityRemovals;
+		private long tileEntityUpdates;
 		private long overlappingBlocks;
 		private long unsupportedChunks;
 		private long errorChunks;
@@ -138,6 +139,7 @@ public final class ReplaceBlocksPreviewer {
 			completedAirSections += preview.getCompletedAirSections();
 			tileEntityAdditions += preview.getTileEntityAdditions();
 			tileEntityRemovals += preview.getTileEntityRemovals();
+			tileEntityUpdates += preview.getTileEntityUpdates();
 		}
 
 		private void addError(String message) {
@@ -180,6 +182,10 @@ public final class ReplaceBlocksPreviewer {
 
 		public long getTileEntityRemovals() {
 			return tileEntityRemovals;
+		}
+
+		public long getTileEntityUpdates() {
+			return tileEntityUpdates;
 		}
 
 		public long getOverlappingBlocks() {
@@ -225,7 +231,11 @@ public final class ReplaceBlocksPreviewer {
 
 		private RulePreview(int index, ChunkFilter.BlockReplaceSource source, ChunkFilter.BlockReplaceData target) {
 			this.index = index;
-			sourceMode = source.getType().name().toLowerCase(Locale.ROOT).replace('_', '-');
+			String mode = source.getType().name().toLowerCase(Locale.ROOT).replace('_', '-');
+			if (source.getTileEntityMode() != ChunkFilter.BlockReplaceTileEntityMode.ANY) {
+				mode += "/" + source.getTileEntityMode().name().toLowerCase(Locale.ROOT).replace('_', '-');
+			}
+			sourceMode = mode;
 			sourceText = source.toString();
 			targetText = target.toString();
 		}

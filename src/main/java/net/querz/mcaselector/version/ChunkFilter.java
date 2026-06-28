@@ -216,40 +216,56 @@ public interface ChunkFilter {
 	class BlockReplaceSource {
 
 		private final BlockReplaceSourceType type;
+		private final BlockReplaceTileEntityMode tileEntityMode;
 		private final String name;
 		private final CompoundTag state;
 
 		public BlockReplaceSource(String name) {
 			this.type = BlockReplaceSourceType.LEGACY_REGEX_NAME;
+			this.tileEntityMode = BlockReplaceTileEntityMode.ANY;
 			this.name = name;
 			state = null;
 		}
 
 		public BlockReplaceSource(CompoundTag state) {
 			this.type = BlockReplaceSourceType.EXACT_STATE;
+			this.tileEntityMode = BlockReplaceTileEntityMode.ANY;
 			this.state = state;
 			name = state.getString("Name");
 		}
 
-		private BlockReplaceSource(BlockReplaceSourceType type, String name, CompoundTag state) {
+		private BlockReplaceSource(BlockReplaceSourceType type, BlockReplaceTileEntityMode tileEntityMode, String name, CompoundTag state) {
 			this.type = type;
+			this.tileEntityMode = tileEntityMode;
 			this.name = name;
 			this.state = state;
 		}
 
 		public static BlockReplaceSource regexName(String pattern) {
-			return new BlockReplaceSource(BlockReplaceSourceType.REGEX_NAME, pattern, null);
+			return new BlockReplaceSource(BlockReplaceSourceType.REGEX_NAME, BlockReplaceTileEntityMode.ANY, pattern, null);
 		}
 
 		public static BlockReplaceSource literalName(String name) {
-			return new BlockReplaceSource(BlockReplaceSourceType.LITERAL_NAME, name, null);
+			return new BlockReplaceSource(BlockReplaceSourceType.LITERAL_NAME, BlockReplaceTileEntityMode.ANY, name, null);
 		}
 
 		public static BlockReplaceSource selectedProperties(CompoundTag state) {
-			return new BlockReplaceSource(BlockReplaceSourceType.SELECTED_PROPERTIES, state.getString("Name"), state);
+			return new BlockReplaceSource(BlockReplaceSourceType.SELECTED_PROPERTIES, BlockReplaceTileEntityMode.ANY, state.getString("Name"), state);
+		}
+
+		public BlockReplaceSource withTileEntityMode(BlockReplaceTileEntityMode tileEntityMode) {
+			return new BlockReplaceSource(type, tileEntityMode, name, state);
 		}
 
 		public boolean matches(CompoundTag blockState) {
+			return matches(blockState, false);
+		}
+
+		public boolean matches(CompoundTag blockState, boolean hasTileEntity) {
+			return matchesBlockState(blockState) && matchesTileEntityMode(hasTileEntity);
+		}
+
+		private boolean matchesBlockState(CompoundTag blockState) {
 			String blockName = blockState.getString("Name");
 			switch (type) {
 				case EXACT_STATE:
@@ -263,6 +279,17 @@ public interface ChunkFilter {
 					return blockName != null && blockName.matches(name);
 				default:
 					return false;
+			}
+		}
+
+		private boolean matchesTileEntityMode(boolean hasTileEntity) {
+			switch (tileEntityMode) {
+				case REQUIRE_TILE_ENTITY:
+					return hasTileEntity;
+				case EXCLUDE_TILE_ENTITY:
+					return !hasTileEntity;
+				default:
+					return true;
 			}
 		}
 
@@ -287,11 +314,15 @@ public interface ChunkFilter {
 		public boolean matchesAir() {
 			CompoundTag air = new CompoundTag();
 			air.putString("Name", "minecraft:air");
-			return matches(air);
+			return tileEntityMode != BlockReplaceTileEntityMode.REQUIRE_TILE_ENTITY && matchesBlockState(air);
 		}
 
 		public BlockReplaceSourceType getType() {
 			return type;
+		}
+
+		public BlockReplaceTileEntityMode getTileEntityMode() {
+			return tileEntityMode;
 		}
 
 		public String getName() {
@@ -300,6 +331,18 @@ public interface ChunkFilter {
 
 		@Override
 		public String toString() {
+			String value = baseToString();
+			switch (tileEntityMode) {
+				case REQUIRE_TILE_ENTITY:
+					return "tile(" + value + ")";
+				case EXCLUDE_TILE_ENTITY:
+					return "no_tile(" + value + ")";
+				default:
+					return value;
+			}
+		}
+
+		private String baseToString() {
 			switch (type) {
 				case EXACT_STATE:
 					return NBTUtil.toSNBT(state);
@@ -329,6 +372,10 @@ public interface ChunkFilter {
 
 	enum BlockReplaceSourceType {
 		LEGACY_REGEX_NAME, REGEX_NAME, LITERAL_NAME, EXACT_STATE, SELECTED_PROPERTIES
+	}
+
+	enum BlockReplaceTileEntityMode {
+		ANY, REQUIRE_TILE_ENTITY, EXCLUDE_TILE_ENTITY
 	}
 
 	class BlockReplaceData {
@@ -429,6 +476,7 @@ public interface ChunkFilter {
 		private int completedAirSections;
 		private long tileEntityAdditions;
 		private long tileEntityRemovals;
+		private long tileEntityUpdates;
 		private long overlappingBlocks;
 
 		private BlockReplacePreviewData(boolean supported) {
@@ -491,6 +539,10 @@ public interface ChunkFilter {
 			tileEntityRemovals++;
 		}
 
+		public void incrementTileEntityUpdates() {
+			tileEntityUpdates++;
+		}
+
 		public long getBlocks() {
 			return blocks;
 		}
@@ -513,6 +565,10 @@ public interface ChunkFilter {
 
 		public long getTileEntityRemovals() {
 			return tileEntityRemovals;
+		}
+
+		public long getTileEntityUpdates() {
+			return tileEntityUpdates;
 		}
 
 		public long getOverlappingBlocks() {

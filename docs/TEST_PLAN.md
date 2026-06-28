@@ -1,7 +1,7 @@
 # ReplaceBlocks Test Plan
 
 Date: 2026-06-04
-Last updated: 2026-06-26
+Last updated: 2026-06-28
 
 Safety rule: never test on a real world save. Always copy a small test world and keep an untouched backup.
 
@@ -229,6 +229,19 @@ Modern Minecraft wool colors are separate block IDs, so this should work as ordi
 
 ## Tile entity replacement
 
+Phase 4E automated coverage:
+
+```powershell
+.\gradlew.bat test --tests net.querz.mcaselector.changer.fields.ReplaceBlocksFieldTest --tests net.querz.mcaselector.ui.dialog.ReplaceBlocksDiagnosticsTest --tests net.querz.mcaselector.version.java_1_18.ReplaceBlocksPreviewCountsTest
+```
+
+Syntax covered:
+
+- `tile(literal(minecraft:chest))=minecraft:stone` matches only source positions with existing block entities.
+- `no_tile(literal(minecraft:chest))=minecraft:stone` excludes source positions with existing block entities.
+- Preview counts tile entity additions, removals, and updates separately.
+- Modern 1.18+ target tile replacement removes existing block entities at the same coordinates before adding replacement tile SNBT.
+
 Example target shape:
 
 ```text
@@ -243,11 +256,14 @@ Checks:
 - replacing an existing chest with barrel does not leave duplicate block entities at the same x/y/z
 - replacing a tile entity block with a non-tile block removes the old block entity
 
-Before tile UI expansion:
+Copied-world validation:
 
 - Verify tile-to-tile replacement on copied worlds.
-- Decide whether any duplicate block entity behavior must be fixed before exposing target tile NBT editing.
-- Prefer include/exclude tile-entity-source filters before rich tile NBT editing.
+- Verify tile-to-non-tile replacement on copied worlds.
+- Verify non-tile-to-tile replacement on copied worlds.
+- Compare preview add/remove/update counts with a real run on a fresh copied world.
+- User reported Phase 4E in-game copied-world validation complete on 2026-06-28.
+- Keep rich target tile NBT editing out of scope until it has its own copied-world checklist.
 
 ## Air replacement
 

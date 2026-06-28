@@ -267,7 +267,8 @@ public class ChangeNBTDialog extends Dialog<ChangeNBTDialog.Result> implements P
 				result.getAffectedSections(),
 				result.getMatchedBlocks(),
 				result.getTileEntityAdditions(),
-				result.getTileEntityRemovals()
+				result.getTileEntityRemovals(),
+				result.getTileEntityUpdates()
 		));
 		appendPreviewRules(builder, result);
 		if (result.getOverlappingBlocks() > 0) {
@@ -276,7 +277,7 @@ public class ChangeNBTDialog extends Dialog<ChangeNBTDialog.Result> implements P
 		if (result.replacesAir()) {
 			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_AIR.format(result.getCompletedAirSections()));
 		}
-		if (result.replacesWithTileEntity() || result.getTileEntityAdditions() > 0 || result.getTileEntityRemovals() > 0) {
+		if (result.replacesWithTileEntity() || result.getTileEntityAdditions() > 0 || result.getTileEntityRemovals() > 0 || result.getTileEntityUpdates() > 0) {
 			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_TILE.toString());
 		}
 		if (result.getLightSections() > 0) {

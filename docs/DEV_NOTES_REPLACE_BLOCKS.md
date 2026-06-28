@@ -1,9 +1,9 @@
 # ReplaceBlocks Development Notes
 
 Date: 2026-06-04
-Last updated: 2026-06-26
+Last updated: 2026-06-28
 
-Scope: ReplaceBlocks reconnaissance plus implemented phases 1-5A. Java source now includes a rule builder, validation diagnostics, modern preview/dry-run with per-rule counts, exact source block-state matching, a Java 1.21.9 block-state catalog foundation, a property-aware catalog-backed builder UI, and explicit source modes. Gradle build logic and Minecraft world data were not modified by these development notes.
+Scope: ReplaceBlocks reconnaissance plus implemented phases 1-5A and Phase 4E. Java source now includes a rule builder, validation diagnostics, modern preview/dry-run with per-rule counts, exact source block-state matching, a Java 1.21.9 block-state catalog foundation, a property-aware catalog-backed builder UI, explicit source modes, and tile/block entity source safety controls. Gradle build logic and Minecraft world data were not modified by these development notes.
 
 ## Project stack
 
@@ -94,11 +94,13 @@ CLI path:
 - Match explicit literal source IDs with `literal(...)`.
 - Match explicit regex sources with `regex(...)`.
 - Match selected source properties with `props(...)`.
+- Match only source positions with existing block entities using `tile(...)`, or exclude those positions using `no_tile(...)`.
 - Target can be a simple registry name, an SNBT block state, or a block plus tile entity SNBT.
 - Multiple rules are supported in one ReplaceBlocks value.
 - Legacy bare or quoted source block-name matching still uses Java regex matching via `String.matches(...)`.
 - Builder inputs accept simple block IDs, source wrappers, or block state SNBT with `Name`.
 - Builder inputs can search/select Java 1.21.9 catalog block IDs, generate `literal(...)` for simple source IDs, generate `props(...)` for source property dropdowns, and generate full-state SNBT for target property dropdowns.
+- Builder source tile filters are labeled as `Extra NBT: any/present/absent`; the Builder Help dialog explains the choices and is the intended home for future Builder-specific help text.
 - The NBT Changer dialog shows ReplaceBlocks validation messages and warnings after a short typing pause, so incomplete in-progress input does not flash errors on every character.
 - The default NBT Changer dialog width keeps the ReplaceBlocks `Builder` button visible without horizontal scrolling.
 - When opened without an existing value, the builder starts with real default inputs `minecraft:stone` and `minecraft:dirt`, so `Add rule` immediately creates a valid example rule.
@@ -108,7 +110,8 @@ CLI path:
 - For modern versions, replacement iterates all 4096 blocks per section.
 - Palette entries are added as needed and unused palette entries are cleaned up.
 - Existing tile/block entities are removed when replacing a block with a non-tile target.
-- New tile/block entities are added when the target includes tile entity SNBT.
+- When the target includes tile entity SNBT, modern 1.18+ paths remove existing block entities at the replacement coordinates before adding the new tile.
+- Preview estimates tile entity additions, removals, and updates.
 - Section light arrays are removed after section mutation.
 - Heightmaps are requested for recomputation after replacement.
 - Air replacement has special handling that creates missing sections in the existing section range.
@@ -124,7 +127,7 @@ CLI path:
 - The builder now emits `props(...)` for catalog-backed source property rules, but it does not yet offer per-property enable/disable checkboxes or a dedicated source-mode selector.
 - The catalog currently includes Java 1.21.9. More versions need additional generated resources and a selection strategy.
 - Quoted custom target names appear fragile when followed by another rule or tile entity SNBT; this needs a focused test.
-- New tile entity replacement appears to append a tile entity without first removing an existing one at the same coordinates; verify for duplicate block entities.
+- Modern 1.18+ target tile replacement now removes existing block entities at the same coordinates before adding the replacement tile; verify this on copied worlds before claiming real-world safety.
 - Preview exists for modern 1.18+ paths, but unsupported older preview chunks are reported instead of estimated.
 - Replacing air can expand sparse sections across the existing section range, which is powerful but high risk.
 - Replacing blocks removes section light data and relies on Minecraft or later processing to rebuild lighting.
@@ -137,6 +140,7 @@ Implemented:
 - `ChangeNBTDialog` keeps the existing raw ReplaceBlocks field and advanced query.
 - `ReplaceBlocksRuleBuilderDialog` builds simple rules from `from` and `to` inputs.
 - `ReplaceBlocksRuleBuilderDialog` uses `BlockStateCatalog.latestJava()` for searchable from/to block selectors and property dropdown rows.
+- `ReplaceBlocksRuleBuilderDialog` exposes an additive source tile selector that generates `tile(...)` or `no_tile(...)`.
 - Builder inputs accept block IDs, unknown/modded resource locations, and block state SNBT.
 - Empty builders prefill real `minecraft:stone` -> `minecraft:dirt` inputs, and `Add rule` generates a valid `literal(...)` source rule.
 - `ChangeNBTDialog` has a `Preview` button for ReplaceBlocks dry-run counts, per-rule matched block rows, and overlap warnings.
@@ -145,11 +149,9 @@ Implemented:
 
 Recommended next work:
 
-- Add tile entity source safety controls before Y range, biome restrictions, or presets.
-- Verify duplicate block-entity behavior on copied worlds before exposing target tile NBT editing.
-- Keep per-rule preview rows and overlap warnings intact as tile filters are added.
-- Add tile entity editing only after duplicate block-entity behavior is tested on copied worlds.
-- Consider Y range controls after tile safety work, using per-rule preview rows to verify scope.
+- Add Y range controls next, preserving per-rule preview rows, tile source filters, and add/remove/update tile estimates.
+- Keep rich target tile NBT editing out of the builder until copied-world tile validation has passed.
+- Continue to test duplicate block-entity behavior on copied worlds before release hardening.
 
 ## Risks
 
@@ -158,7 +160,7 @@ Recommended next work:
 - Regex source matching can affect more blocks than the user expects.
 - Source-state matching requires the full stored block-state compound; partial property SNBT intentionally does not match.
 - `props(...)` can intentionally match more states than exact SNBT because unlisted properties are ignored.
-- Tile entity replacement may duplicate block entities if a tile target is applied over an existing tile entity.
+- Tile-target duplicate cleanup is covered by automated modern-path tests, but real copied-world validation is still required.
 - Light arrays are removed and may require Minecraft to recalculate.
 - Heightmap writeback for 1.18+ must be empirically checked.
 - Parser compatibility is important because CLI and UI share `ChangeParser` and `ReplaceBlocksField`.
@@ -191,6 +193,7 @@ Detailed roadmap: `docs/ROADMAP.md`.
 - Phase 2: validation and error messages implemented.
 - Phase 3: preview/dry-run counts implemented for modern 1.18+.
 - Phase 4: exact source block-state matching implemented; Phase 4A 1.21.9 block-state catalog implemented; Phase 4B property-aware builder UI implemented; Gate A source matching design completed; Phase 4C/4D explicit source modes implemented.
-- Phase 5A: per-rule preview counts, source-mode rows, and overlap warnings implemented. Next route is tile safety, Y range, biome restrictions, presets, and release hardening.
+- Phase 4E: tile/block entity source filters, clearer Extra NBT Builder labels/help, preview add/remove/update estimates, modern duplicate tile cleanup, and user-reported copied-world in-game validation implemented.
+- Phase 5A: per-rule preview counts, source-mode rows, and overlap warnings implemented. Next route is Y range, biome restrictions, presets, and release hardening.
 
 Detailed next-development plan: `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.

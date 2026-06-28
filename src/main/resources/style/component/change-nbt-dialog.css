@@ -88,6 +88,19 @@
     -fx-font-weight: bold;
 }
 
+.replace-blocks-builder-help-pane .replace-blocks-builder-help {
+    -fx-background-color: -color-dialog-background;
+}
+
+.replace-blocks-builder-help-pane .replace-blocks-builder-help-heading {
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-text-light;
+}
+
+.replace-blocks-builder-help-pane .replace-blocks-builder-help-text {
+    -fx-text-fill: -color-text-light;
+}
+
 .change-nbt-dialog-pane .scroll-pane {
     -fx-pref-height: 1000;
     -fx-max-height: 1000;

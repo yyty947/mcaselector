@@ -16,6 +16,12 @@ class ReplaceBlocksDiagnosticsTest {
 		assertTrue(ReplaceBlocksDiagnostics
 				.diagnoseValue("props({Name:\"minecraft:oak_stairs\",Properties:{facing:\"north\"}})=minecraft:stone", true)
 				.isNone());
+		assertTrue(ReplaceBlocksDiagnostics
+				.diagnoseValue("tile(literal(minecraft:chest))=minecraft:stone", true)
+				.isNone());
+		assertTrue(ReplaceBlocksDiagnostics
+				.diagnoseValue("no_tile(props({Name:\"minecraft:oak_stairs\",Properties:{facing:\"north\"}}))=minecraft:stone", true)
+				.isNone());
 	}
 
 	@Test
@@ -35,6 +41,9 @@ class ReplaceBlocksDiagnosticsTest {
 				.isError());
 		assertTrue(ReplaceBlocksDiagnostics
 				.diagnoseValue("props({Name:\"minecraft:stone\"})=minecraft:dirt", false)
+				.isError());
+		assertTrue(ReplaceBlocksDiagnostics
+				.diagnoseValue("tile(props({Name:\"minecraft:stone\"}))=minecraft:dirt", false)
 				.isError());
 	}
 }

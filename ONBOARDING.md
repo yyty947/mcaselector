@@ -35,12 +35,12 @@ Implemented:
 - Phase 4B: property-aware rule builder UI using the Java 1.21.9 catalog.
 - Gate A: source matching design for Phase 4C/4D is decided in `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.
 - Phase 4C/4D: explicit source modes and selected-property matching using `regex(...)`, `literal(...)`, and `props(...)`.
+- Phase 4E: tile/block entity source safety controls using `tile(...)` and `no_tile(...)`, with duplicate target tile cleanup, preview add/remove/update estimates, Extra NBT Builder labels, and copied-world in-game validation reported complete on 2026-06-28.
 - Phase 5A: per-rule preview counts with source-mode rows and overlap warnings.
-- UI polish: ReplaceBlocks field-row validation waits for a short typing pause, the default NBT Changer width shows the Builder button, the empty builder's default example can be added directly, and Builder From/To inputs have auto-opening A-Z filtered suggestions with blue match highlights, Tab/click completion, and pre-input helper text that hides after manual typing.
+- UI polish: ReplaceBlocks field-row validation waits for a short typing pause, the default NBT Changer width shows the Builder button, the empty builder's default example can be added directly, and Builder From/To inputs have auto-opening A-Z filtered suggestions with blue match highlights, Tab/click completion, pre-input helper text that hides after manual typing, and a Help dialog for Builder-specific explanations.
 
 Not implemented yet:
 
-- Phase 4E: tile entity safety controls.
 - Phase 4F-1: Y range restrictions.
 - Phase 4F-2: biome restrictions.
 - Phase 4G: presets.
@@ -48,14 +48,14 @@ Not implemented yet:
 
 ## Next Recommended Task
 
-Next best target: Phase 4E, tile entity source safety controls.
+Next best target: Phase 4F-1, Y range restrictions.
 
 Goal:
 
-- Verify current duplicate block-entity behavior on copied worlds.
-- Add include/exclude controls for source blocks that already have tile/block entities.
-- Keep target tile NBT editing out of scope until duplicate/stale block entity behavior is fixed or clearly guarded.
-- Reflect tile eligibility and estimated add/remove/update counts in preview before mutation.
+- Add min/max Y controls to rules and the builder.
+- Apply the same Y range logic in preview and execution.
+- Preserve Phase 4E tile eligibility and per-rule preview counts while adding Y filtering.
+- Test air replacement carefully because it can create missing sections.
 - Keep preview and execution behavior aligned.
 
 Current builder/UI manual validation checklist:
@@ -68,6 +68,8 @@ Current builder/UI manual validation checklist:
 - Existing advanced text workflows still work.
 - Typing `oak` or `sto` in Builder From/To opens a scrollable A-Z filtered candidate list, highlights the typed substring in blue, and collapses after Tab or mouse-click completion.
 - The Builder helper text below the generated value is visible before manual From/To input and hides once the user types non-empty text into either field.
+- The Builder source tile selector can generate `tile(literal(minecraft:chest))=...` and `no_tile(literal(minecraft:chest))=...`, and the generated values parse through the existing `ReplaceBlocksField`.
+- The Builder source tile selector is labeled as `Extra NBT` in the UI, and its Help button explains the any/present/absent choices without closing the Builder.
 
 ## Important Files
 
@@ -114,6 +116,8 @@ Tests:
 - Partial source property matching is implemented only through explicit `props(...)`.
 - Source modes are `legacy-regex-name`, `regex-name`, `literal-name`, `exact-state`, and `selected-properties`.
 - Source-side wrappers are `regex(...)`, `literal(...)`, and `props(...)`.
+- Tile source wrappers are `tile(...)` for only positions with existing block entities and `no_tile(...)` for excluding positions with existing block entities.
+- Target tile SNBT still uses the existing `target;{tile SNBT}` syntax; rich target tile NBT editing is not in the builder yet.
 - Phase 4A/4B catalog data is UI/help data. The builder consumes it to generate `literal(...)` and `props(...)` text.
 - `BlockRegistry` validates block IDs but does not provide per-block property schema.
 - Modern colored wool blocks are separate IDs, for example `minecraft:yellow_wool=minecraft:blue_wool`, not a color property replacement.

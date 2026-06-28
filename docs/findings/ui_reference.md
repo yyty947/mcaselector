@@ -1,7 +1,7 @@
 # UI Reference For ReplaceBlocks Builder
 
 Date: 2026-06-04
-Last updated: 2026-06-26
+Last updated: 2026-06-28
 
 Scope: targeted JavaFX UI reference and current ReplaceBlocks UI behavior.
 
@@ -142,6 +142,7 @@ Implemented controls:
 - Preview output includes aggregate counts, one row per rule with source mode/source text/target text/matched blocks, and an overlap warning when multiple rules match the same original position.
 - Error text distinguishes common invalid values and source regex warnings.
 - Java 1.21.9 catalog data is wired into the builder for property dropdowns.
+- The source tile/block entity selector is presented as `Extra NBT: any/present/absent`, and the Builder has a Help button that opens a separate explanation dialog.
 
 Builder-supported rule syntax:
 
@@ -150,7 +151,8 @@ Builder-supported rule syntax:
 - catalog-backed block selection with property dropdowns
 - source block state SNBT for exact block-state matching
 - target block state SNBT
-- no tile entity builder yet
+- source tile/block entity eligibility (`Extra NBT: any`, `tile(...)`, `no_tile(...)`)
+- no rich target tile entity builder yet
 - advanced users can still type tile SNBT, quoted custom values, and complex values manually in the raw field
 
 Possible generated value:
@@ -218,5 +220,6 @@ Current 4B usage:
 - Do not reinterpret generated source SNBT as selected-property matching; use `props(...)` for selected-property matching.
 - Dedicated source-mode UI controls and per-property subset checkboxes are still pending polish.
 - Preserve per-rule preview counts before layering on more conditions.
-- Tile entity UI is still pending.
+- Source tile entity eligibility is implemented and documented in the Builder Help dialog; keep future Builder help content in that dialog instead of adding more permanent helper text to the main form.
+- Rich target tile NBT editing is still pending.
 - Y range, biome restrictions, and presets are still pending.
