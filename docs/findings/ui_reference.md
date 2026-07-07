@@ -1,7 +1,7 @@
 # UI Reference For ReplaceBlocks Builder
 
 Date: 2026-06-04
-Last updated: 2026-06-28
+Last updated: 2026-07-07
 
 Scope: targeted JavaFX UI reference and current ReplaceBlocks UI behavior.
 
@@ -143,6 +143,7 @@ Implemented controls:
 - Error text distinguishes common invalid values and source regex warnings.
 - Java 1.21.9 catalog data is wired into the builder for property dropdowns.
 - The source tile/block entity selector is presented as `Extra NBT: any/present/absent`, and the Builder has a Help button that opens a separate explanation dialog.
+- The source side has optional Min Y / Max Y inputs. Empty fields mean no Y restriction; filling either field wraps the generated source with `y(...)`.
 
 Builder-supported rule syntax:
 
@@ -152,6 +153,7 @@ Builder-supported rule syntax:
 - source block state SNBT for exact block-state matching
 - target block state SNBT
 - source tile/block entity eligibility (`Extra NBT: any`, `tile(...)`, `no_tile(...)`)
+- source Y range filtering (`y(min..max, source)`)
 - no rich target tile entity builder yet
 - advanced users can still type tile SNBT, quoted custom values, and complex values manually in the raw field
 
@@ -159,6 +161,12 @@ Possible generated value:
 
 ```text
 literal(minecraft:stone)=minecraft:dirt, literal(minecraft:oak_log)=minecraft:birch_log
+```
+
+Y-restricted generated value:
+
+```text
+y(-64..64, literal(minecraft:stone))=minecraft:dirt
 ```
 
 Exact source-state example:
@@ -208,6 +216,7 @@ Current 4B usage:
 - Unknown/modded IDs remain manual entries without property rows.
 - The builder generates existing ReplaceBlocks text from selected catalog values.
 - Simple source IDs serialize as `literal(...)`.
+- Source Min Y / Max Y fields serialize by wrapping the source expression in `y(min..max, source)`.
 - Catalog-backed source property rules serialize as `props(...)` when at least one property is not `all`; leaving every source property at `all` serializes as `literal(...)`.
 - Target property dropdowns omit properties left at `all`, and a target with every property at `all` serializes as the simple target block name.
 - Existing source SNBT remains exact matching; selected-property matching is explicit through `props(...)`.
@@ -222,7 +231,7 @@ Current 4B usage:
 - Preserve per-rule preview counts before layering on more conditions.
 - Source tile entity eligibility is implemented and documented in the Builder Help dialog; keep future Builder help content in that dialog instead of adding more permanent helper text to the main form.
 - Rich target tile NBT editing is still pending.
-- Y range, biome restrictions, and presets are still pending.
+- Biome restrictions and presets are still pending.
 
 ## Builder UI implementation notes
 

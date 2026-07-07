@@ -1,7 +1,7 @@
 # ReplaceBlocks Analysis
 
 Date: 2026-06-04
-Last updated: 2026-06-28
+Last updated: 2026-07-07
 
 Scope: targeted reconnaissance of ReplaceBlocks parsing and modern 1.18+ implementation.
 
@@ -48,6 +48,7 @@ Source (`from`) formats:
 - `literal(<block-name>)`; explicit literal source ID matching
 - `regex(<java-regex>)`; explicit Java regex source matching
 - `props(<snbt-string-block-state-with-Name-and-Properties>)`; selected-property matching against one source block name
+- `y(<min>..<max>, <source>)`; source-side world-Y range filter, with either boundary optional
 - `<snbt-string-block-state>`; exact match against the stored palette block-state compound
 
 Target (`to`) formats:
@@ -66,6 +67,8 @@ minecraft:stone=minecraft:dirt
 literal(minecraft:stone)=minecraft:dirt
 regex(minecraft:.*_log)=minecraft:stone
 props({Name:"minecraft:oak_stairs",Properties:{facing:"north"}})=minecraft:stone
+y(-64..64, literal(minecraft:stone))=minecraft:dirt
+y(64.., tile(literal(minecraft:chest)))=minecraft:stone
 {Name:"minecraft:oak_stairs",Properties:{facing:"north",half:"bottom",shape:"straight",waterlogged:"false"}}={Name:"minecraft:oak_stairs",Properties:{facing:"south",half:"bottom",shape:"straight",waterlogged:"false"}}
 stone={Name:"minecraft:oak_log",Properties:{axis:"y"}}
 chest=minecraft:barrel;{id:"minecraft:barrel"}
@@ -86,7 +89,8 @@ chest=minecraft:barrel;{id:"minecraft:barrel"}
 - parses optional tile entity SNBT after `;`
 - stores rules in `Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData>`
 - returns `false` through `super.parseNewValue(...)` on any parse failure
-- parses source tile wrappers `tile(...)` and `no_tile(...)`, which can wrap existing source expressions such as `literal(...)`, `regex(...)`, `props(...)`, source SNBT, or legacy bare sources
+- parses source tile wrappers `tile(...)` and `no_tile(...)`, which can wrap existing source expressions such as `literal(...)`, `regex(...)`, `props(...)`, source SNBT, `y(...)`, or legacy bare sources
+- parses source Y wrapper `y(min..max, source)`, which can wrap existing source expressions and requires at least one integer boundary
 
 Important details:
 
@@ -95,7 +99,7 @@ Important details:
 - A source that already starts with `minecraft:` is not registry-validated in the source parser path.
 - A quoted source is not registry-validated.
 - Replacement uses `BlockReplaceSource.matches(blockState)`, which now dispatches by source mode: legacy regex name, explicit regex name, literal name, exact state, or selected properties.
-- Explicit source wrappers are implemented as `regex(...)`, `literal(...)`, and `props(...)`.
+- Explicit source wrappers are implemented as `regex(...)`, `literal(...)`, `props(...)`, `tile(...)`, `no_tile(...)`, and `y(...)`.
 - `BlockReplaceData(String)` creates a block state compound `{Name:<name>}`.
 - `BlockReplaceData(CompoundTag)` uses the SNBT compound directly as the target block state.
 - `BlockReplaceData.toString()` emits either a block name, SNBT state, or `target;tileSNBT`.
@@ -167,6 +171,16 @@ This may be a hidden feature, but the UI should not accidentally introduce regex
 
 Source-state matching is exact. If the stored palette entry also has `half`, `shape`, or `waterlogged`, the partial compound above will not match it.
 
+- Invalid Y range wrappers fail:
+
+```text
+y(.., literal(stone))=dirt
+y(10..0, literal(stone))=dirt
+y(foo..10, literal(stone))=dirt
+```
+
+Use at least one integer boundary, and keep the minimum less than or equal to the maximum.
+
 ## Version dispatch
 
 `VersionHandler.init()` indexes classes annotated with `@MCVersionImplementation`. `VersionHandler.getImpl(data, ChunkFilter.Blocks.class)` reads the chunk DataVersion and selects the implementation using `floorEntry(dataVersion)`.
@@ -187,6 +201,7 @@ High-level flow:
 - read chunk `xPos` and `zPos`, convert chunk position to block position
 - compute section range with `Helper.findSectionRange(...)`
 - if replacing `minecraft:air`, complete missing sections in the current section range
+- if replacing `minecraft:air`, complete only missing sections whose section Y range intersects an air-matching source Y filter
 - read root `block_entities`, or create an empty list
 - for every section:
   - get `block_states`
@@ -197,7 +212,7 @@ High-level flow:
   - iterate 4096 block indices
   - get current palette entry using `getBlockAt(...)`
   - match the current palette block state against each `BlockReplaceSource`
-  - source matching dispatches through `BlockReplaceSource.matches(...)`, including legacy regex, explicit regex, literal, exact-state, selected-property modes, and source tile eligibility
+  - source matching dispatches through `BlockReplaceSource.matches(...)`, including legacy regex, explicit regex, literal, exact-state, selected-property modes, source tile eligibility, and source Y range
   - write target state using `setBlockAt(...)`
   - add, remove, or update block entity data at the absolute block location
   - cleanup palette after the section loop
@@ -275,8 +290,8 @@ Air replacement is handled specially because sparse chunks may omit all-air sect
 When `replace` contains `minecraft:air`:
 
 - existing sections are collected by section Y
-- missing section Y values inside the detected section range are created
-- existing sections missing `block_states` are completed
+- missing section Y values inside the detected section range are created only when an air-matching source may match that section's block-Y span
+- existing sections missing `block_states` are completed only when an air-matching source may match that section's block-Y span
 - sections are sorted by Y and written back
 
 `completeSection(...)` for 1.18-style sections:
@@ -287,7 +302,7 @@ When `replace` contains `minecraft:air`:
 - creates `block_states.palette` with `minecraft:air`
 - creates default biome data if missing
 
-Risk: this can materially expand sparse chunk data across the existing section range.
+Risk: this can materially expand sparse chunk data across the existing section range. Y-restricted air replacement narrows this to sections intersecting the requested Y range, but a partial-section Y range may still require creating a whole 16-block-high section.
 
 ## Preview / dry-run
 
@@ -313,13 +328,14 @@ Modern preview coverage:
 - `ChunkFilter_21w37a.Blocks.previewReplaceBlocks(...)`
 - `ChunkFilter_21w43a.Blocks.previewReplaceBlocks(...)`
 
-Preview uses the same `BlockReplaceSource.matches(...)` source semantics as real replacement, including exact source-state SNBT matching.
+Preview uses the same `BlockReplaceSource.matches(...)` source semantics as real replacement, including exact source-state SNBT matching, source tile eligibility, and source Y ranges.
 
 Per-rule preview behavior:
 
 - Aggregate matched blocks count each block position once if any rule matches.
 - Per-rule rows count every rule match separately and show source mode, generated source text, target text, and matched block count.
 - If more than one rule matches the same original block position, preview reports an overlap warning because per-rule row totals can exceed aggregate matched blocks.
+- Y range preview counts use world block Y, not section Y. A rule such as `y(0..0, literal(minecraft:stone))=minecraft:dirt` matches one horizontal layer, or 256 blocks in a full 16x16 section.
 
 ## Block-state catalog foundation
 
@@ -343,6 +359,7 @@ Current catalog and UI behavior impact:
 - Builder-generated target property choices serialize as block-state SNBT with `Name` and only the properties not left at `all`.
 - Builder-generated simple source choices serialize as `literal(...)`.
 - Builder-generated source property choices serialize as `props(...)`.
+- Builder-generated source Y fields serialize as `y(min..max, source)` when either boundary is set.
 - Empty builders start with blank From/To inputs and stay visually quiet until user action produces a real diagnostic.
 - Empty block selector queries do not show the full catalog; suggestion completion should be verified through both Tab and mouse-click paths because JavaFX handles those paths differently.
 - Property dropdowns default to `all`/`全部`; source properties left at `all` are omitted from `props(...)`, and a source with every property at `all` serializes as `literal(...)`.

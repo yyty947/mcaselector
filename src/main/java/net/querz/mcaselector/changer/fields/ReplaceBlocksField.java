@@ -36,6 +36,7 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 		//              props(<snbt-string-block-state-with-properties>)
 		//              tile(<source>)
 		//              no_tile(<source>)
+		//              y(<min>..<max>, <source>)
 		// to format:   minecraft:<block-name>
 		//              <block-name>
 		//              '<custom-block-name-with-namespace>'
@@ -200,10 +201,13 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 
 	private boolean startsWithSourceWrapper(String s) {
 		return s.startsWith("literal(") || s.startsWith("regex(") || s.startsWith("props(")
-				|| s.startsWith("tile(") || s.startsWith("no_tile(");
+				|| s.startsWith("tile(") || s.startsWith("no_tile(") || s.startsWith("y(");
 	}
 
 	private SourceReadResult readWrappedSource(String s) {
+		if (s.startsWith("y(")) {
+			return readYRangeWrapper(s);
+		}
 		if (s.startsWith("tile(")) {
 			return readTileEntityModeWrapper(s, "tile(", ChunkFilter.BlockReplaceTileEntityMode.REQUIRE_TILE_ENTITY);
 		}
@@ -242,6 +246,27 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 		return new SourceReadResult(source.source().withTileEntityMode(mode), end + 1);
 	}
 
+	private SourceReadResult readYRangeWrapper(String s) {
+		int end = findWrapperEnd(s, "y(".length());
+		if (end < 0) {
+			return null;
+		}
+		String argument = s.substring("y(".length(), end).trim();
+		int comma = argument.indexOf(',');
+		if (comma < 0) {
+			return null;
+		}
+		YRange yRange = parseYRange(argument.substring(0, comma));
+		if (yRange == null) {
+			return null;
+		}
+		SourceReadResult source = readSourceExpression(argument.substring(comma + 1));
+		if (source == null) {
+			return null;
+		}
+		return new SourceReadResult(source.source().withYRange(yRange.minY(), yRange.maxY()), end + 1);
+	}
+
 	private SourceReadResult readSourceExpression(String raw) {
 		String source = raw.trim();
 		if (source.isEmpty()) {
@@ -252,6 +277,28 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 			return null;
 		}
 		return result;
+	}
+
+	private YRange parseYRange(String raw) {
+		String[] parts = raw.trim().split("\\.\\.", -1);
+		if (parts.length != 2) {
+			return null;
+		}
+		String minRaw = parts[0].trim();
+		String maxRaw = parts[1].trim();
+		if (minRaw.isEmpty() && maxRaw.isEmpty()) {
+			return null;
+		}
+		try {
+			Integer minY = minRaw.isEmpty() ? null : Integer.parseInt(minRaw);
+			Integer maxY = maxRaw.isEmpty() ? null : Integer.parseInt(maxRaw);
+			if (minY != null && maxY != null && minY > maxY) {
+				return null;
+			}
+			return new YRange(minY, maxY);
+		} catch (NumberFormatException ex) {
+			return null;
+		}
 	}
 
 	private SourceReadResult readNameWrapper(String s, String prefix, boolean literal) {
@@ -393,4 +440,6 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 	}
 
 	private record SourceReadResult(ChunkFilter.BlockReplaceSource source, int read) {}
+
+	private record YRange(Integer minY, Integer maxY) {}
 }

@@ -87,6 +87,10 @@
     -fx-text-fill: -color-text-light;
 }
 
+.replace-blocks-builder-pane .replace-blocks-builder-y-range .label {
+    -fx-text-fill: -color-text-light;
+}
+
 .replace-blocks-builder-pane .replace-blocks-builder-rules-table {
     -fx-background-color: -color-field-cell-even;
     -fx-control-inner-background: -color-field-cell-even;

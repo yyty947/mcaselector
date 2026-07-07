@@ -99,6 +99,9 @@ public class ChunkFilter_21w37a {
 				}
 
 				for (int y = sectionRange.getFrom(); y <= sectionRange.getTo(); y++) {
+					if (!hasAirReplacementInSection(replace, y)) {
+						continue;
+					}
 					if (!sectionMap.containsKey(y)) {
 						sectionMap.put(y, completeSection(new CompoundTag(), y));
 						heights.add(y);
@@ -142,6 +145,9 @@ public class ChunkFilter_21w37a {
 				if (!sectionRange.contains(y)) {
 					continue;
 				}
+				if (!sourceMayMatchSection(replace, y)) {
+					continue;
+				}
 
 				section.remove("BlockLight");
 				section.remove("SkyLight");
@@ -152,7 +158,7 @@ public class ChunkFilter_21w37a {
 					boolean sourceHasTileEntity = sourceTileEntityLocations.contains(locationKey(location));
 
 					for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-						if (!entry.getKey().matches(blockState, sourceHasTileEntity)) {
+						if (!entry.getKey().matches(blockState, sourceHasTileEntity, location.getY())) {
 							continue;
 						}
 						ChunkFilter.BlockReplaceData replacement = entry.getValue();
@@ -219,11 +225,14 @@ public class ChunkFilter_21w37a {
 					sectionMap.put(section.getInt("Y"), section);
 				}
 				for (int y = sectionRange.getFrom(); y <= sectionRange.getTo(); y++) {
+					if (!hasAirReplacementInSection(replace, y)) {
+						continue;
+					}
 					CompoundTag section = sectionMap.get(y);
 					if (section == null || !section.containsKey("block_states")) {
 						result.incrementCompletedAirSections();
 						result.incrementLightSections();
-						result.addSection(countSyntheticAirSection(replace, result));
+						result.addSection(countSyntheticAirSection(y, replace, result));
 					}
 				}
 			}
@@ -254,13 +263,16 @@ public class ChunkFilter_21w37a {
 				if (!sectionRange.contains(y)) {
 					continue;
 				}
+				if (!sourceMayMatchSection(replace, y)) {
+					continue;
+				}
 
 				result.incrementLightSections();
 				long sectionMatches = 0;
 				for (int i = 0; i < 4096; i++) {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
 					Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
-					if (countMatchingBlock(blockState, replace, result, tileEntityLocations.contains(locationKey(location)))) {
+					if (countMatchingBlock(blockState, replace, result, tileEntityLocations.contains(locationKey(location)), location.getY())) {
 						sectionMatches++;
 					}
 				}
@@ -270,25 +282,34 @@ public class ChunkFilter_21w37a {
 			return result;
 		}
 
-		private long countSyntheticAirSection(Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, ChunkFilter.BlockReplacePreviewData result) {
+		protected boolean hasAirReplacementInSection(Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, int sectionY) {
+			return replace.keySet().stream().anyMatch(source -> source.matchesAirInSection(sectionY));
+		}
+
+		protected boolean sourceMayMatchSection(Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, int sectionY) {
+			return replace.keySet().stream().anyMatch(source -> source.intersectsSection(sectionY));
+		}
+
+		private long countSyntheticAirSection(int sectionY, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, ChunkFilter.BlockReplacePreviewData result) {
 			CompoundTag air = new CompoundTag();
 			air.putString("Name", "minecraft:air");
 			long matches = 0;
 			for (int i = 0; i < 4096; i++) {
-				if (countMatchingBlock(air, replace, result, false)) {
+				int y = sectionY * 16 + indexToLocation(i).getY();
+				if (countMatchingBlock(air, replace, result, false, y)) {
 					matches++;
 				}
 			}
 			return matches;
 		}
 
-		private boolean countMatchingBlock(CompoundTag blockState, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, ChunkFilter.BlockReplacePreviewData result, boolean hasTileEntity) {
+		private boolean countMatchingBlock(CompoundTag blockState, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, ChunkFilter.BlockReplacePreviewData result, boolean hasTileEntity, int y) {
 			boolean matched = false;
 			boolean tileEntityPresent = hasTileEntity;
 			int matchedRules = 0;
 			int ruleIndex = 0;
 			for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-				if (!entry.getKey().matches(blockState, hasTileEntity)) {
+				if (!entry.getKey().matches(blockState, hasTileEntity, y)) {
 					ruleIndex++;
 					continue;
 				}

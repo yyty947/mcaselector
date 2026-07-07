@@ -110,6 +110,58 @@ class ReplaceBlocksPreviewCountsTest {
 		assertEquals(0, tile.getInt("z"));
 	}
 
+	@Test
+	void previewCountsOnlyBlocksInsideYRange() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
+		replace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:stone").withYRange(0, 0),
+				new ChunkFilter.BlockReplaceData("minecraft:dirt"));
+
+		ChunkFilter.BlockReplacePreviewData preview = new PreviewBlocks().preview(root(), sections(), replace);
+
+		assertEquals(256, preview.getBlocks());
+		assertEquals(1, preview.getSections());
+		assertEquals(256, preview.getRules().get(0).getBlocks());
+	}
+
+	@Test
+	void previewCompletesSyntheticAirSectionsOnlyInsideYRange() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
+		replace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:air").withYRange(16, 16),
+				new ChunkFilter.BlockReplaceData("minecraft:glass"));
+
+		ListTag sections = sections();
+		sections.add(incompleteSection(1));
+
+		ChunkFilter.BlockReplacePreviewData preview = new PreviewBlocks().preview(root(), sections, replace);
+
+		assertEquals(256, preview.getBlocks());
+		assertEquals(1, preview.getSections());
+		assertEquals(1, preview.getCompletedAirSections());
+		assertEquals(256, preview.getRules().get(0).getBlocks());
+	}
+
+	@Test
+	void replaceBlocksChangesOnlyBlocksInsideYRange() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
+		replace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:stone").withYRange(0, 0),
+				new ChunkFilter.BlockReplaceData("minecraft:dirt"));
+
+		CompoundTag root = root();
+		root.putInt("DataVersion", 2844);
+		root.put("sections", sections());
+		RegionChunk region = new RegionChunk(new Point2i(0, 0));
+		region.setData(root);
+		PreviewBlocks blocks = new PreviewBlocks();
+
+		blocks.replaceBlocks(new ChunkData(new Point2i(0, 0), region, null, null, true), replace);
+
+		assertEquals("minecraft:dirt", blocks.blockAt(root, 0));
+		assertEquals("minecraft:stone", blocks.blockAt(root, 256));
+	}
+
 	private CompoundTag root() {
 		CompoundTag root = new CompoundTag();
 		root.putInt("xPos", 0);
@@ -134,6 +186,13 @@ class ReplaceBlocksPreviewCountsTest {
 		return sections;
 	}
 
+	private CompoundTag incompleteSection(int y) {
+		CompoundTag section = new CompoundTag();
+		section.putByte("Y", (byte) y);
+		section.put("biomes", new CompoundTag());
+		return section;
+	}
+
 	private ListTag tileEntities(CompoundTag... tiles) {
 		ListTag tileEntities = new ListTag();
 		for (CompoundTag tile : tiles) {
@@ -151,10 +210,16 @@ class ReplaceBlocksPreviewCountsTest {
 		return tile;
 	}
 
-	private static class PreviewBlocks extends ChunkFilter_21w37a.Blocks {
+	private static class PreviewBlocks extends ChunkFilter_21w43a.Blocks {
 
 		private ChunkFilter.BlockReplacePreviewData preview(CompoundTag root, ListTag sections, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
 			return previewReplaceBlocks(root, sections, "block_entities", replace);
+		}
+
+		private String blockAt(CompoundTag root, int index) {
+			CompoundTag section = ((ListTag) root.get("sections")).getCompound(0);
+			CompoundTag blockStates = section.getCompound("block_states");
+			return getBlockAt(index, blockStates.getLongArray("data"), blockStates.getListTag("palette")).getString("Name");
 		}
 	}
 }

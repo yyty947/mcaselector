@@ -219,12 +219,16 @@ public interface ChunkFilter {
 		private final BlockReplaceTileEntityMode tileEntityMode;
 		private final String name;
 		private final CompoundTag state;
+		private final Integer minY;
+		private final Integer maxY;
 
 		public BlockReplaceSource(String name) {
 			this.type = BlockReplaceSourceType.LEGACY_REGEX_NAME;
 			this.tileEntityMode = BlockReplaceTileEntityMode.ANY;
 			this.name = name;
 			state = null;
+			minY = null;
+			maxY = null;
 		}
 
 		public BlockReplaceSource(CompoundTag state) {
@@ -232,29 +236,37 @@ public interface ChunkFilter {
 			this.tileEntityMode = BlockReplaceTileEntityMode.ANY;
 			this.state = state;
 			name = state.getString("Name");
+			minY = null;
+			maxY = null;
 		}
 
-		private BlockReplaceSource(BlockReplaceSourceType type, BlockReplaceTileEntityMode tileEntityMode, String name, CompoundTag state) {
+		private BlockReplaceSource(BlockReplaceSourceType type, BlockReplaceTileEntityMode tileEntityMode, String name, CompoundTag state, Integer minY, Integer maxY) {
 			this.type = type;
 			this.tileEntityMode = tileEntityMode;
 			this.name = name;
 			this.state = state;
+			this.minY = minY;
+			this.maxY = maxY;
 		}
 
 		public static BlockReplaceSource regexName(String pattern) {
-			return new BlockReplaceSource(BlockReplaceSourceType.REGEX_NAME, BlockReplaceTileEntityMode.ANY, pattern, null);
+			return new BlockReplaceSource(BlockReplaceSourceType.REGEX_NAME, BlockReplaceTileEntityMode.ANY, pattern, null, null, null);
 		}
 
 		public static BlockReplaceSource literalName(String name) {
-			return new BlockReplaceSource(BlockReplaceSourceType.LITERAL_NAME, BlockReplaceTileEntityMode.ANY, name, null);
+			return new BlockReplaceSource(BlockReplaceSourceType.LITERAL_NAME, BlockReplaceTileEntityMode.ANY, name, null, null, null);
 		}
 
 		public static BlockReplaceSource selectedProperties(CompoundTag state) {
-			return new BlockReplaceSource(BlockReplaceSourceType.SELECTED_PROPERTIES, BlockReplaceTileEntityMode.ANY, state.getString("Name"), state);
+			return new BlockReplaceSource(BlockReplaceSourceType.SELECTED_PROPERTIES, BlockReplaceTileEntityMode.ANY, state.getString("Name"), state, null, null);
 		}
 
 		public BlockReplaceSource withTileEntityMode(BlockReplaceTileEntityMode tileEntityMode) {
-			return new BlockReplaceSource(type, tileEntityMode, name, state);
+			return new BlockReplaceSource(type, tileEntityMode, name, state, minY, maxY);
+		}
+
+		public BlockReplaceSource withYRange(Integer minY, Integer maxY) {
+			return new BlockReplaceSource(type, tileEntityMode, name, state, minY, maxY);
 		}
 
 		public boolean matches(CompoundTag blockState) {
@@ -263,6 +275,10 @@ public interface ChunkFilter {
 
 		public boolean matches(CompoundTag blockState, boolean hasTileEntity) {
 			return matchesBlockState(blockState) && matchesTileEntityMode(hasTileEntity);
+		}
+
+		public boolean matches(CompoundTag blockState, boolean hasTileEntity, int y) {
+			return matchesY(y) && matches(blockState, hasTileEntity);
 		}
 
 		private boolean matchesBlockState(CompoundTag blockState) {
@@ -317,6 +333,20 @@ public interface ChunkFilter {
 			return tileEntityMode != BlockReplaceTileEntityMode.REQUIRE_TILE_ENTITY && matchesBlockState(air);
 		}
 
+		public boolean matchesAirInSection(int sectionY) {
+			return matchesAir() && intersectsSection(sectionY);
+		}
+
+		public boolean matchesY(int y) {
+			return (minY == null || y >= minY) && (maxY == null || y <= maxY);
+		}
+
+		public boolean intersectsSection(int sectionY) {
+			int sectionMinY = sectionY * 16;
+			int sectionMaxY = sectionMinY + 15;
+			return (minY == null || sectionMaxY >= minY) && (maxY == null || sectionMinY <= maxY);
+		}
+
 		public BlockReplaceSourceType getType() {
 			return type;
 		}
@@ -329,17 +359,33 @@ public interface ChunkFilter {
 			return name;
 		}
 
+		public boolean hasYRange() {
+			return minY != null || maxY != null;
+		}
+
+		public Integer getMinY() {
+			return minY;
+		}
+
+		public Integer getMaxY() {
+			return maxY;
+		}
+
 		@Override
 		public String toString() {
 			String value = baseToString();
 			switch (tileEntityMode) {
 				case REQUIRE_TILE_ENTITY:
-					return "tile(" + value + ")";
+					value = "tile(" + value + ")";
+					break;
 				case EXCLUDE_TILE_ENTITY:
-					return "no_tile(" + value + ")";
-				default:
-					return value;
+					value = "no_tile(" + value + ")";
+					break;
 			}
+			if (hasYRange()) {
+				return "y(" + formatYRange() + ", " + value + ")";
+			}
+			return value;
 		}
 
 		private String baseToString() {
@@ -367,6 +413,10 @@ public interface ChunkFilter {
 				return "'" + value + "'";
 			}
 			return value;
+		}
+
+		private String formatYRange() {
+			return (minY == null ? "" : minY) + ".." + (maxY == null ? "" : maxY);
 		}
 	}
 

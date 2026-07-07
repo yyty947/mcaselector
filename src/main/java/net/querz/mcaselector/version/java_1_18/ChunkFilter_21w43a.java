@@ -96,6 +96,9 @@ public class ChunkFilter_21w43a {
 				}
 
 				for (int y = sectionRange.getFrom(); y <= sectionRange.getTo(); y++) {
+					if (!hasAirReplacementInSection(replace, y)) {
+						continue;
+					}
 					if (!sectionMap.containsKey(y)) {
 						sectionMap.put(y, completeSection(new CompoundTag(), y));
 						heights.add(y);
@@ -139,6 +142,9 @@ public class ChunkFilter_21w43a {
 				if (!sectionRange.contains(y)) {
 					continue;
 				}
+				if (!sourceMayMatchSection(replace, y)) {
+					continue;
+				}
 
 				section.remove("BlockLight");
 				section.remove("SkyLight");
@@ -149,7 +155,7 @@ public class ChunkFilter_21w43a {
 					boolean sourceHasTileEntity = sourceTileEntityLocations.contains(locationKey(location));
 
 					for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-						if (!entry.getKey().matches(blockState, sourceHasTileEntity)) {
+						if (!entry.getKey().matches(blockState, sourceHasTileEntity, location.getY())) {
 							continue;
 						}
 						ChunkFilter.BlockReplaceData replacement = entry.getValue();

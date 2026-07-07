@@ -221,6 +221,8 @@ dialog.replace_blocks.builder.advanced;Advanced text input remains available; fr
 dialog.replace_blocks.builder.tile_source.any;Extra NBT: any
 dialog.replace_blocks.builder.tile_source.require;Extra NBT: present
 dialog.replace_blocks.builder.tile_source.exclude;Extra NBT: absent
+dialog.replace_blocks.builder.y_min;Min Y
+dialog.replace_blocks.builder.y_max;Max Y
 dialog.replace_blocks.builder.property.all;all
 dialog.replace_blocks.builder.help.button;Help
 dialog.replace_blocks.builder.help.title;ReplaceBlocks Builder Help
@@ -248,6 +250,7 @@ dialog.replace_blocks.validation.source_mode_wrapper;Source mode wrappers must b
 dialog.replace_blocks.validation.source_literal;literal(...) source must contain a valid block id. Invalid source: "%s".
 dialog.replace_blocks.validation.source_regex_syntax;regex(...) source must contain a valid Java regex.
 dialog.replace_blocks.validation.source_props;props(...) source must contain block-state SNBT with Name and at least one selected property.
+dialog.replace_blocks.validation.source_y_range;y(...) source must use min..max with at least one integer boundary, for example y(-64..64, literal(minecraft:stone)).
 dialog.change_nbt.query_invalid;Invalid change query: %s
 dialog.change_nbt.replace_blocks_query_quote;In the advanced query field, wrap ReplaceBlocks values in double quotes, for example ReplaceBlocks = "minecraft:stone=minecraft:dirt".
 dialog.replace_blocks.preview.button;Preview

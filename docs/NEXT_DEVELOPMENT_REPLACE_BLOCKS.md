@@ -28,11 +28,13 @@ Implemented behavior:
 - The builder exposes tile source filters as `Extra NBT: any/present/absent` and has an extensible Help dialog for Builder explanations.
 - Preview estimates tile entity additions, removals, and updates.
 - Modern 1.18+ tile-target replacement removes existing block entities at the same coordinates before adding target tile SNBT.
+- Y range filters are available through `y(min..max, source)` and are applied in modern preview and execution.
+- The builder exposes source-side min/max Y inputs and leaves them empty by default.
 
 Not implemented:
 
 - Dedicated source-mode selector UI and per-property subset checkboxes.
-- Y range, biome restrictions, and presets.
+- Biome restrictions and presets.
 - Rich target tile NBT editing.
 
 ## Source Matching Model
@@ -65,6 +67,8 @@ literal(minecraft:stone)=minecraft:dirt
 literal(stone)=minecraft:dirt
 {Name:"minecraft:oak_stairs",Properties:{facing:"north",half:"bottom",shape:"straight",waterlogged:"false"}}=minecraft:stone
 props({Name:"minecraft:oak_stairs",Properties:{facing:"north"}})=minecraft:stone
+y(-64..64, literal(minecraft:stone))=minecraft:dirt
+y(64.., tile(literal(minecraft:chest)))=minecraft:stone
 ```
 
 Meanings:
@@ -75,16 +79,19 @@ Meanings:
 - `literal(stone)=minecraft:dirt` normalizes the source to `minecraft:stone`.
 - Bare source SNBT remains exact-state mode.
 - `props(...)` parses the inner SNBT as a block state selector, but only the listed `Properties` keys participate in matching.
+- `y(min..max, source)` limits the wrapped source expression by world block Y. Either boundary may be omitted, for example `y(64.., literal(stone))` or `y(..0, literal(stone))`, but at least one integer boundary is required.
 
 Wrapper parsing decisions:
 
 - Supported wrappers are `literal(...)`, `regex(...)`, and `props(...)`.
+- Spatial source wrapper `y(min..max, source)` may wrap the other source expressions.
 - Wrapper names are lowercase and source-side only.
 - `literal(...)` accepts a block ID or short vanilla ID. Short IDs normalize to `minecraft:<id>`.
 - `regex(...)` accepts a Java regex pattern and should be validated by compiling the pattern before execution.
 - If a literal or regex argument needs a closing parenthesis or leading/trailing whitespace, allow a single-quoted argument such as `regex('minecraft:(oak|birch)_log')`.
 - `props(...)` must contain valid SNBT whose root compound has `Name` and a non-empty `Properties` compound.
 - `props(...)` with no selected properties should be rejected with a targeted diagnostic; use `literal(...)` for name-only matching.
+- Invalid Y ranges such as `y(.., source)`, `y(10..0, source)`, or `y(foo..10, source)` should be rejected with a targeted diagnostic.
 
 Selected-properties matching:
 
@@ -111,6 +118,7 @@ Builder property behavior:
 - Selected source properties serialize through `props(...)`; source properties left at `all` are omitted.
 - Target properties left at `all` are omitted; if every target property is `all`, the target serializes as a simple block name.
 - Unknown or modded resource locations should still be enterable manually.
+- Source min/max Y inputs default to empty; filling either field wraps the generated source with `y(...)`.
 - Advanced text remains the escape hatch for legacy regex values and hand-written SNBT.
 
 ## Phase 4C/4D Implementation Status
@@ -169,12 +177,12 @@ Matching tests:
 
 ## Preview Baseline Before More Conditions
 
-Source modes are now represented internally, and per-rule preview counts are implemented. Preserve this preview baseline while implementing tile filters or Y range.
+Source modes are now represented internally, and per-rule preview counts are implemented. Preserve this preview baseline while implementing biome restrictions or presets.
 
 Reason:
 
 - Total matched block counts are too coarse once rules can use literal, regex, exact-state, and selected-property matching.
-- Per-rule counts make later tile/Y/biome work much easier to validate.
+- Per-rule counts make later condition work much easier to validate.
 
 Preview baseline:
 
@@ -203,10 +211,10 @@ Recommended order:
 
 Implement in two parts:
 
-- Y range first.
+- Done: Y range first.
 - Biome restriction after Y range is stable.
 
-Y range should be applied identically in preview and execution. Air replacement must be tested on tiny copied selections because it can create sparse sections.
+Y range is implemented through `y(min..max, source)`. It is source-side, uses world block Y, and can wrap `literal(...)`, `regex(...)`, `props(...)`, source SNBT, `tile(...)`, or `no_tile(...)`. Modern 1.18+ preview and execution use the same Y predicate. Air replacement still must be tested on tiny copied selections because it can create sparse sections; automated tests cover narrow synthetic air-section preview counts, but copied-world validation is still required.
 
 Biome restriction needs a documented granularity decision before coding:
 

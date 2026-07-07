@@ -1,7 +1,7 @@
 # ReplaceBlocks Test Plan
 
 Date: 2026-06-04
-Last updated: 2026-06-28
+Last updated: 2026-07-07
 
 Safety rule: never test on a real world save. Always copy a small test world and keep an untouched backup.
 
@@ -54,6 +54,7 @@ Documentation checks:
 - Explicit regex source mode uses `regex(...)`.
 - Literal block-ID matching uses `literal(...)`.
 - Selected-property matching uses `props(...)`.
+- Y range matching uses `y(min..max, source)`.
 - Parser examples remain documented for future compatibility checks.
 
 Automated checks:
@@ -67,6 +68,7 @@ Automated checks:
 - Selected-properties mode matches `Name` exactly and only the selected property keys.
 - Empty `props(...)` property selections are rejected with a targeted diagnostic.
 - Invalid new-mode syntax produces a targeted diagnostic.
+- Valid Y range wrappers are accepted and invalid Y ranges are rejected with a targeted diagnostic.
 
 Current focused commands:
 
@@ -81,6 +83,7 @@ Manual checks:
 - In advanced text, confirm `props({Name:"minecraft:oak_stairs",Properties:{facing:"north"}})=minecraft:stone` is accepted.
 - Confirm invalid `regex(*)=minecraft:stone` shows a targeted validation error.
 - Confirm invalid `props({Name:"minecraft:stone"})=minecraft:dirt` shows a targeted validation error.
+- Confirm invalid `y(10..0, literal(minecraft:stone))=minecraft:dirt` shows a targeted validation error.
 - In the builder, a simple source block rule should generate `literal(...)`.
 - In the builder, selecting source block properties should generate `props(...)`.
 
@@ -96,10 +99,13 @@ Manual checks:
 - Repeat the same suggestion test with mouse-click completion. The chosen block ID should fill the editor, the matching property rows should appear when applicable, and the JavaFX console should not log `ListViewBehavior` or index errors.
 - Moving the mouse over block suggestions, Extra NBT choices, and property dropdown choices should show a visible hover highlight consistent with the main menu hover color.
 - The builder helper text below the generated value should be visible before manual From/To input, then hide once the user types non-empty text into either From/To field.
+- In the builder From block area, leaving Min Y and Max Y empty should generate the same rule as before.
+- Filling only Min Y should generate `y(<min>.., source)`, filling only Max Y should generate `y(..<max>, source)`, and filling both should generate `y(<min>..<max>, source)`.
+- Invalid Y input such as letters or Min Y greater than Max Y should prevent adding the rule and show validation feedback.
 
 ## Per-rule preview counts
 
-Implemented as Phase 5A. Preserve these checks before tile filters, Y range, biome restrictions, or presets.
+Implemented as Phase 5A. Preserve these checks before future biome restrictions or presets.
 
 Checks:
 
@@ -114,7 +120,7 @@ Checks:
 
 Automated coverage:
 
-- `ReplaceBlocksPreviewCountsTest` builds an in-memory modern section and verifies aggregate matched blocks, per-rule counts, and overlap count without touching world files.
+- `ReplaceBlocksPreviewCountsTest` builds in-memory modern sections and verifies aggregate matched blocks, per-rule counts, overlap count, Y range preview counts, synthetic air-section Y filtering, and Y range execution filtering without touching world files.
 
 ## Test world preparation
 
@@ -287,11 +293,29 @@ Checks:
 - file size growth is understood and acceptable
 - world loads successfully
 
-When Y range is implemented:
+## Y range replacement
+
+Phase 4F-1 automated coverage:
+
+```powershell
+.\gradlew.bat test --tests net.querz.mcaselector.changer.fields.ReplaceBlocksFieldTest --tests net.querz.mcaselector.ui.dialog.ReplaceBlocksDiagnosticsTest --tests net.querz.mcaselector.version.java_1_18.ReplaceBlocksPreviewCountsTest
+```
+
+Syntax covered:
+
+- `y(-64..64, literal(minecraft:stone))=minecraft:dirt` limits the source match to inclusive world Y values.
+- `y(64.., literal(minecraft:stone))=minecraft:dirt` has only a minimum Y.
+- `y(..0, literal(minecraft:stone))=minecraft:dirt` has only a maximum Y.
+- `y(0..15, tile(literal(minecraft:chest)))=minecraft:stone` combines Y filtering with source tile eligibility.
+- Invalid ranges such as `y(.., ...)`, `y(10..0, ...)`, and `y(foo..10, ...)` are rejected.
+
+Manual copied-world checks:
 
 - Repeat air replacement on a tiny copied selection with a narrow Y range.
 - Verify missing sections are not created outside the requested Y range.
 - Compare preview counts with execution on a fresh copied world.
+- Verify a normal block replacement across two visible heights, for example replacing stone with glass only at one marked Y layer.
+- Verify a tile-filtered Y rule on containers if a copied test world has containers at different heights.
 
 ## Preview / dry-run
 

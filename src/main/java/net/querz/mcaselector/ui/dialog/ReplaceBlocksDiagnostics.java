@@ -208,10 +208,13 @@ final class ReplaceBlocksDiagnostics {
 
 	private static boolean startsWithSourceWrapper(String raw) {
 		return raw.startsWith("literal(") || raw.startsWith("regex(") || raw.startsWith("props(")
-				|| raw.startsWith("tile(") || raw.startsWith("no_tile(");
+				|| raw.startsWith("tile(") || raw.startsWith("no_tile(") || raw.startsWith("y(");
 	}
 
 	private static SourceResult readWrappedSource(String raw) {
+		if (raw.startsWith("y(")) {
+			return readYRangeWrapper(raw);
+		}
 		if (raw.startsWith("tile(")) {
 			return readTileEntityModeWrapper(raw, "tile(");
 		}
@@ -247,6 +250,23 @@ final class ReplaceBlocksDiagnostics {
 		return new SourceResult(end + 1, source.diagnostic());
 	}
 
+	private static SourceResult readYRangeWrapper(String raw) {
+		int end = findWrapperEnd(raw, "y(".length());
+		if (end < 0) {
+			return new SourceResult(0, error(Translation.DIALOG_REPLACE_BLOCKS_VALIDATION_SOURCE_MODE_WRAPPER.toString()));
+		}
+		String argument = raw.substring("y(".length(), end).trim();
+		int comma = argument.indexOf(',');
+		if (comma < 0 || !isValidYRange(argument.substring(0, comma))) {
+			return new SourceResult(0, error(Translation.DIALOG_REPLACE_BLOCKS_VALIDATION_SOURCE_Y_RANGE.toString()));
+		}
+		SourceResult source = readSourceExpression(argument.substring(comma + 1));
+		if (source.diagnostic().isError()) {
+			return source;
+		}
+		return new SourceResult(end + 1, source.diagnostic());
+	}
+
 	private static SourceResult readSourceExpression(String raw) {
 		String source = raw.trim();
 		if (source.isEmpty()) {
@@ -260,6 +280,25 @@ final class ReplaceBlocksDiagnostics {
 			return new SourceResult(0, error(Translation.DIALOG_REPLACE_BLOCKS_VALIDATION_SOURCE_MODE_WRAPPER.toString()));
 		}
 		return result;
+	}
+
+	private static boolean isValidYRange(String raw) {
+		String[] parts = raw.trim().split("\\.\\.", -1);
+		if (parts.length != 2) {
+			return false;
+		}
+		String minRaw = parts[0].trim();
+		String maxRaw = parts[1].trim();
+		if (minRaw.isEmpty() && maxRaw.isEmpty()) {
+			return false;
+		}
+		try {
+			Integer minY = minRaw.isEmpty() ? null : Integer.parseInt(minRaw);
+			Integer maxY = maxRaw.isEmpty() ? null : Integer.parseInt(maxRaw);
+			return minY == null || maxY == null || minY <= maxY;
+		} catch (NumberFormatException ex) {
+			return false;
+		}
 	}
 
 	private static SourceResult readNameWrapper(String raw, String prefix, boolean literal) {

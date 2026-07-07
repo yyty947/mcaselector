@@ -1,9 +1,9 @@
 # ReplaceBlocks Development Notes
 
 Date: 2026-06-04
-Last updated: 2026-06-28
+Last updated: 2026-07-07
 
-Scope: ReplaceBlocks reconnaissance plus implemented phases 1-5A and Phase 4E. Java source now includes a rule builder, validation diagnostics, modern preview/dry-run with per-rule counts, exact source block-state matching, a Java 1.21.9 block-state catalog foundation, a property-aware catalog-backed builder UI, explicit source modes, and tile/block entity source safety controls. Gradle build logic and Minecraft world data were not modified by these development notes.
+Scope: ReplaceBlocks reconnaissance plus implemented phases 1-5A, Phase 4E, and Phase 4F-1. Java source now includes a rule builder, validation diagnostics, modern preview/dry-run with per-rule counts, exact source block-state matching, a Java 1.21.9 block-state catalog foundation, a property-aware catalog-backed builder UI, explicit source modes, tile/block entity source safety controls, and source-side Y range restrictions. Gradle build logic and Minecraft world data were not modified by these development notes.
 
 ## Project stack
 
@@ -95,12 +95,14 @@ CLI path:
 - Match explicit regex sources with `regex(...)`.
 - Match selected source properties with `props(...)`.
 - Match only source positions with existing block entities using `tile(...)`, or exclude those positions using `no_tile(...)`.
+- Limit source matches by world block Y using `y(min..max, source)`. Either boundary may be omitted, but at least one integer boundary is required.
 - Target can be a simple registry name, an SNBT block state, or a block plus tile entity SNBT.
 - Multiple rules are supported in one ReplaceBlocks value.
 - Legacy bare or quoted source block-name matching still uses Java regex matching via `String.matches(...)`.
 - Builder inputs accept simple block IDs, source wrappers, or block state SNBT with `Name`.
 - Builder inputs can search/select Java 1.21.9 catalog block IDs, generate `literal(...)` for simple source IDs, generate `props(...)` for selected source property dropdowns, and omit properties whose dropdown is left at `all`.
 - Builder source tile filters are labeled as `Extra NBT: any/present/absent`; the Builder Help dialog explains the choices and is the intended home for future Builder-specific help text.
+- Builder source min/max Y fields default to empty; filling either field wraps the generated source with `y(...)`.
 - The NBT Changer dialog shows ReplaceBlocks validation messages and warnings after a short typing pause, so incomplete in-progress input does not flash errors on every character.
 - The default NBT Changer dialog width keeps the ReplaceBlocks `Builder` button visible without horizontal scrolling.
 - When opened without an existing value, the builder starts with blank From/To inputs and does not immediately show an empty-rule validation error.
@@ -112,9 +114,10 @@ CLI path:
 - Existing tile/block entities are removed when replacing a block with a non-tile target.
 - When the target includes tile entity SNBT, modern 1.18+ paths remove existing block entities at the replacement coordinates before adding the new tile.
 - Preview estimates tile entity additions, removals, and updates.
+- Preview and modern 1.18+ execution apply Y filtering through the same `BlockReplaceSource` predicate.
 - Section light arrays are removed after section mutation.
 - Heightmaps are requested for recomputation after replacement.
-- Air replacement has special handling that creates missing sections in the existing section range.
+- Air replacement has special handling that creates missing sections in the existing section range; Y-restricted air replacement now only completes sections whose section Y range intersects an air-matching Y-restricted source.
 
 ## Current pain points
 
@@ -130,6 +133,7 @@ CLI path:
 - Modern 1.18+ target tile replacement now removes existing block entities at the same coordinates before adding the replacement tile; verify this on copied worlds before claiming real-world safety.
 - Preview exists for modern 1.18+ paths, but unsupported older preview chunks are reported instead of estimated.
 - Replacing air can expand sparse sections across the existing section range, which is powerful but high risk.
+- Y-restricted air replacement reduces this risk by not completing sections outside the requested Y range, but copied-world validation is still required because creating a partial section can still grow sparse chunks.
 - Replacing blocks removes section light data and relies on Minecraft or later processing to rebuild lighting.
 - Heightmap writeback for post-21w43a flat chunk format should be verified in tests; reconnaissance found modern scanners, but did not find a modern `setHeightMap` override.
 
@@ -141,6 +145,7 @@ Implemented:
 - `ReplaceBlocksRuleBuilderDialog` builds simple rules from `from` and `to` inputs.
 - `ReplaceBlocksRuleBuilderDialog` uses `BlockStateCatalog.latestJava()` for searchable from/to block selectors and property dropdown rows.
 - `ReplaceBlocksRuleBuilderDialog` exposes an additive source tile selector that generates `tile(...)` or `no_tile(...)`.
+- `ReplaceBlocksRuleBuilderDialog` exposes source min/max Y inputs that generate `y(min..max, source)` when either field is filled.
 - Builder inputs accept block IDs, unknown/modded resource locations, and block state SNBT.
 - Empty builders start with blank From/To inputs and no empty-query full-list popup. Property dropdowns default to `all`/`全部`; selecting specific source properties generates `props(...)`, while leaving every property at `all` generates a simple `literal(...)` source.
 - `ChangeNBTDialog` has a `Preview` button for ReplaceBlocks dry-run counts, per-rule matched block rows, and overlap warnings.
@@ -161,7 +166,7 @@ The current From/To block inputs use editable JavaFX `ComboBox` controls backed 
 
 Recommended next work:
 
-- Add Y range controls next, preserving per-rule preview rows, tile source filters, and add/remove/update tile estimates.
+- Design biome restriction granularity before coding: block-position aware, section/palette aware, or chunk/selection aware.
 - Keep rich target tile NBT editing out of the builder until copied-world tile validation has passed.
 - Continue to test duplicate block-entity behavior on copied worlds before release hardening.
 
@@ -173,6 +178,7 @@ Recommended next work:
 - Source-state matching requires the full stored block-state compound; partial property SNBT intentionally does not match.
 - `props(...)` can intentionally match more states than exact SNBT because unlisted properties are ignored.
 - Tile-target duplicate cleanup is covered by automated modern-path tests, but real copied-world validation is still required.
+- Y range parser, diagnostics, preview counts, and modern execution have automated coverage; copied-world validation is still required before claiming mutation safety.
 - Light arrays are removed and may require Minecraft to recalculate.
 - Heightmap writeback for 1.18+ must be empirically checked.
 - Parser compatibility is important because CLI and UI share `ChangeParser` and `ReplaceBlocksField`.
@@ -206,6 +212,7 @@ Detailed roadmap: `docs/ROADMAP.md`.
 - Phase 3: preview/dry-run counts implemented for modern 1.18+.
 - Phase 4: exact source block-state matching implemented; Phase 4A 1.21.9 block-state catalog implemented; Phase 4B property-aware builder UI implemented; Gate A source matching design completed; Phase 4C/4D explicit source modes implemented.
 - Phase 4E: tile/block entity source filters, clearer Extra NBT Builder labels/help, preview add/remove/update estimates, modern duplicate tile cleanup, and user-reported copied-world in-game validation implemented.
-- Phase 5A: per-rule preview counts, source-mode rows, and overlap warnings implemented. Next route is Y range, biome restrictions, presets, and release hardening.
+- Phase 5A: per-rule preview counts, source-mode rows, and overlap warnings implemented.
+- Phase 4F-1: Y range restrictions implemented with `y(min..max, source)`, Builder min/max Y controls, parser/diagnostic tests, preview tests, and modern 1.18+ execution tests. Next route is biome restrictions, presets, and release hardening.
 
 Detailed next-development plan: `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.

@@ -1,7 +1,7 @@
 # ReplaceBlocks Roadmap
 
 Date: 2026-06-04
-Last updated: 2026-06-28
+Last updated: 2026-07-07
 
 This roadmap is the current source of truth for ReplaceBlocks feature sequencing. The older linear phase list has been replaced with a dependency-driven route so later semantic work does not force repeated rewrites.
 
@@ -19,11 +19,11 @@ Implemented:
 - Phase 4C/4D: explicit source modes implemented with `regex(...)`, `literal(...)`, and `props(...)`.
 - Phase 4E: tile/block entity source safety controls implemented with `tile(...)` and `no_tile(...)`; target tile replacement now removes existing block entities at the target coordinates before adding replacement tile SNBT. The Builder labels this as an "Extra NBT" source condition and includes an extensible Help dialog for this and future Builder explanations.
 - Phase 5A: per-rule preview counts, source-mode rows, and overlap warning in the ReplaceBlocks preview dialog.
+- Phase 4F-1: Y range restrictions implemented with `y(min..max, source)`, Builder min/max Y fields, parser diagnostics, preview counts, and modern 1.18+ execution filtering.
 - UI polish: ReplaceBlocks field-row diagnostics are debounced, the main dialog defaults wide enough to show `Builder`, empty Builder inputs start blank without immediate empty-rule errors or empty-query full-list popups, block suggestions support Tab and mouse-click completion, and property dropdowns support an `all`/`全部` option.
 
 Still not implemented:
 
-- Y range restrictions.
 - Biome restrictions.
 - Presets.
 - Release hardening for broader copied-world regression coverage.
@@ -123,7 +123,7 @@ Status: implemented on 2026-06-26.
 
 Goal: make later condition work testable before adding tile and spatial restrictions.
 
-Why this moves before tile/Y/biome:
+Why this moved before tile/Y/biome:
 
 - Total matched blocks are not enough once rules have different source modes.
 - Per-rule counts expose accidental regex, subset, tile, or Y-range overreach early.
@@ -166,20 +166,23 @@ Success criteria:
 
 ### Phase 4F-1: Y Range Restrictions
 
+Status: implemented on 2026-07-07.
+
 Goal: add the safest spatial condition first.
 
 Recommended order:
 
-- Add min/max Y controls to builder and internal rule representation.
-- Apply the same Y logic in preview and execution.
-- Show Y range in generated summaries.
+- Done: add min/max Y controls to builder and internal rule representation.
+- Done: apply the same Y logic in preview and execution.
+- Done: show Y range in generated rule text and per-rule preview rows through `BlockReplaceSource.toString()`.
 - Test against normal terrain and air replacement in tiny copied selections.
 
 Success criteria:
 
-- Replacement affects only the requested Y range.
-- Preview counts match a later run on a fresh copied world.
-- Air replacement does not unexpectedly fill outside the requested vertical range.
+- Met in automated modern-path tests: replacement affects only the requested Y range.
+- Met in automated preview tests: per-rule and aggregate preview counts respect Y filtering.
+- Still needs copied-world validation: preview counts should match a later run on a fresh copied world.
+- Still needs copied-world validation: air replacement should not unexpectedly fill outside the requested vertical range.
 
 ### Phase 4F-2: Biome Restrictions
 

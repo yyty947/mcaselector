@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReplaceBlocksFieldTest {
@@ -150,6 +151,57 @@ class ReplaceBlocksFieldTest {
 	void tileEntitySourceFiltersParticipateInAirMatching() {
 		assertFalse(onlySource(parse("tile(literal(air))=minecraft:glass")).matchesAir());
 		assertTrue(onlySource(parse("no_tile(literal(air))=minecraft:glass")).matchesAir());
+	}
+
+	@Test
+	void parsesYRangeSourceFilter() {
+		ReplaceBlocksField field = parse("y(-64..64, literal(stone))=minecraft:dirt");
+		ChunkFilter.BlockReplaceSource source = onlySource(field);
+
+		assertEquals("y(-64..64, literal(minecraft:stone))=minecraft:dirt", field.valueToString());
+		assertEquals(-64, source.getMinY());
+		assertEquals(64, source.getMaxY());
+		assertTrue(source.matches(state("minecraft:stone"), false, -64));
+		assertTrue(source.matches(state("minecraft:stone"), false, 64));
+		assertFalse(source.matches(state("minecraft:stone"), false, 65));
+		assertFalse(source.matches(state("minecraft:dirt"), false, 0));
+	}
+
+	@Test
+	void parsesOpenEndedYRangeSourceFilters() {
+		ChunkFilter.BlockReplaceSource minOnly = onlySource(parse("y(64.., literal(stone))=minecraft:dirt"));
+		assertEquals(64, minOnly.getMinY());
+		assertNull(minOnly.getMaxY());
+		assertFalse(minOnly.matches(state("minecraft:stone"), false, 63));
+		assertTrue(minOnly.matches(state("minecraft:stone"), false, 64));
+
+		ChunkFilter.BlockReplaceSource maxOnly = onlySource(parse("y(..-1, literal(stone))=minecraft:dirt"));
+		assertNull(maxOnly.getMinY());
+		assertEquals(-1, maxOnly.getMaxY());
+		assertTrue(maxOnly.matches(state("minecraft:stone"), false, -1));
+		assertFalse(maxOnly.matches(state("minecraft:stone"), false, 0));
+	}
+
+	@Test
+	void combinesYRangeWithTileSourceFilters() {
+		ReplaceBlocksField field = parse("tile(y(0..15, literal(chest)))=minecraft:stone");
+		ChunkFilter.BlockReplaceSource source = onlySource(field);
+
+		assertEquals(ChunkFilter.BlockReplaceTileEntityMode.REQUIRE_TILE_ENTITY, source.getTileEntityMode());
+		assertEquals("y(0..15, tile(literal(minecraft:chest)))=minecraft:stone", field.valueToString());
+		assertTrue(source.matches(state("minecraft:chest"), true, 0));
+		assertFalse(source.matches(state("minecraft:chest"), false, 0));
+		assertFalse(source.matches(state("minecraft:chest"), true, 16));
+	}
+
+	@Test
+	void rejectsInvalidYRangeSourceFilters() {
+		ReplaceBlocksField field = new ReplaceBlocksField();
+
+		assertFalse(field.parseNewValue("y(.., literal(stone))=minecraft:dirt"));
+		assertFalse(field.parseNewValue("y(10..0, literal(stone))=minecraft:dirt"));
+		assertFalse(field.parseNewValue("y(foo..10, literal(stone))=minecraft:dirt"));
+		assertFalse(field.parseNewValue("y(0..10)=minecraft:dirt"));
 	}
 
 	private ReplaceBlocksField parse(String value) {

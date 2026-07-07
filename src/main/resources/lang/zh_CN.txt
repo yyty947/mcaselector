@@ -221,6 +221,8 @@ dialog.replace_blocks.builder.advanced;高级文本输入仍可用；from/to 也
 dialog.replace_blocks.builder.tile_source.any;附加NBT：不限
 dialog.replace_blocks.builder.tile_source.require;附加NBT：有
 dialog.replace_blocks.builder.tile_source.exclude;附加NBT：无
+dialog.replace_blocks.builder.y_min;最低 Y
+dialog.replace_blocks.builder.y_max;最高 Y
 dialog.replace_blocks.builder.property.all;全部
 dialog.replace_blocks.builder.help.button;帮助
 dialog.replace_blocks.builder.help.title;ReplaceBlocks Builder 帮助
@@ -248,6 +250,7 @@ dialog.replace_blocks.validation.source_mode_wrapper;来源模式包装器必须
 dialog.replace_blocks.validation.source_literal;literal(...) 来源必须包含有效方块 ID。无效来源："%s"。
 dialog.replace_blocks.validation.source_regex_syntax;regex(...) 来源必须包含有效的 Java 正则。
 dialog.replace_blocks.validation.source_props;props(...) 来源必须包含带 Name 且至少选择一个属性的方块状态 SNBT。
+dialog.replace_blocks.validation.source_y_range;y(...) 来源必须使用 min..max，并且至少填写一个整数边界，例如 y(-64..64, literal(minecraft:stone))。
 dialog.change_nbt.query_invalid;更改查询无效：%s
 dialog.change_nbt.replace_blocks_query_quote;在高级查询框中，ReplaceBlocks 的值需要用英文双引号包住，例如 ReplaceBlocks = "minecraft:stone=minecraft:dirt"。
 dialog.replace_blocks.preview.button;预览

@@ -276,11 +276,15 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 	private static boolean isSourceModeExpression(String value) {
 		return value.startsWith("literal(") || value.startsWith("regex(") || value.startsWith("props(")
-				|| value.startsWith("tile(") || value.startsWith("no_tile(");
+				|| value.startsWith("tile(") || value.startsWith("no_tile(") || value.startsWith("y(");
 	}
 
 	private static boolean isTileEntityModeExpression(String value) {
 		return value.startsWith("tile(") || value.startsWith("no_tile(");
+	}
+
+	private static boolean isYRangeExpression(String value) {
+		return value.startsWith("y(");
 	}
 
 	private static String formatWrapperArgument(String value) {
@@ -326,6 +330,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		private final ComboBox<String> block = new ComboBox<>();
 		private final FilteredList<String> blockSuggestions = new FilteredList<>(blockNames);
 		private final ComboBox<SourceTileMode> tileEntityMode = new ComboBox<>();
+		private final TextField minY = new TextField();
+		private final TextField maxY = new TextField();
 		private final GridPane properties = new GridPane();
 		private final Map<String, ComboBox<PropertyChoice>> propertyEditors = new LinkedHashMap<>();
 		private final BooleanProperty userInputPresent = new SimpleBooleanProperty(false);
@@ -355,7 +361,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				if (suppressSuggestions) {
 					return;
 				}
-				userInputPresent.set(n != null && !n.isBlank());
+				updateUserInputPresent();
 				if (!updatingItems) {
 					updateBlockSuggestions(n);
 					rebuildProperties(n);
@@ -386,6 +392,25 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				tileEntityMode.setValue(SourceTileMode.ANY);
 				tileEntityMode.setMaxWidth(Double.MAX_VALUE);
 				getChildren().add(tileEntityMode);
+
+				GridPane yRange = new GridPane();
+				yRange.getStyleClass().add("replace-blocks-builder-y-range");
+				yRange.setHgap(6);
+				Label minLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_Y_MIN);
+				Label maxLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_Y_MAX);
+				minY.promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_Y_MIN.getProperty());
+				maxY.promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_Y_MAX.getProperty());
+				minY.setMaxWidth(Double.MAX_VALUE);
+				maxY.setMaxWidth(Double.MAX_VALUE);
+				minY.textProperty().addListener((a, o, n) -> updateUserInputPresent());
+				maxY.textProperty().addListener((a, o, n) -> updateUserInputPresent());
+				yRange.add(minLabel, 0, 0);
+				yRange.add(minY, 1, 0);
+				yRange.add(maxLabel, 2, 0);
+				yRange.add(maxY, 3, 0);
+				GridPane.setHgrow(minY, Priority.ALWAYS);
+				GridPane.setHgrow(maxY, Priority.ALWAYS);
+				getChildren().add(yRange);
 			}
 			getChildren().add(properties);
 			VBox.setVgrow(properties, Priority.NEVER);
@@ -417,7 +442,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				return text;
 			}
 			if (text.startsWith("{") || source && isSourceModeExpression(text)) {
-				return source ? applySourceTileMode(text) : text;
+				return source ? applySourceConditions(text) : text;
 			}
 			ReplaceBlocksDiagnostics.NameResult normalized = ReplaceBlocksDiagnostics.normalizeBuilderName(text, source);
 			if (normalized.diagnostic().isError()) {
@@ -426,7 +451,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			String name = normalized.name();
 			if (propertyEditors.isEmpty()) {
 				String value = source ? "literal(" + formatWrapperArgument(name) + ")" : name;
-				return source ? applySourceTileMode(value) : value;
+				return source ? applySourceConditions(value) : value;
 			}
 			Map<String, String> selectedProperties = new LinkedHashMap<>();
 			for (Map.Entry<String, ComboBox<PropertyChoice>> property : propertyEditors.entrySet()) {
@@ -449,7 +474,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				String blockState = blockStateSNBT(name, selectedProperties);
 				value = source ? "props(" + blockState + ")" : blockState;
 			}
-			return source ? applySourceTileMode(value) : value;
+			return source ? applySourceConditions(value) : value;
+		}
+
+		private String applySourceConditions(String value) {
+			return applySourceYRange(applySourceTileMode(value));
 		}
 
 		private String applySourceTileMode(String value) {
@@ -459,11 +488,45 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			return tileEntityMode.getValue().wrap(value);
 		}
 
+		private String applySourceYRange(String value) {
+			if (!source || value == null || value.isEmpty() || isYRangeExpression(value)) {
+				return value;
+			}
+			String range = yRangeText();
+			if (range == null) {
+				return value;
+			}
+			if (range.isEmpty()) {
+				return null;
+			}
+			return "y(" + range + ", " + value + ")";
+		}
+
+		private String yRangeText() {
+			String min = minY.getText() == null ? "" : minY.getText().trim();
+			String max = maxY.getText() == null ? "" : maxY.getText().trim();
+			if (min.isEmpty() && max.isEmpty()) {
+				return null;
+			}
+			try {
+				Integer minValue = min.isEmpty() ? null : Integer.parseInt(min);
+				Integer maxValue = max.isEmpty() ? null : Integer.parseInt(max);
+				if (minValue != null && maxValue != null && minValue > maxValue) {
+					return "";
+				}
+				return min + ".." + max;
+			} catch (NumberFormatException ex) {
+				return "";
+			}
+		}
+
 		private void clear() {
 			suppressSuggestions = true;
 			try {
 				block.setValue(null);
 				block.getEditor().clear();
+				minY.clear();
+				maxY.clear();
 				propertyEditors.clear();
 				properties.getChildren().clear();
 				updateBlockSuggestions("");
@@ -481,6 +544,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		private String currentText() {
 			String text = block.getEditor().getText();
 			return text == null ? "" : text.trim();
+		}
+
+		private void updateUserInputPresent() {
+			userInputPresent.set(!currentText().isEmpty()
+					|| minY.getText() != null && !minY.getText().isBlank()
+					|| maxY.getText() != null && !maxY.getText().isBlank());
 		}
 
 		private void updateBlockSuggestions(String query) {
@@ -551,7 +620,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				block.setValue(null);
 				block.getSelectionModel().clearSelection();
 				block.getEditor().setText(text);
-				userInputPresent.set(text != null && !text.isBlank());
+				updateUserInputPresent();
 				updateBlockSuggestions(text);
 				rebuildProperties(text);
 				block.hide();
