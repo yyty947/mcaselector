@@ -357,6 +357,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			block.getEditor().setOnAction(ReplaceBlocksRuleBuilderDialog.this::addRule);
 			block.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPressed);
 			block.getEditor().addEventFilter(KeyEvent.KEY_TYPED, this::handleKeyTyped);
+			block.getEditor().addEventFilter(MouseEvent.MOUSE_PRESSED, e -> normalizeNextTyped = false);
 			block.getEditor().textProperty().addListener((a, o, n) -> {
 				if (suppressSuggestions) {
 					return;
@@ -580,6 +581,9 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		private void handleKeyPressed(KeyEvent event) {
 			if (event.getCode() != KeyCode.TAB || !block.isShowing()) {
+				if (isCaretControl(event)) {
+					normalizeNextTyped = false;
+				}
 				return;
 			}
 			String suggestion = selectedSuggestion();
@@ -588,6 +592,16 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			}
 			completeSuggestion(suggestion);
 			event.consume();
+		}
+
+		private boolean isCaretControl(KeyEvent event) {
+			return event.isShortcutDown() || event.isShiftDown()
+					|| event.getCode() == KeyCode.LEFT
+					|| event.getCode() == KeyCode.RIGHT
+					|| event.getCode() == KeyCode.HOME
+					|| event.getCode() == KeyCode.END
+					|| event.getCode() == KeyCode.BACK_SPACE
+					|| event.getCode() == KeyCode.DELETE;
 		}
 
 		private void handleKeyTyped(KeyEvent event) {
@@ -641,7 +655,9 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		private void collapseEditorCaretToEndLater() {
 			Platform.runLater(() -> {
-				collapseEditorCaretToEnd();
+				if (normalizeNextTyped) {
+					collapseEditorCaretToEnd();
+				}
 			});
 		}
 
