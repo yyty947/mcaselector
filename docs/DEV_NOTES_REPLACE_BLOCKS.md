@@ -105,6 +105,7 @@ CLI path:
 - Builder source tile filters are labeled as `Extra NBT: any/present/absent`; the Builder Help dialog explains the choices and is the intended home for future Builder-specific help text.
 - Builder source min/max Y fields default to empty; filling either field wraps the generated source with `y(...)`.
 - Builder source biome field defaults to empty; filling it with one or more biome IDs separated by semicolons wraps the generated source with `biome(...)`. It uses the known vanilla biome registry for filtered suggestions, Tab completion, and mouse-click completion while still allowing manually typed custom IDs. The Builder Help dialog states the block-position-aware 4x4x4 biome-cell granularity.
+- Builder presets are editable starting points. They fill visible From/To and source condition controls for Air to stone, Fluids to air, Logs/leaves to air, Ores to stone, and Containers with Extra NBT to air, then rely on the normal Add rule path and existing generated ReplaceBlocks validation.
 - The NBT Changer dialog shows ReplaceBlocks validation messages and warnings after a short typing pause, so incomplete in-progress input does not flash errors on every character.
 - The default NBT Changer dialog width keeps the ReplaceBlocks `Builder` button visible without horizontal scrolling.
 - When opened without an existing value, the builder starts with blank From/To inputs and does not immediately show an empty-rule validation error.
@@ -216,6 +217,7 @@ Detailed roadmap: `docs/ROADMAP.md`.
 - Phase 4E: tile/block entity source filters, clearer Extra NBT Builder labels/help, preview add/remove/update estimates, modern duplicate tile cleanup, and user-reported copied-world in-game validation implemented.
 - Phase 5A: per-rule preview counts, source-mode rows, and overlap warnings implemented.
 - Phase 4F-1: Y range restrictions implemented with `y(min..max, source)`, Builder min/max Y controls, parser/diagnostic tests, preview tests, and modern 1.18+ execution tests.
-- Phase 4F-2: biome restrictions implemented with `biome(<biome>[;<biome>...], source)`, Builder source biome input, parser/diagnostic tests, preview tests, and modern 1.18+ execution tests. Next route is presets and release hardening.
+- Phase 4F-2: biome restrictions implemented with `biome(<biome>[;<biome>...], source)`, Builder source biome input, parser/diagnostic tests, preview tests, and modern 1.18+ execution tests.
+- Phase 4G: presets implemented as visible Builder input fillers with warning text for air and container/data-block cases. Next route is release hardening.
 
 Detailed next-development plan: `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.

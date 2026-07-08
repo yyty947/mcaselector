@@ -55,6 +55,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private final ObservableList<String> biomeCatalogNames = FXCollections.observableArrayList(BiomeRegistry.names().stream().sorted().collect(Collectors.toList()));
 	private final BlockInput from = new BlockInput(true);
 	private final BlockInput to = new BlockInput(false);
+	private final ComboBox<ReplaceBlocksPreset> presets = new ComboBox<>();
 	private final TableView<Rule> rules = new TableView<>();
 	private final ObservableList<Rule> ruleItems = FXCollections.observableArrayList();
 	private final TextField result = new TextField();
@@ -102,6 +103,21 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		GridPane.setHgrow(to, Priority.ALWAYS);
 		GridPane.setValignment(addActions, VPos.TOP);
 
+		presets.setItems(FXCollections.observableArrayList(ReplaceBlocksPreset.values()));
+		presets.setMaxWidth(Double.MAX_VALUE);
+		presets.promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_PROMPT.getProperty());
+		Button applyPreset = UIFactory.button(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_APPLY);
+		applyPreset.disableProperty().bind(presets.valueProperty().isNull());
+		applyPreset.setOnAction(this::applyPreset);
+		GridPane presetInput = new GridPane();
+		presetInput.getStyleClass().add("replace-blocks-builder-presets");
+		presetInput.setHgap(8);
+		Label presetLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET);
+		presetInput.add(presetLabel, 0, 0);
+		presetInput.add(presets, 1, 0);
+		presetInput.add(applyPreset, 2, 0);
+		GridPane.setHgrow(presets, Priority.ALWAYS);
+
 		TableColumn<Rule, String> fromColumn = new TableColumn<>();
 		fromColumn.textProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_FROM.getProperty());
 		fromColumn.setCellValueFactory(c -> new ReadOnlyStringWrapper(c.getValue().from()));
@@ -145,13 +161,30 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		advanced.managedProperty().bind(advanced.visibleProperty());
 		Label rulesLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_RULES);
 		Label resultLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_RESULT);
-		content.getChildren().addAll(input, rulesLabel, rules, delete, resultLabel, result, validation, advanced);
+		content.getChildren().addAll(presetInput, input, rulesLabel, rules, delete, resultLabel, result, validation, advanced);
 		VBox.setMargin(rulesLabel, new Insets(8, 0, 0, 0));
 		VBox.setVgrow(rules, Priority.ALWAYS);
 		getDialogPane().setContent(content);
 
 		loadSimpleRules(initialValue);
 		updateResult();
+	}
+
+	private void applyPreset(ActionEvent event) {
+		ReplaceBlocksPreset preset = presets.getValue();
+		if (preset == null) {
+			return;
+		}
+		from.applyPreset(preset.source(), preset.tileMode());
+		to.applyPreset(preset.target(), SourceTileMode.ANY);
+		if (preset.warning() == null) {
+			updateResult();
+		} else {
+			showDiagnostic(new ReplaceBlocksDiagnostics.Diagnostic(
+					ReplaceBlocksDiagnostics.Severity.WARNING,
+					preset.warning().toString()));
+		}
+		from.focusInput();
 	}
 
 	private void updateRulesTableHeight() {
@@ -639,6 +672,30 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			}
 		}
 
+		private void applyPreset(String text, SourceTileMode sourceTileMode) {
+			suppressSuggestions = true;
+			try {
+				String value = text == null ? "" : text;
+				block.setValue(null);
+				block.getSelectionModel().clearSelection();
+				block.getEditor().setText(value);
+				block.hide();
+				updateBlockSuggestions(value);
+				rebuildProperties(value);
+				normalizeNextTyped = false;
+				collapseEditorCaretToEnd();
+				if (source) {
+					tileEntityMode.setValue(sourceTileMode == null ? SourceTileMode.ANY : sourceTileMode);
+					minY.clear();
+					maxY.clear();
+					clearBiomeInput();
+				}
+				updateUserInputPresent();
+			} finally {
+				suppressSuggestions = false;
+			}
+		}
+
 		private void focusInput() {
 			block.requestFocus();
 			block.getEditor().requestFocus();
@@ -1067,6 +1124,74 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private record ValueResult(String value, ReplaceBlocksDiagnostics.Diagnostic diagnostic) {}
 
 	private record Rule(String from, String to) {}
+
+	private enum ReplaceBlocksPreset {
+		AIR_TO_STONE(
+				Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_AIR_TO_STONE,
+				"minecraft:air",
+				"minecraft:stone",
+				SourceTileMode.ANY,
+				Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_WARNING_AIR),
+		FLUIDS_TO_AIR(
+				Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_FLUIDS_TO_AIR,
+				"regex(minecraft:(water|lava))",
+				"minecraft:air",
+				SourceTileMode.ANY,
+				null),
+		LOGS_LEAVES_TO_AIR(
+				Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_LOGS_LEAVES_TO_AIR,
+				"regex(minecraft:.*_(log|wood|stem|hyphae|leaves))",
+				"minecraft:air",
+				SourceTileMode.ANY,
+				null),
+		ORES_TO_STONE(
+				Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_ORES_TO_STONE,
+				"regex(minecraft:.*_ore)",
+				"minecraft:stone",
+				SourceTileMode.ANY,
+				null),
+		CONTAINERS_TO_AIR(
+				Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_CONTAINERS_TO_AIR,
+				"regex(minecraft:.*(chest|barrel|furnace|smoker|hopper|dispenser|dropper|shulker_box))",
+				"minecraft:air",
+				SourceTileMode.REQUIRE,
+				Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_WARNING_CONTAINERS);
+
+		private final Translation label;
+		private final String source;
+		private final String target;
+		private final SourceTileMode tileMode;
+		private final Translation warning;
+
+		ReplaceBlocksPreset(Translation label, String source, String target, SourceTileMode tileMode, Translation warning) {
+			this.label = label;
+			this.source = source;
+			this.target = target;
+			this.tileMode = tileMode;
+			this.warning = warning;
+		}
+
+		private String source() {
+			return source;
+		}
+
+		private String target() {
+			return target;
+		}
+
+		private SourceTileMode tileMode() {
+			return tileMode;
+		}
+
+		private Translation warning() {
+			return warning;
+		}
+
+		@Override
+		public String toString() {
+			return label.toString();
+		}
+	}
 
 	private record PropertyChoice(String value, boolean all) {
 

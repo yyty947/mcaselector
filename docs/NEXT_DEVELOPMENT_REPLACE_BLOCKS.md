@@ -32,11 +32,11 @@ Implemented behavior:
 - The builder exposes source-side min/max Y inputs and leaves them empty by default.
 - Biome filters are available through `biome(<biome>[;<biome>...], source)` and are applied in modern preview and execution using the candidate block position's biome value. In modern chunks one biome value covers a 4x4x4 block cell.
 - The builder exposes a source-side biome input and leaves it empty by default.
+- The builder exposes presets for Air to stone, Fluids to air, Logs/leaves to air, Ores to stone, and Containers with Extra NBT to air. Presets fill visible editable inputs and warning text; they do not add hidden execution behavior.
 
 Not implemented:
 
 - Dedicated source-mode selector UI and per-property subset checkboxes.
-- Presets.
 - Rich target tile NBT editing.
 
 ## Source Matching Model
@@ -182,7 +182,7 @@ Matching tests:
 
 ## Preview Baseline Before More Conditions
 
-Source modes are now represented internally, and per-rule preview counts are implemented. Preserve this preview baseline while implementing presets or release-hardening checks.
+Source modes are now represented internally, and per-rule preview counts are implemented. Preserve this preview baseline during release-hardening checks.
 
 Reason:
 
@@ -225,9 +225,9 @@ Biome restriction is implemented through `biome(<biome>[;<biome>...], source)`. 
 
 ## Presets
 
-Add presets after source modes, preview, tile safety, and Y range are stable.
+Presets are implemented after source modes, preview, tile safety, Y range, and biome restrictions stabilized.
 
-Presets should generate editable rules rather than hidden behavior. They must show source mode, target, tile behavior, Y range, and biome conditions when relevant.
+The current preset row fills visible Builder fields rather than adding hidden rules. Air and container/data-block presets show warnings, and the container preset sets Extra NBT to present so it generates `tile(...)` when the user adds the rule. Preserve this behavior during release hardening.
 
 ## Testing Rhythm
 

@@ -225,6 +225,16 @@ dialog.replace_blocks.builder.y_min;最低 Y
 dialog.replace_blocks.builder.y_max;最高 Y
 dialog.replace_blocks.builder.biome;生物群系
 dialog.replace_blocks.builder.biome.prompt;minecraft:plains;minecraft:forest
+dialog.replace_blocks.builder.preset;预设
+dialog.replace_blocks.builder.preset.prompt;选择预设
+dialog.replace_blocks.builder.preset.apply;使用预设
+dialog.replace_blocks.builder.preset.air_to_stone;空气 -> 石头
+dialog.replace_blocks.builder.preset.fluids_to_air;流体 -> 空气
+dialog.replace_blocks.builder.preset.logs_leaves_to_air;原木/树叶 -> 空气
+dialog.replace_blocks.builder.preset.ores_to_stone;矿石 -> 石头
+dialog.replace_blocks.builder.preset.containers_to_air;带附加NBT的容器 -> 空气
+dialog.replace_blocks.builder.preset.warning_air;空气替换可能创建缺失或稀疏区段。请先在小范围复制世界中预览。
+dialog.replace_blocks.builder.preset.warning_containers;容器预设只匹配附加NBT存在的位置，但替换仍可能移除箱子等内部内容。请先在复制世界中预览。
 dialog.replace_blocks.builder.property.all;全部
 dialog.replace_blocks.builder.help.button;帮助
 dialog.replace_blocks.builder.help.title;ReplaceBlocks Builder 帮助

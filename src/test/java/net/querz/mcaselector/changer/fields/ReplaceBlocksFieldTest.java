@@ -155,6 +155,33 @@ class ReplaceBlocksFieldTest {
 	}
 
 	@Test
+	void parsesBuilderPresetGeneratedRules() {
+		assertEquals("literal(minecraft:air)=minecraft:stone", parse("literal(minecraft:air)=minecraft:stone").valueToString());
+
+		ChunkFilter.BlockReplaceSource fluids = onlySource(parse("regex(minecraft:(water|lava))=minecraft:air"));
+		assertTrue(fluids.matches(state("minecraft:water")));
+		assertTrue(fluids.matches(state("minecraft:lava")));
+		assertFalse(fluids.matches(state("minecraft:stone")));
+
+		ChunkFilter.BlockReplaceSource logsLeaves = onlySource(parse("regex(minecraft:.*_(log|wood|stem|hyphae|leaves))=minecraft:air"));
+		assertTrue(logsLeaves.matches(state("minecraft:oak_log")));
+		assertTrue(logsLeaves.matches(state("minecraft:crimson_stem")));
+		assertTrue(logsLeaves.matches(state("minecraft:oak_leaves")));
+		assertFalse(logsLeaves.matches(state("minecraft:stone")));
+
+		ChunkFilter.BlockReplaceSource ores = onlySource(parse("regex(minecraft:.*_ore)=minecraft:stone"));
+		assertTrue(ores.matches(state("minecraft:diamond_ore")));
+		assertTrue(ores.matches(state("minecraft:deepslate_diamond_ore")));
+		assertFalse(ores.matches(state("minecraft:stone")));
+
+		ChunkFilter.BlockReplaceSource containers = onlySource(parse("tile(regex(minecraft:.*(chest|barrel|furnace|smoker|hopper|dispenser|dropper|shulker_box)))=minecraft:air"));
+		assertEquals(ChunkFilter.BlockReplaceTileEntityMode.REQUIRE_TILE_ENTITY, containers.getTileEntityMode());
+		assertTrue(containers.matches(state("minecraft:chest"), true));
+		assertTrue(containers.matches(state("minecraft:white_shulker_box"), true));
+		assertFalse(containers.matches(state("minecraft:chest"), false));
+	}
+
+	@Test
 	void parsesYRangeSourceFilter() {
 		ReplaceBlocksField field = parse("y(-64..64, literal(stone))=minecraft:dirt");
 		ChunkFilter.BlockReplaceSource source = onlySource(field);

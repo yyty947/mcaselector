@@ -39,22 +39,22 @@ Implemented:
 - Phase 5A: per-rule preview counts with source-mode rows and overlap warnings.
 - Phase 4F-1: Y range restrictions using `y(min..max, source)`, with Builder min/max Y inputs, parser/diagnostic coverage, preview filtering, and modern 1.18+ execution filtering.
 - Phase 4F-2: biome restrictions using `biome(<biome>[;<biome>...], source)`, with Builder source biome input, parser/diagnostic coverage, preview filtering, and modern 1.18+ execution filtering. Matching is block-position aware using the candidate block's biome value; in modern chunks one stored biome value covers a 4x4x4 block cell.
+- Phase 4G: Builder presets for Air to stone, Fluids to air, Logs/leaves to air, Ores to stone, and Containers with Extra NBT to air. Presets fill the visible Builder inputs and warnings, then users can edit the generated source/target/tile/Y/biome controls before adding a rule.
 - UI polish: ReplaceBlocks field-row validation waits for a short typing pause, the default NBT Changer width shows the Builder button, empty Builder From/To inputs start blank, Builder validation stays quiet until user action creates a real diagnostic, and Builder From/To inputs have auto-opening A-Z filtered suggestions with blue match highlights, Tab/click completion, no empty-query full-list popup, pre-input helper text that hides after manual typing or selection, and a Help dialog for Builder-specific explanations.
 
 Not implemented yet:
 
-- Phase 4G: presets.
 - Phase 6: copied-world test hardening and release prep.
 
 ## Next Recommended Task
 
-Next best target: Phase 4G presets.
+Next best target: Phase 6 release hardening.
 
 Goal:
 
-- Generate editable rules for common safe replacements without hiding source mode, target, tile behavior, Y range, or biome conditions.
-- Preserve Phase 4E tile eligibility, Phase 4F-1 Y filtering, Phase 4F-2 biome filtering, and per-rule preview counts.
-- Keep copied-world validation focused on preview-vs-execution consistency before release hardening.
+- Run copied-world regression coverage across normal blocks, stateful blocks, tile/block entity cases, air, waterlogged blocks, Y and biome restrictions, and preview-vs-execution counts.
+- Preserve Phase 4E tile eligibility, Phase 4F-1 Y filtering, Phase 4F-2 biome filtering, Phase 4G presets, and per-rule preview counts.
+- Keep preview checks non-mutating and only execute on fresh copied worlds.
 
 Current builder/UI manual validation checklist:
 
@@ -72,6 +72,7 @@ Current builder/UI manual validation checklist:
 - Builder property dropdowns default to `all`/`全部`; source-side `all` omits that property from `props(...)`, and all properties set to `all` generates `literal(...)`.
 - Builder source min/max Y fields default to empty; filling either field wraps the source as `y(min..max, source)`, for example `y(-64..64, literal(minecraft:stone))=minecraft:dirt`.
 - Builder source Biome input is searchable like the From/To block selectors. It suggests known vanilla biome IDs, completes the current semicolon-separated biome token with Tab or mouse click, and keeps empty-query dropdowns empty.
+- Builder presets fill visible, editable From/To and source condition controls instead of adding hidden behavior. Air and container presets show warning text before the user adds a rule.
 
 ## Important Files
 

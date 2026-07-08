@@ -115,5 +115,6 @@ Then manually inspect the relevant dialog. Do not claim world mutation behavior 
 - Phase 5A per-rule preview counts are implemented.
 - Phase 4F-1 Y range restrictions are implemented with Builder min/max Y controls, parser/diagnostic support, preview filtering, and modern 1.18+ execution filtering.
 - Phase 4F-2 biome restrictions are implemented with Builder source biome input, parser/diagnostic support, preview filtering, and modern 1.18+ execution filtering.
+- Phase 4G presets are implemented as visible Builder input fillers for common replacements, with warning text for air and container/data-block cases.
 - ReplaceBlocks UI polish is implemented: debounced field-row diagnostics, visible default Builder button, and addable empty-builder example defaults.
-- Remaining work should follow the revised route: presets and release hardening.
+- Remaining work should follow the revised route: release hardening.
