@@ -144,7 +144,7 @@ Implemented controls:
 - Java 1.21.9 catalog data is wired into the builder for property dropdowns.
 - The source tile/block entity selector is presented as `Extra NBT: any/present/absent`, and the Builder has a Help button that opens a separate explanation dialog.
 - The source side has optional Min Y / Max Y inputs. Empty fields mean no Y restriction; filling either field wraps the generated source with `y(...)`.
-- The source side has an optional Biome input. Empty means no biome restriction; one or more biome IDs separated by semicolons wrap the generated source with `biome(...)`. Help text states that matching is block-position aware at the modern 4x4x4 biome-cell granularity.
+- The source side has an optional searchable Biome input. Empty means no biome restriction; one or more biome IDs separated by semicolons wrap the generated source with `biome(...)`. The dropdown suggests known vanilla biome IDs, completes the current semicolon-separated token with Tab or mouse click, and keeps the empty-query list empty. Help text states that matching is block-position aware at the modern 4x4x4 biome-cell granularity.
 
 Builder-supported rule syntax:
 
@@ -239,6 +239,7 @@ Current 4B usage:
 ## Builder UI implementation notes
 
 - The From/To block selector is an editable JavaFX `ComboBox`, so keyboard completion and mouse-click completion are not equivalent internally. Test both paths before shipping input changes.
+- The Biome input is also an editable JavaFX `ComboBox`, but completion replaces only the current semicolon-separated token.
 - Avoid changing the ComboBox value, selection, or item list synchronously while JavaFX is handling popup mouse selection. This previously caused `ListViewBehavior` index errors when users clicked a suggestion.
 - Keep the empty-query suggestion list empty. Showing the whole block catalog before the user typed made the first popup visually noisy and could place it above the input.
 - Keep hover/focus/selected styling on suggestion and property dropdown cells; otherwise the dark popup looks inert even when it is interactive.

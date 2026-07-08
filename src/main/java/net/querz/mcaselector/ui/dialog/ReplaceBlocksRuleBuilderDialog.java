@@ -52,6 +52,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private final Stage primaryStage;
 	private final BlockStateCatalog catalog = BlockStateCatalog.latestJava();
 	private final ObservableList<String> blockNames = FXCollections.observableArrayList(catalog.blockNames().stream().sorted().collect(Collectors.toList()));
+	private final ObservableList<String> biomeCatalogNames = FXCollections.observableArrayList(BiomeRegistry.names().stream().sorted().collect(Collectors.toList()));
 	private final BlockInput from = new BlockInput(true);
 	private final BlockInput to = new BlockInput(false);
 	private final TableView<Rule> rules = new TableView<>();
@@ -345,13 +346,18 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		private final ComboBox<SourceTileMode> tileEntityMode = new ComboBox<>();
 		private final TextField minY = new TextField();
 		private final TextField maxY = new TextField();
-		private final TextField biomeNames = new TextField();
+		private final ComboBox<String> biomeNames = new ComboBox<>();
+		private final FilteredList<String> biomeSuggestions = new FilteredList<>(biomeCatalogNames);
 		private final GridPane properties = new GridPane();
 		private final Map<String, ComboBox<PropertyChoice>> propertyEditors = new LinkedHashMap<>();
 		private final BooleanProperty userInputPresent = new SimpleBooleanProperty(false);
 		private boolean updatingItems;
+		private boolean updatingBiomeItems;
 		private boolean suppressSuggestions;
+		private boolean suppressBiomeSuggestions;
 		private boolean normalizeNextTyped;
+		private boolean normalizeBiomeNextTyped;
+		private int normalizedBiomeCaret = -1;
 
 		private BlockInput(boolean source) {
 			this.source = source;
@@ -431,9 +437,38 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				biomeFilter.getStyleClass().add("replace-blocks-builder-biome");
 				biomeFilter.setHgap(6);
 				Label biomeLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_BIOME);
-				biomeNames.promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_BIOME_PROMPT.getProperty());
+				biomeNames.setEditable(true);
 				biomeNames.setMaxWidth(Double.MAX_VALUE);
-				biomeNames.textProperty().addListener((a, o, n) -> updateUserInputPresent());
+				biomeNames.setVisibleRowCount(12);
+				biomeNames.setItems(biomeSuggestions);
+				biomeNames.setCellFactory(v -> new HighlightedBiomeCell());
+				biomeNames.getEditor().promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_BIOME_PROMPT.getProperty());
+				biomeNames.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, this::handleBiomeKeyPressed);
+				biomeNames.getEditor().addEventFilter(KeyEvent.KEY_TYPED, this::handleBiomeKeyTyped);
+				biomeNames.getEditor().addEventFilter(MouseEvent.MOUSE_PRESSED, e -> normalizeBiomeNextTyped = false);
+				biomeNames.getEditor().textProperty().addListener((a, o, n) -> {
+					if (suppressBiomeSuggestions) {
+						return;
+					}
+					updateUserInputPresent();
+					if (!updatingBiomeItems) {
+						Platform.runLater(() -> {
+							if (!suppressBiomeSuggestions) {
+								updateBiomeSuggestions();
+								showBiomeSuggestions();
+							}
+						});
+					}
+				});
+				biomeNames.valueProperty().addListener((a, o, n) -> {
+					if (!updatingBiomeItems && !suppressBiomeSuggestions && n != null && biomeCatalogNames.contains(n)) {
+						Platform.runLater(() -> {
+							if (!suppressBiomeSuggestions && Objects.equals(biomeNames.getValue(), n)) {
+								completeBiomeSuggestion(n);
+							}
+						});
+					}
+				});
 				biomeFilter.add(biomeLabel, 0, 0);
 				biomeFilter.add(biomeNames, 1, 0);
 				GridPane.setHgrow(biomeNames, Priority.ALWAYS);
@@ -442,6 +477,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			getChildren().add(properties);
 			VBox.setVgrow(properties, Priority.NEVER);
 			updateBlockSuggestions("");
+			updateBiomeSuggestions();
 			rebuildProperties("");
 		}
 
@@ -562,7 +598,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 
 		private String biomeText() {
-			String raw = biomeNames.getText() == null ? "" : biomeNames.getText().trim();
+			String raw = biomeNames.getEditor().getText() == null ? "" : biomeNames.getEditor().getText().trim();
 			if (raw.isEmpty()) {
 				return null;
 			}
@@ -592,10 +628,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				block.getEditor().clear();
 				minY.clear();
 				maxY.clear();
-				biomeNames.clear();
+				clearBiomeInput();
 				propertyEditors.clear();
 				properties.getChildren().clear();
 				updateBlockSuggestions("");
+				updateBiomeSuggestions();
 				userInputPresent.set(false);
 			} finally {
 				suppressSuggestions = false;
@@ -616,7 +653,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			userInputPresent.set(!currentText().isEmpty()
 					|| minY.getText() != null && !minY.getText().isBlank()
 					|| maxY.getText() != null && !maxY.getText().isBlank()
-					|| biomeNames.getText() != null && !biomeNames.getText().isBlank());
+					|| biomeNames.getEditor().getText() != null && !biomeNames.getEditor().getText().isBlank());
 		}
 
 		private void updateBlockSuggestions(String query) {
@@ -643,6 +680,140 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				return;
 			}
 			block.show();
+		}
+
+		private void updateBiomeSuggestions() {
+			String query = currentBiomeQuery().toLowerCase(Locale.ROOT);
+			updatingBiomeItems = true;
+			try {
+				if (query.isEmpty()) {
+					biomeSuggestions.setPredicate(name -> false);
+				} else {
+					biomeSuggestions.setPredicate(name -> matchesBlockSearch(name, query));
+				}
+			} finally {
+				updatingBiomeItems = false;
+			}
+		}
+
+		private void showBiomeSuggestions() {
+			if (suppressBiomeSuggestions) {
+				return;
+			}
+			if (currentBiomeQuery().isEmpty() || biomeNames.getItems().isEmpty()) {
+				biomeNames.hide();
+				return;
+			}
+			biomeNames.show();
+		}
+
+		private void handleBiomeKeyPressed(KeyEvent event) {
+			if (event.getCode() != KeyCode.TAB || !biomeNames.isShowing()) {
+				if (isCaretControl(event)) {
+					normalizeBiomeNextTyped = false;
+				}
+				return;
+			}
+			String suggestion = selectedBiomeSuggestion();
+			if (suggestion == null) {
+				return;
+			}
+			completeBiomeSuggestion(suggestion);
+			event.consume();
+		}
+
+		private void handleBiomeKeyTyped(KeyEvent event) {
+			if (!normalizeBiomeNextTyped) {
+				return;
+			}
+			normalizeBiomeNextTyped = false;
+			collapseBiomeCaret();
+		}
+
+		private String selectedBiomeSuggestion() {
+			String selected = biomeNames.getSelectionModel().getSelectedItem();
+			if (selected != null && biomeNames.getItems().contains(selected)) {
+				return selected;
+			}
+			return biomeNames.getItems().isEmpty() ? null : biomeNames.getItems().get(0);
+		}
+
+		private void completeBiomeSuggestion(String suggestion) {
+			TextField editor = biomeNames.getEditor();
+			String text = editor.getText();
+			if (text == null) {
+				text = "";
+			}
+			int caret = Math.max(0, Math.min(editor.getCaretPosition(), text.length()));
+			int start = text.lastIndexOf(';', Math.max(0, caret - 1)) + 1;
+			int end = text.indexOf(';', caret);
+			if (end < 0) {
+				end = text.length();
+			}
+			String completed = text.substring(0, start) + suggestion + text.substring(end);
+			int caretPosition = start + suggestion.length();
+
+			suppressBiomeSuggestions = true;
+			try {
+				biomeNames.setValue(null);
+				biomeNames.getSelectionModel().clearSelection();
+				editor.setText(completed);
+				editor.selectRange(caretPosition, caretPosition);
+				updateUserInputPresent();
+				updateBiomeSuggestions();
+				biomeNames.hide();
+				normalizedBiomeCaret = caretPosition;
+				normalizeBiomeNextTyped = true;
+				collapseBiomeCaretLater();
+			} finally {
+				suppressBiomeSuggestions = false;
+			}
+		}
+
+		private String currentBiomeQuery() {
+			TextField editor = biomeNames.getEditor();
+			String text = editor.getText();
+			if (text == null || text.isEmpty()) {
+				return "";
+			}
+			int caret = Math.max(0, Math.min(editor.getCaretPosition(), text.length()));
+			int start = text.lastIndexOf(';', Math.max(0, caret - 1)) + 1;
+			int end = text.indexOf(';', caret);
+			if (end < 0) {
+				end = text.length();
+			}
+			return text.substring(start, end).trim();
+		}
+
+		private void collapseBiomeCaret() {
+			if (normalizedBiomeCaret < 0) {
+				return;
+			}
+			TextField editor = biomeNames.getEditor();
+			int caret = Math.min(normalizedBiomeCaret, editor.getLength());
+			editor.selectRange(caret, caret);
+		}
+
+		private void collapseBiomeCaretLater() {
+			Platform.runLater(() -> {
+				if (normalizeBiomeNextTyped) {
+					collapseBiomeCaret();
+				}
+			});
+		}
+
+		private void clearBiomeInput() {
+			suppressBiomeSuggestions = true;
+			try {
+				biomeNames.setValue(null);
+				biomeNames.getSelectionModel().clearSelection();
+				biomeNames.getEditor().clear();
+				biomeNames.hide();
+				normalizeBiomeNextTyped = false;
+				normalizedBiomeCaret = -1;
+			} finally {
+				suppressBiomeSuggestions = false;
+			}
 		}
 
 		private void handleKeyPressed(KeyEvent event) {
@@ -795,6 +966,65 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				}
 				setText(null);
 				setGraphic(highlightedText(item, currentText()));
+			}
+
+			private TextFlow highlightedText(String item, String query) {
+				TextFlow flow = new TextFlow();
+				flow.getStyleClass().add("replace-blocks-builder-suggestion-text");
+				String needle = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+				if (needle.isEmpty()) {
+					flow.getChildren().add(text(item, false));
+					return flow;
+				}
+
+				String haystack = item.toLowerCase(Locale.ROOT);
+				int offset = 0;
+				int match;
+				while ((match = haystack.indexOf(needle, offset)) >= 0) {
+					if (match > offset) {
+						flow.getChildren().add(text(item.substring(offset, match), false));
+					}
+					int end = match + needle.length();
+					flow.getChildren().add(text(item.substring(match, end), true));
+					offset = end;
+				}
+				if (offset < item.length()) {
+					flow.getChildren().add(text(item.substring(offset), false));
+				}
+				if (flow.getChildren().isEmpty()) {
+					flow.getChildren().add(text(item, false));
+				}
+				return flow;
+			}
+
+			private Text text(String value, boolean highlight) {
+				Text text = new Text(value);
+				text.getStyleClass().add(highlight ? "replace-blocks-builder-suggestion-highlight" : "replace-blocks-builder-suggestion-normal");
+				return text;
+			}
+		}
+
+		private class HighlightedBiomeCell extends ListCell<String> {
+
+			private HighlightedBiomeCell() {
+				addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+					if (!isEmpty() && getItem() != null) {
+						completeBiomeSuggestion(getItem());
+						event.consume();
+					}
+				});
+			}
+
+			@Override
+			protected void updateItem(String item, boolean empty) {
+				super.updateItem(item, empty);
+				if (empty || item == null) {
+					setText(null);
+					setGraphic(null);
+					return;
+				}
+				setText(null);
+				setGraphic(highlightedText(item, currentBiomeQuery()));
 			}
 
 			private TextFlow highlightedText(String item, String query) {

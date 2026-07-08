@@ -71,6 +71,7 @@ Current builder/UI manual validation checklist:
 - The Builder source tile selector is labeled as `Extra NBT` in the UI, and its Help button explains the any/present/absent choices without closing the Builder.
 - Builder property dropdowns default to `all`/`全部`; source-side `all` omits that property from `props(...)`, and all properties set to `all` generates `literal(...)`.
 - Builder source min/max Y fields default to empty; filling either field wraps the source as `y(min..max, source)`, for example `y(-64..64, literal(minecraft:stone))=minecraft:dirt`.
+- Builder source Biome input is searchable like the From/To block selectors. It suggests known vanilla biome IDs, completes the current semicolon-separated biome token with Tab or mouse click, and keeps empty-query dropdowns empty.
 
 ## Important Files
 

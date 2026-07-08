@@ -102,7 +102,10 @@ Manual checks:
 - In the builder From block area, leaving Min Y and Max Y empty should generate the same rule as before.
 - Filling only Min Y should generate `y(<min>.., source)`, filling only Max Y should generate `y(..<max>, source)`, and filling both should generate `y(<min>..<max>, source)`.
 - Invalid Y input such as letters or Min Y greater than Max Y should prevent adding the rule and show validation feedback.
-- Leaving the Builder Biome field empty should generate the same rule as before. Filling `plains` should generate `biome(minecraft:plains, source)`, filling `plains;minecraft:forest` should generate a semicolon-separated multi-biome wrapper, and an unknown biome ID should prevent adding the rule and show validation feedback.
+- Leaving the Builder Biome field empty should generate the same rule as before. Filling `plains` should generate `biome(minecraft:plains, source)`, filling `plains;minecraft:forest` should generate a semicolon-separated multi-biome wrapper, an unknown `minecraft:` biome ID should prevent adding the rule and show validation feedback, and a syntactically valid non-`minecraft:` biome ID should remain manually typeable.
+- In the Builder Biome field, typing `pla` or `for` should open a filtered biome list, highlight the typed substring, and support Tab completion and mouse-click completion without console errors.
+- In the Builder Biome field, typing after a semicolon such as `minecraft:plains;for` should complete only the current biome token, preserving the earlier token.
+- Clicking the empty Builder Biome dropdown before typing should not show the full biome list.
 
 ## Per-rule preview counts
 

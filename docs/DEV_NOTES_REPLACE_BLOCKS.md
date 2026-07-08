@@ -104,7 +104,7 @@ CLI path:
 - Builder inputs can search/select Java 1.21.9 catalog block IDs, generate `literal(...)` for simple source IDs, generate `props(...)` for selected source property dropdowns, and omit properties whose dropdown is left at `all`.
 - Builder source tile filters are labeled as `Extra NBT: any/present/absent`; the Builder Help dialog explains the choices and is the intended home for future Builder-specific help text.
 - Builder source min/max Y fields default to empty; filling either field wraps the generated source with `y(...)`.
-- Builder source biome field defaults to empty; filling it with one or more biome IDs separated by semicolons wraps the generated source with `biome(...)`. The Builder Help dialog states the block-position-aware 4x4x4 biome-cell granularity.
+- Builder source biome field defaults to empty; filling it with one or more biome IDs separated by semicolons wraps the generated source with `biome(...)`. It uses the known vanilla biome registry for filtered suggestions, Tab completion, and mouse-click completion while still allowing manually typed custom IDs. The Builder Help dialog states the block-position-aware 4x4x4 biome-cell granularity.
 - The NBT Changer dialog shows ReplaceBlocks validation messages and warnings after a short typing pause, so incomplete in-progress input does not flash errors on every character.
 - The default NBT Changer dialog width keeps the ReplaceBlocks `Builder` button visible without horizontal scrolling.
 - When opened without an existing value, the builder starts with blank From/To inputs and does not immediately show an empty-rule validation error.
