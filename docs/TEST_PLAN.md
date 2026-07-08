@@ -99,6 +99,7 @@ Manual checks:
 - Repeat the same suggestion test with mouse-click completion. The chosen block ID should fill the editor, the matching property rows should appear when applicable, and the JavaFX console should not log `ListViewBehavior` or index errors.
 - Moving the mouse over block suggestions, Extra NBT choices, and property dropdown choices should show a visible hover highlight consistent with the main menu hover color.
 - The builder helper text below the generated value should be visible before manual From/To input, then hide once the user types non-empty text into either From/To field.
+- For stateful From/To blocks with matching properties such as stairs, property dropdown rows should appear directly below both block inputs, align vertically across the two columns, and use equal left/right column widths. Source-only Extra NBT, Y range, and Biome controls should appear below the source property rows.
 - In the builder From block area, leaving Min Y and Max Y empty should generate the same rule as before.
 - Filling only Min Y should generate `y(<min>.., source)`, filling only Max Y should generate `y(..<max>, source)`, and filling both should generate `y(<min>..<max>, source)`.
 - Invalid Y input such as letters or Min Y greater than Max Y should prevent adding the rule and show validation feedback.

@@ -18,6 +18,7 @@ import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
@@ -126,6 +127,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		input.getStyleClass().add("replace-blocks-builder-input");
 		input.setHgap(8);
 		input.setVgap(6);
+		input.getColumnConstraints().addAll(builderColumn(), builderColumn(), actionColumn());
 		input.add(from, 0, 0);
 		input.add(to, 1, 0);
 		input.add(addActions, 2, 0);
@@ -224,6 +226,22 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		loadSimpleRules(initialValue);
 		updateResult();
+	}
+
+	private static ColumnConstraints builderColumn() {
+		ColumnConstraints constraints = new ColumnConstraints();
+		constraints.setMinWidth(300);
+		constraints.setPrefWidth(0);
+		constraints.setHgrow(Priority.ALWAYS);
+		constraints.setFillWidth(true);
+		return constraints;
+	}
+
+	private static ColumnConstraints actionColumn() {
+		ColumnConstraints constraints = new ColumnConstraints();
+		constraints.setHgrow(Priority.NEVER);
+		constraints.setFillWidth(false);
+		return constraints;
 	}
 
 	private void applyPreset(ActionEvent event) {
@@ -756,6 +774,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		private BlockInput(boolean source) {
 			this.source = source;
 			getStyleClass().add("replace-blocks-builder-block");
+			setMaxWidth(Double.MAX_VALUE);
+			setPrefWidth(0);
 			setSpacing(4);
 
 			Label label = UIFactory.label(source
@@ -763,6 +783,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					: Translation.DIALOG_REPLACE_BLOCKS_BUILDER_TO);
 
 			block.setEditable(true);
+			block.setMinWidth(0);
 			block.setMaxWidth(Double.MAX_VALUE);
 			block.setVisibleRowCount(12);
 			block.setItems(blockSuggestions);
@@ -801,11 +822,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			properties.getStyleClass().add("replace-blocks-builder-properties");
 			properties.setHgap(6);
 			properties.setVgap(4);
+			setPropertiesVisible(false);
 
-			getChildren().addAll(label, block);
+			getChildren().addAll(label, block, properties);
+			VBox.setVgrow(properties, Priority.NEVER);
 			if (source) {
 				tileEntityMode.setItems(FXCollections.observableArrayList(SourceTileMode.values()));
 				tileEntityMode.setValue(SourceTileMode.ANY);
+				tileEntityMode.setMinWidth(0);
 				tileEntityMode.setMaxWidth(Double.MAX_VALUE);
 				tileEntityMode.valueProperty().addListener((a, o, n) -> clearPresetSelectionAfterEdit());
 				getChildren().add(tileEntityMode);
@@ -817,7 +841,9 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				Label maxLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_Y_MAX);
 				minY.promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_Y_MIN.getProperty());
 				maxY.promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_Y_MAX.getProperty());
+				minY.setMinWidth(0);
 				minY.setMaxWidth(Double.MAX_VALUE);
+				maxY.setMinWidth(0);
 				maxY.setMaxWidth(Double.MAX_VALUE);
 				minY.textProperty().addListener((a, o, n) -> {
 					updateUserInputPresent();
@@ -840,6 +866,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				biomeFilter.setHgap(6);
 				Label biomeLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_BIOME);
 				biomeNames.setEditable(true);
+				biomeNames.setMinWidth(0);
 				biomeNames.setMaxWidth(Double.MAX_VALUE);
 				biomeNames.setVisibleRowCount(12);
 				biomeNames.setItems(biomeSuggestions);
@@ -877,8 +904,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				GridPane.setHgrow(biomeNames, Priority.ALWAYS);
 				getChildren().add(biomeFilter);
 			}
-			getChildren().add(properties);
-			VBox.setVgrow(properties, Priority.NEVER);
 			updateBlockSuggestions("");
 			updateBiomeSuggestions();
 			rebuildProperties("");
@@ -1086,6 +1111,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					|| minY.getText() != null && !minY.getText().isBlank()
 					|| maxY.getText() != null && !maxY.getText().isBlank()
 					|| biomeNames.getEditor().getText() != null && !biomeNames.getEditor().getText().isBlank());
+			updatePresetButtons();
 		}
 
 		private void updateBlockSuggestions(String query) {
@@ -1341,6 +1367,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		private void rebuildProperties(String rawBlockName) {
 			propertyEditors.clear();
 			properties.getChildren().clear();
+			setPropertiesVisible(false);
 
 			String text = rawBlockName == null ? "" : rawBlockName.trim();
 			if (text.isEmpty() || text.startsWith("{") || source && isSourceModeExpression(text)) {
@@ -1360,6 +1387,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				choices.add(PropertyChoice.allChoice());
 				choices.addAll(property.getValue().stream().map(PropertyChoice::value).collect(Collectors.toList()));
 				ComboBox<PropertyChoice> value = new ComboBox<>(choices);
+				value.setMinWidth(0);
 				value.setMaxWidth(Double.MAX_VALUE);
 				value.setCellFactory(v -> new PropertyChoiceCell());
 				value.setButtonCell(new PropertyChoiceCell());
@@ -1376,6 +1404,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				GridPane.setHgrow(value, Priority.ALWAYS);
 				row++;
 			}
+			setPropertiesVisible(true);
+		}
+
+		private void setPropertiesVisible(boolean visible) {
+			properties.setVisible(visible);
+			properties.setManaged(visible);
 		}
 
 		private class HighlightedBlockCell extends ListCell<String> {
