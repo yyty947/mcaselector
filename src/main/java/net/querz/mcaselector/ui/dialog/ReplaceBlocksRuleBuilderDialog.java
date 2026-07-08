@@ -261,11 +261,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private void savePreset(ActionEvent event) {
-		String value = result.getText() == null ? "" : result.getText().trim();
-		if (!isCurrentResultValid()) {
-			showDiagnostic(ReplaceBlocksDiagnostics.builderInvalid());
+		PresetValue presetValue = presetValue();
+		if (presetValue.diagnostic().isError()) {
+			showDiagnostic(presetValue.diagnostic());
 			return;
 		}
+		String value = presetValue.value();
 		TextInputDialog dialog = new TextInputDialog(suggestPresetName());
 		dialog.initOwner(getDialogPane().getScene().getWindow());
 		dialog.titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_SAVE_TITLE.getProperty());
@@ -298,7 +299,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 		ConfigProvider.GLOBAL.save();
 		refreshPresetItems(name);
-		showPresetMessage(Alert.AlertType.INFORMATION, Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_SAVED.format(name));
+		showMessage(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_SAVED.format(name));
 	}
 
 	private void deletePreset(ActionEvent event) {
@@ -349,7 +350,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 	private void updatePresetButtons() {
 		if (savePreset != null) {
-			savePreset.setDisable(!isCurrentResultValid());
+			savePreset.setDisable(presetValue().diagnostic().isError());
 		}
 		if (deletePreset != null) {
 			PresetItem selected = presets.getValue();
@@ -357,12 +358,29 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 	}
 
-	private boolean isCurrentResultValid() {
-		String value = result.getText();
-		if (value == null || value.isBlank()) {
-			return false;
+	private PresetValue presetValue() {
+		String existing = result.getText() == null ? "" : result.getText().trim();
+		String value = existing;
+		if (from.userInputPresentProperty().get() || to.userInputPresentProperty().get()) {
+			ValueResult fromName = from.value();
+			if (fromName.diagnostic().isError()) {
+				return new PresetValue(null, fromName.diagnostic());
+			}
+			ValueResult toName = to.value();
+			if (toName.diagnostic().isError()) {
+				return new PresetValue(null, toName.diagnostic());
+			}
+			if (hasRule(fromName.value(), toName.value())) {
+				return new PresetValue(null, ReplaceBlocksDiagnostics.builderDuplicate());
+			}
+			String draftRule = formatFrom(fromName.value()) + "=" + formatTo(toName.value());
+			value = existing.isBlank() ? draftRule : existing + ", " + draftRule;
 		}
-		return ReplaceBlocksDiagnostics.parseReplaceBlocksValue(new ReplaceBlocksField(), value);
+		if (value == null || value.isBlank()) {
+			return new PresetValue(null, ReplaceBlocksDiagnostics.builderInvalid());
+		}
+		boolean valid = ReplaceBlocksDiagnostics.parseReplaceBlocksValue(new ReplaceBlocksField(), value);
+		return new PresetValue(valid ? value : null, valid ? ReplaceBlocksDiagnostics.none() : ReplaceBlocksDiagnostics.builderInvalid());
 	}
 
 	private String suggestPresetName() {
@@ -421,6 +439,13 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		alert.setHeaderText(null);
 		alert.getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
 		alert.showAndWait();
+	}
+
+	private void showMessage(String message) {
+		validation.textProperty().unbind();
+		validation.pseudoClassStateChanged(error, false);
+		validation.pseudoClassStateChanged(warning, false);
+		validation.setText(message);
 	}
 
 	private void clearPresetSelectionAfterEdit() {
@@ -1473,6 +1498,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private record ValueResult(String value, ReplaceBlocksDiagnostics.Diagnostic diagnostic) {}
+
+	private record PresetValue(String value, ReplaceBlocksDiagnostics.Diagnostic diagnostic) {}
 
 	private record Rule(String from, String to) {}
 

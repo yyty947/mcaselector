@@ -146,7 +146,7 @@ Implemented controls:
 - The source side has optional Min Y / Max Y inputs. Empty fields mean no Y restriction; filling either field wraps the generated source with `y(...)`.
 - The source side has an optional searchable Biome input. Empty means no biome restriction; one or more biome IDs separated by semicolons wrap the generated source with `biome(...)`. The dropdown suggests known vanilla biome IDs, completes the current semicolon-separated token with Tab or mouse click, and keeps the empty-query list empty. Help text states that matching is block-position aware at the modern 4x4x4 biome-cell granularity.
 - The Builder has a Preset row. Built-in presets fill visible editable From/To and source condition controls for common starting points instead of adding hidden behavior; air and container/data-block presets show warning text.
-- The Builder can save the current generated ReplaceBlocks value as a custom global preset. Custom presets load through the same parser path into the rule table and can be overwritten or deleted.
+- The Builder can save the current generated ReplaceBlocks value, or a valid current From/To draft rule before it is added to the table, as a custom global preset. Custom presets load through the same parser path into the rule table and can be overwritten or deleted.
 
 Builder-supported rule syntax:
 
@@ -243,7 +243,7 @@ Current 4B usage:
 - The From/To block selector is an editable JavaFX `ComboBox`, so keyboard completion and mouse-click completion are not equivalent internally. Test both paths before shipping input changes.
 - The Biome input is also an editable JavaFX `ComboBox`, but completion replaces only the current semicolon-separated token.
 - Built-in presets should continue to fill the existing visible controls and use the normal Add rule path. Do not let future built-ins bypass generated text validation or hide source mode, Extra NBT, Y range, or biome conditions.
-- Custom presets should remain full generated ReplaceBlocks text stored in global config, not serialized UI widget state. This keeps advanced syntax round-trippable and prevents future Builder layout changes from invalidating saved presets.
+- Custom presets should remain ReplaceBlocks text stored in global config, not serialized UI widget state. Saving may use the current generated result or a validated From/To draft rule; either way the stored value should be normal parser-compatible text. This keeps advanced syntax round-trippable and prevents future Builder layout changes from invalidating saved presets.
 - Avoid changing the ComboBox value, selection, or item list synchronously while JavaFX is handling popup mouse selection. This previously caused `ListViewBehavior` index errors when users clicked a suggestion.
 - Keep the empty-query suggestion list empty. Showing the whole block catalog before the user typed made the first popup visually noisy and could place it above the input.
 - Keep hover/focus/selected styling on suggestion and property dropdown cells; otherwise the dark popup looks inert even when it is interactive.
