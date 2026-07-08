@@ -227,7 +227,19 @@ dialog.replace_blocks.builder.biome;Biome
 dialog.replace_blocks.builder.biome.prompt;minecraft:plains;minecraft:forest
 dialog.replace_blocks.builder.preset;Preset
 dialog.replace_blocks.builder.preset.prompt;Choose preset
-dialog.replace_blocks.builder.preset.apply;Use preset
+dialog.replace_blocks.builder.preset.apply;Fill preset
+dialog.replace_blocks.builder.preset.save;Save preset
+dialog.replace_blocks.builder.preset.delete;Delete preset
+dialog.replace_blocks.builder.preset.title;ReplaceBlocks presets
+dialog.replace_blocks.builder.preset.save.title;Save ReplaceBlocks preset
+dialog.replace_blocks.builder.preset.save.header;Save the generated rules as a reusable Builder preset.
+dialog.replace_blocks.builder.preset.save.name;Preset name
+dialog.replace_blocks.builder.preset.name_empty;Enter a preset name.
+dialog.replace_blocks.builder.preset.builtin_locked;Built-in preset names cannot be overwritten.
+dialog.replace_blocks.builder.preset.overwrite_confirm;A preset named "%s" already exists. Overwrite it?
+dialog.replace_blocks.builder.preset.delete_confirm;Delete preset "%s"?
+dialog.replace_blocks.builder.preset.replace_confirm;Loading this preset will replace the current Builder rules and draft inputs.
+dialog.replace_blocks.builder.preset.saved;Preset "%s" saved.
 dialog.replace_blocks.builder.preset.air_to_stone;Air -> stone
 dialog.replace_blocks.builder.preset.fluids_to_air;Fluids -> air
 dialog.replace_blocks.builder.preset.logs_leaves_to_air;Logs/leaves -> air
@@ -235,6 +247,7 @@ dialog.replace_blocks.builder.preset.ores_to_stone;Ores -> stone
 dialog.replace_blocks.builder.preset.containers_to_air;Containers with Extra NBT -> air
 dialog.replace_blocks.builder.preset.warning_air;Air replacement can create missing or sparse sections. Preview on a small copied selection first.
 dialog.replace_blocks.builder.preset.warning_containers;The container preset matches only positions with Extra NBT present, but replacing them can remove stored contents. Preview on a copied world first.
+dialog.replace_blocks.builder.edit_rule;Load rule
 dialog.replace_blocks.builder.property.all;all
 dialog.replace_blocks.builder.help.button;Help
 dialog.replace_blocks.builder.help.title;ReplaceBlocks Builder Help

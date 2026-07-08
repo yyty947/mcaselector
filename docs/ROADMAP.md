@@ -21,8 +21,8 @@ Implemented:
 - Phase 5A: per-rule preview counts, source-mode rows, and overlap warning in the ReplaceBlocks preview dialog.
 - Phase 4F-1: Y range restrictions implemented with `y(min..max, source)`, Builder min/max Y fields, parser diagnostics, preview counts, and modern 1.18+ execution filtering.
 - Phase 4F-2: biome restrictions implemented with `biome(<biome>[;<biome>...], source)`, Builder source biome input, parser diagnostics, preview counts, and modern 1.18+ execution filtering. Matching is block-position aware using the chunk biome value for the candidate block position; in modern chunks that value covers a 4x4x4 block cell.
-- Phase 4G: Builder presets implemented for common replacement starting points. Presets fill visible From/To and source condition controls, keep the generated rules editable before adding, and show warnings for air and container/data-block cases.
-- UI polish: ReplaceBlocks field-row diagnostics are debounced, the main dialog defaults wide enough to show `Builder`, empty Builder inputs start blank without immediate empty-rule errors or empty-query full-list popups, block suggestions support Tab and mouse-click completion, and property dropdowns support an `all`/`全部` option.
+- Phase 4G: Builder presets implemented for common replacement starting points. Built-in presets fill visible From/To and source condition controls, keep the generated rules editable before adding, and show warnings for air and container/data-block cases. Custom presets save the full generated ReplaceBlocks value in global config and can be loaded, overwritten, or deleted from the Builder.
+- UI polish: ReplaceBlocks field-row diagnostics are debounced, the main dialog defaults wide enough to show `Builder`, empty Builder inputs start blank without immediate empty-rule errors or empty-query full-list popups, block suggestions support Tab and mouse-click completion, property dropdowns support an `all`/`全部` option, and Preview now lives beside Help in the Builder.
 
 Still not implemented:
 
@@ -216,8 +216,9 @@ Recommended presets:
 Success criteria:
 
 - Done: the Builder has a Preset row for Air to stone, Fluids to air, Logs/leaves to air, Ores to stone, and Containers with Extra NBT to air.
-- Done: presets fill visible From/To and source condition controls instead of adding hidden behavior; users can edit source mode text, target, Extra NBT mode, Y range, and biome fields before adding a rule.
+- Done: built-in presets fill visible From/To and source condition controls instead of adding hidden behavior; users can edit source mode text, target, Extra NBT mode, Y range, and biome fields before adding a rule.
 - Done: air and container presets show warning text before adding a rule.
+- Done: custom presets can save the full generated ReplaceBlocks value to global config, then load, overwrite, or delete it later. Loading a custom preset replaces the current Builder rules and draft inputs after confirmation.
 - Done: advanced text remains available.
 
 ### Phase 6: Release Hardening

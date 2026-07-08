@@ -19,6 +19,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -27,7 +28,11 @@ import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import net.querz.mcaselector.changer.fields.ReplaceBlocksField;
+import net.querz.mcaselector.config.ConfigProvider;
+import net.querz.mcaselector.config.GlobalConfig;
+import net.querz.mcaselector.io.job.ReplaceBlocksPreviewer;
 import net.querz.mcaselector.text.Translation;
+import net.querz.mcaselector.tile.TileMap;
 import net.querz.mcaselector.ui.UIFactory;
 import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.mcaselector.version.mapping.blockstate.BlockStateCatalog;
@@ -38,6 +43,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -46,23 +53,37 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private static final PseudoClass error = PseudoClass.getPseudoClass("error");
 	private static final PseudoClass warning = PseudoClass.getPseudoClass("warning");
 	private static final ButtonType HELP = new ButtonType("", ButtonBar.ButtonData.LEFT);
+	private static final ButtonType PREVIEW = new ButtonType("", ButtonBar.ButtonData.LEFT);
 	private static final Color PROPERTY_CHOICE_TEXT = Color.web("#f2f2f2");
 	private static final Pattern RESOURCE_LOCATION = Pattern.compile("[a-z0-9_.-]+:[a-z0-9_./-]+");
 
 	private final Stage primaryStage;
+	private final TileMap tileMap;
+	private final boolean selectionOnly;
 	private final BlockStateCatalog catalog = BlockStateCatalog.latestJava();
 	private final ObservableList<String> blockNames = FXCollections.observableArrayList(catalog.blockNames().stream().sorted().collect(Collectors.toList()));
 	private final ObservableList<String> biomeCatalogNames = FXCollections.observableArrayList(BiomeRegistry.names().stream().sorted().collect(Collectors.toList()));
 	private final BlockInput from = new BlockInput(true);
 	private final BlockInput to = new BlockInput(false);
-	private final ComboBox<ReplaceBlocksPreset> presets = new ComboBox<>();
+	private final ComboBox<PresetItem> presets = new ComboBox<>();
+	private final ObservableList<PresetItem> presetItems = FXCollections.observableArrayList();
 	private final TableView<Rule> rules = new TableView<>();
 	private final ObservableList<Rule> ruleItems = FXCollections.observableArrayList();
-	private final TextField result = new TextField();
+	private final TextArea result = new TextArea();
 	private final Label validation = new Label();
+	private Node previewButton;
+	private Button savePreset;
+	private Button deletePreset;
+	private boolean applyingPreset;
 
 	public ReplaceBlocksRuleBuilderDialog(Stage primaryStage, String initialValue) {
+		this(primaryStage, null, true, initialValue);
+	}
+
+	public ReplaceBlocksRuleBuilderDialog(Stage primaryStage, TileMap tileMap, boolean selectionOnly, String initialValue) {
 		this.primaryStage = primaryStage;
+		this.tileMap = tileMap;
+		this.selectionOnly = selectionOnly;
 		titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_TITLE.getProperty());
 		initStyle(StageStyle.UTILITY);
 		setResizable(true);
@@ -70,7 +91,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
 		getDialogPane().getStylesheets().add(Objects.requireNonNull(ChangeNBTDialog.class.getClassLoader().getResource("style/component/change-nbt-dialog.css")).toExternalForm());
 		getDialogPane().getStyleClass().add("replace-blocks-builder-pane");
-		getDialogPane().getButtonTypes().addAll(HELP, ButtonType.OK, ButtonType.CANCEL);
+		getDialogPane().getButtonTypes().addAll(HELP, PREVIEW, ButtonType.OK, ButtonType.CANCEL);
 		getDialogPane().setPrefSize(900, 650);
 		Node help = getDialogPane().lookupButton(HELP);
 		if (help instanceof Button button) {
@@ -80,8 +101,17 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				event.consume();
 			});
 		}
+		previewButton = getDialogPane().lookupButton(PREVIEW);
+		if (previewButton instanceof Button button) {
+			button.textProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_BUTTON.getProperty());
+			button.addEventFilter(ActionEvent.ACTION, event -> {
+				previewReplaceBlocks();
+				event.consume();
+			});
+		}
 		Node ok = getDialogPane().lookupButton(ButtonType.OK);
 		ok.setDisable(true);
+		setPreviewDisabled(true);
 
 		setResultConverter(p -> p == ButtonType.OK ? result.getText() : null);
 
@@ -103,12 +133,23 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		GridPane.setHgrow(to, Priority.ALWAYS);
 		GridPane.setValignment(addActions, VPos.TOP);
 
-		presets.setItems(FXCollections.observableArrayList(ReplaceBlocksPreset.values()));
-		presets.setMaxWidth(Double.MAX_VALUE);
+		presets.setItems(presetItems);
+		presets.getStyleClass().add("replace-blocks-builder-preset-combo");
+		presets.setCellFactory(v -> new PresetItemCell());
+		presets.setButtonCell(new PresetItemCell());
+		presets.setPrefWidth(360);
+		presets.setMaxWidth(420);
 		presets.promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_PROMPT.getProperty());
+		refreshPresetItems(null);
 		Button applyPreset = UIFactory.button(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_APPLY);
 		applyPreset.disableProperty().bind(presets.valueProperty().isNull());
 		applyPreset.setOnAction(this::applyPreset);
+		savePreset = UIFactory.button(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_SAVE);
+		savePreset.setOnAction(this::savePreset);
+		deletePreset = UIFactory.button(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_DELETE);
+		deletePreset.setOnAction(this::deletePreset);
+		updatePresetButtons();
+		presets.valueProperty().addListener((a, o, n) -> updatePresetButtons());
 		GridPane presetInput = new GridPane();
 		presetInput.getStyleClass().add("replace-blocks-builder-presets");
 		presetInput.setHgap(8);
@@ -116,16 +157,19 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		presetInput.add(presetLabel, 0, 0);
 		presetInput.add(presets, 1, 0);
 		presetInput.add(applyPreset, 2, 0);
-		GridPane.setHgrow(presets, Priority.ALWAYS);
+		presetInput.add(savePreset, 3, 0);
+		presetInput.add(deletePreset, 4, 0);
 
 		TableColumn<Rule, String> fromColumn = new TableColumn<>();
 		fromColumn.textProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_FROM.getProperty());
 		fromColumn.setCellValueFactory(c -> new ReadOnlyStringWrapper(c.getValue().from()));
+		fromColumn.setCellFactory(c -> new RuleCell());
 		fromColumn.setSortable(false);
 
 		TableColumn<Rule, String> toColumn = new TableColumn<>();
 		toColumn.textProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_TO.getProperty());
 		toColumn.setCellValueFactory(c -> new ReadOnlyStringWrapper(c.getValue().to()));
+		toColumn.setCellFactory(c -> new RuleCell());
 		toColumn.setSortable(false);
 
 		rules.setItems(ruleItems);
@@ -139,15 +183,27 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		ruleItems.addListener((ListChangeListener<Rule>) c -> updateRulesTableHeight());
 		updateRulesTableHeight();
 
+		Button edit = UIFactory.button(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_EDIT_RULE);
+		edit.disableProperty().bind(rules.getSelectionModel().selectedItemProperty().isNull());
+		edit.setOnAction(this::editSelectedRule);
+
 		Button delete = UIFactory.button(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_DELETE_RULE);
 		delete.disableProperty().bind(rules.getSelectionModel().selectedItemProperty().isNull());
 		delete.setOnAction(e -> {
 			ruleItems.remove(rules.getSelectionModel().getSelectedItem());
 			updateResult();
+			clearPresetSelectionAfterEdit();
 		});
+		HBox ruleActions = new HBox(6, edit, delete);
+		ruleActions.getStyleClass().add("replace-blocks-builder-rule-actions");
 
 		result.setEditable(false);
 		result.setFocusTraversable(false);
+		result.setWrapText(false);
+		result.getStyleClass().add("replace-blocks-builder-result");
+		result.setPrefRowCount(2);
+		result.setMinHeight(52);
+		result.setMaxHeight(92);
 
 		validation.getStyleClass().add("replace-blocks-builder-validation");
 		validation.setText("");
@@ -161,7 +217,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		advanced.managedProperty().bind(advanced.visibleProperty());
 		Label rulesLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_RULES);
 		Label resultLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_RESULT);
-		content.getChildren().addAll(presetInput, input, rulesLabel, rules, delete, resultLabel, result, validation, advanced);
+		content.getChildren().addAll(presetInput, input, rulesLabel, rules, ruleActions, resultLabel, result, validation, advanced);
 		VBox.setMargin(rulesLabel, new Insets(8, 0, 0, 0));
 		VBox.setVgrow(rules, Priority.ALWAYS);
 		getDialogPane().setContent(content);
@@ -171,20 +227,299 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private void applyPreset(ActionEvent event) {
-		ReplaceBlocksPreset preset = presets.getValue();
+		PresetItem preset = presets.getValue();
 		if (preset == null) {
 			return;
 		}
-		from.applyPreset(preset.source(), preset.tileMode());
-		to.applyPreset(preset.target(), SourceTileMode.ANY);
-		if (preset.warning() == null) {
-			updateResult();
-		} else {
-			showDiagnostic(new ReplaceBlocksDiagnostics.Diagnostic(
-					ReplaceBlocksDiagnostics.Severity.WARNING,
-					preset.warning().toString()));
+		applyingPreset = true;
+		try {
+			if (preset.custom()) {
+				if (!confirmReplaceBuilderContent()) {
+					return;
+				}
+				from.clear();
+				to.clear();
+				ruleItems.clear();
+				loadSimpleRules(preset.value());
+				updateResult();
+				from.focusInput();
+				return;
+			}
+			from.applyPreset(preset.source(), preset.tileMode());
+			to.applyPreset(preset.target(), SourceTileMode.ANY);
+			if (preset.warning() == null) {
+				updateResult();
+			} else {
+				showDiagnostic(new ReplaceBlocksDiagnostics.Diagnostic(
+						ReplaceBlocksDiagnostics.Severity.WARNING,
+						preset.warning().toString()));
+			}
+			from.focusInput();
+		} finally {
+			applyingPreset = false;
 		}
+	}
+
+	private void savePreset(ActionEvent event) {
+		String value = result.getText() == null ? "" : result.getText().trim();
+		if (!isCurrentResultValid()) {
+			showDiagnostic(ReplaceBlocksDiagnostics.builderInvalid());
+			return;
+		}
+		TextInputDialog dialog = new TextInputDialog(suggestPresetName());
+		dialog.initOwner(getDialogPane().getScene().getWindow());
+		dialog.titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_SAVE_TITLE.getProperty());
+		dialog.headerTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_SAVE_HEADER.getProperty());
+		dialog.contentTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_SAVE_NAME.getProperty());
+		dialog.getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
+		Optional<String> answer = dialog.showAndWait();
+		if (answer.isEmpty()) {
+			return;
+		}
+		String name = answer.get().trim();
+		if (name.isEmpty()) {
+			showPresetMessage(Alert.AlertType.WARNING, Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_NAME_EMPTY.toString());
+			return;
+		}
+		if (isBuiltinPresetName(name)) {
+			showPresetMessage(Alert.AlertType.WARNING, Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_BUILTIN_LOCKED.toString());
+			return;
+		}
+		List<GlobalConfig.ReplaceBlocksUserPreset> userPresets = ConfigProvider.GLOBAL.getReplaceBlocksUserPresets();
+		int existing = findUserPreset(name);
+		if (existing >= 0 && !confirmPresetOverwrite(name)) {
+			return;
+		}
+		GlobalConfig.ReplaceBlocksUserPreset saved = new GlobalConfig.ReplaceBlocksUserPreset(name, value);
+		if (existing >= 0) {
+			userPresets.set(existing, saved);
+		} else {
+			userPresets.add(saved);
+		}
+		ConfigProvider.GLOBAL.save();
+		refreshPresetItems(name);
+		showPresetMessage(Alert.AlertType.INFORMATION, Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_SAVED.format(name));
+	}
+
+	private void deletePreset(ActionEvent event) {
+		PresetItem preset = presets.getValue();
+		if (preset == null || !preset.custom()) {
+			return;
+		}
+		if (!confirmPresetDelete(preset.name())) {
+			return;
+		}
+		ConfigProvider.GLOBAL.getReplaceBlocksUserPresets().removeIf(p -> p.name().equals(preset.name()));
+		ConfigProvider.GLOBAL.save();
+		refreshPresetItems(null);
+		updatePresetButtons();
+	}
+
+	private void editSelectedRule(ActionEvent event) {
+		Rule selected = rules.getSelectionModel().getSelectedItem();
+		if (selected == null) {
+			return;
+		}
+		ruleItems.remove(selected);
+		from.applyPreset(selected.from(), SourceTileMode.ANY);
+		to.applyPreset(selected.to(), SourceTileMode.ANY);
+		updateResult();
+		clearPresetSelectionAfterEdit();
 		from.focusInput();
+	}
+
+	private void refreshPresetItems(String selectName) {
+		presetItems.clear();
+		for (ReplaceBlocksPreset preset : ReplaceBlocksPreset.values()) {
+			presetItems.add(PresetItem.builtin(preset));
+		}
+		for (GlobalConfig.ReplaceBlocksUserPreset preset : ConfigProvider.GLOBAL.getReplaceBlocksUserPresets()) {
+			if (preset != null && preset.name() != null && preset.value() != null) {
+				presetItems.add(PresetItem.custom(preset));
+			}
+		}
+		if (selectName != null) {
+			presetItems.stream()
+					.filter(PresetItem::custom)
+					.filter(item -> item.name().equals(selectName))
+					.findFirst()
+					.ifPresent(item -> presets.getSelectionModel().select(item));
+		}
+	}
+
+	private void updatePresetButtons() {
+		if (savePreset != null) {
+			savePreset.setDisable(!isCurrentResultValid());
+		}
+		if (deletePreset != null) {
+			PresetItem selected = presets.getValue();
+			deletePreset.setDisable(selected == null || !selected.custom());
+		}
+	}
+
+	private boolean isCurrentResultValid() {
+		String value = result.getText();
+		if (value == null || value.isBlank()) {
+			return false;
+		}
+		return ReplaceBlocksDiagnostics.parseReplaceBlocksValue(new ReplaceBlocksField(), value);
+	}
+
+	private String suggestPresetName() {
+		PresetItem selected = presets.getValue();
+		return selected != null && selected.custom() ? selected.name() : "";
+	}
+
+	private boolean isBuiltinPresetName(String name) {
+		for (ReplaceBlocksPreset preset : ReplaceBlocksPreset.values()) {
+			if (preset.toString().equals(name)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private int findUserPreset(String name) {
+		List<GlobalConfig.ReplaceBlocksUserPreset> userPresets = ConfigProvider.GLOBAL.getReplaceBlocksUserPresets();
+		for (int i = 0; i < userPresets.size(); i++) {
+			GlobalConfig.ReplaceBlocksUserPreset preset = userPresets.get(i);
+			if (preset != null && name.equals(preset.name())) {
+				return i;
+			}
+		}
+		return -1;
+	}
+
+	private boolean confirmReplaceBuilderContent() {
+		if (ruleItems.isEmpty() && !from.userInputPresentProperty().get() && !to.userInputPresentProperty().get()) {
+			return true;
+		}
+		return confirmPresetAction(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_REPLACE_CONFIRM.toString());
+	}
+
+	private boolean confirmPresetOverwrite(String name) {
+		return confirmPresetAction(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_OVERWRITE_CONFIRM.format(name));
+	}
+
+	private boolean confirmPresetDelete(String name) {
+		return confirmPresetAction(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_DELETE_CONFIRM.format(name));
+	}
+
+	private boolean confirmPresetAction(String message) {
+		Alert alert = new Alert(Alert.AlertType.CONFIRMATION, message, ButtonType.OK, ButtonType.CANCEL);
+		alert.initOwner(getDialogPane().getScene().getWindow());
+		alert.titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_TITLE.getProperty());
+		alert.setHeaderText(null);
+		alert.getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
+		return alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
+	}
+
+	private void showPresetMessage(Alert.AlertType type, String message) {
+		Alert alert = new Alert(type, message, ButtonType.OK);
+		alert.initOwner(getDialogPane().getScene().getWindow());
+		alert.titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_TITLE.getProperty());
+		alert.setHeaderText(null);
+		alert.getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
+		alert.showAndWait();
+	}
+
+	private void clearPresetSelectionAfterEdit() {
+		if (!applyingPreset) {
+			presets.getSelectionModel().clearSelection();
+		}
+		updatePresetButtons();
+	}
+
+	private void previewReplaceBlocks() {
+		if (tileMap == null) {
+			showPreviewMessage(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_NO_FIELD.toString());
+			return;
+		}
+		ReplaceBlocksField field = new ReplaceBlocksField();
+		if (!ReplaceBlocksDiagnostics.parseReplaceBlocksValue(field, result.getText())) {
+			showPreviewMessage(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_NO_FIELD.toString());
+			return;
+		}
+		AtomicReference<ReplaceBlocksPreviewer.Result> previewResult = new AtomicReference<>();
+		CancellableProgressDialog progress = new CancellableProgressDialog(Translation.DIALOG_PROGRESS_TITLE_PREVIEW_REPLACE_BLOCKS, primaryStage);
+		progress.showProgressBar(t -> previewResult.set(ReplaceBlocksPreviewer.preview(
+				field,
+				selectionOnly ? tileMap.getSelection() : null,
+				t
+		)));
+		if (!progress.cancelled() && previewResult.get() != null) {
+			showPreviewMessage(formatPreviewResult(previewResult.get()));
+		}
+	}
+
+	private void setPreviewDisabled(boolean disabled) {
+		if (previewButton != null) {
+			previewButton.setDisable(disabled || tileMap == null);
+		}
+	}
+
+	private void showPreviewMessage(String message) {
+		Alert alert = new Alert(Alert.AlertType.INFORMATION, message, ButtonType.OK);
+		alert.initOwner(getDialogPane().getScene().getWindow());
+		alert.titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_TITLE.getProperty());
+		alert.setHeaderText(null);
+		alert.getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
+		alert.showAndWait();
+	}
+
+	private String formatPreviewResult(ReplaceBlocksPreviewer.Result result) {
+		StringBuilder builder = new StringBuilder(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_RESULT.format(
+				result.getScannedRegions(),
+				result.getScannedChunks(),
+				result.getAffectedChunks(),
+				result.getAffectedSections(),
+				result.getMatchedBlocks(),
+				result.getTileEntityAdditions(),
+				result.getTileEntityRemovals(),
+				result.getTileEntityUpdates()
+		));
+		appendPreviewRules(builder, result);
+		if (result.getOverlappingBlocks() > 0) {
+			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_OVERLAP.format(result.getOverlappingBlocks()));
+		}
+		if (result.replacesAir()) {
+			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_AIR.format(result.getCompletedAirSections()));
+		}
+		if (result.replacesWithTileEntity() || result.getTileEntityAdditions() > 0 || result.getTileEntityRemovals() > 0 || result.getTileEntityUpdates() > 0) {
+			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_TILE.toString());
+		}
+		if (result.getLightSections() > 0) {
+			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_LIGHT.format(result.getLightSections()));
+		}
+		if (result.getScannedChunks() > 0) {
+			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_HEIGHTMAPS.format(result.getScannedChunks()));
+		}
+		if (result.getUnsupportedChunks() > 0) {
+			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_UNSUPPORTED.format(result.getUnsupportedChunks()));
+		}
+		if (result.getErrorChunks() > 0 || result.getErrorRegions() > 0) {
+			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_ERRORS.format(result.getErrorChunks(), result.getErrorRegions()));
+			for (String error : result.getErrors()) {
+				builder.append("\n").append(error);
+			}
+		}
+		return builder.toString();
+	}
+
+	private void appendPreviewRules(StringBuilder builder, ReplaceBlocksPreviewer.Result result) {
+		if (result.getRules().isEmpty()) {
+			return;
+		}
+		builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_RULES.toString());
+		for (ReplaceBlocksPreviewer.RulePreview rule : result.getRules()) {
+			builder.append("\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_RULE.format(
+					rule.getIndex(),
+					rule.getSourceMode(),
+					rule.getSourceText(),
+					rule.getTargetText(),
+					rule.getBlocks()
+			));
+		}
 	}
 
 	private void updateRulesTableHeight() {
@@ -209,6 +544,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		ruleItems.add(new Rule(fromName.value(), toName.value()));
 		from.focusInput();
 		updateResult();
+		clearPresetSelectionAfterEdit();
 	}
 
 	private boolean hasRule(String from, String to) {
@@ -226,10 +562,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			return;
 		}
 		for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> rule : field.getNewValue().entrySet()) {
-			if (rule.getValue().getType() == ChunkFilter.BlockReplaceType.NAME_TILE
-					|| rule.getValue().getType() == ChunkFilter.BlockReplaceType.STATE_TILE) {
-				return;
-			}
 			parsed.add(new Rule(rule.getKey().toString(), rule.getValue().toString()));
 		}
 		ruleItems.addAll(parsed);
@@ -243,6 +575,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			validation.pseudoClassStateChanged(error, false);
 			validation.pseudoClassStateChanged(warning, false);
 			getDialogPane().lookupButton(ButtonType.OK).setDisable(true);
+			setPreviewDisabled(true);
+			updatePresetButtons();
 			return;
 		}
 		StringBuilder builder = new StringBuilder();
@@ -256,6 +590,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		ReplaceBlocksField field = new ReplaceBlocksField();
 		boolean valid = ReplaceBlocksDiagnostics.parseReplaceBlocksValue(field, result.getText());
 		getDialogPane().lookupButton(ButtonType.OK).setDisable(!valid);
+		setPreviewDisabled(!valid);
+		updatePresetButtons();
 		showDiagnostic(ReplaceBlocksDiagnostics.diagnoseValue(result.getText(), valid));
 	}
 
@@ -301,14 +637,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private String formatFrom(String name) {
-		if (name.startsWith("{") || isSourceModeExpression(name)) {
+		if (name.startsWith("{") || name.startsWith("'") || isSourceModeExpression(name)) {
 			return name;
 		}
 		return "literal(" + formatWrapperArgument(name) + ")";
 	}
 
 	private String formatTo(String name) {
-		if (name.startsWith("{")) {
+		if (name.startsWith("{") || name.startsWith("'")) {
 			return name;
 		}
 		if (name.startsWith("minecraft:")) {
@@ -416,6 +752,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					return;
 				}
 				updateUserInputPresent();
+				clearPresetSelectionAfterEdit();
 				if (!updatingItems) {
 					updateBlockSuggestions(n);
 					rebuildProperties(n);
@@ -445,6 +782,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				tileEntityMode.setItems(FXCollections.observableArrayList(SourceTileMode.values()));
 				tileEntityMode.setValue(SourceTileMode.ANY);
 				tileEntityMode.setMaxWidth(Double.MAX_VALUE);
+				tileEntityMode.valueProperty().addListener((a, o, n) -> clearPresetSelectionAfterEdit());
 				getChildren().add(tileEntityMode);
 
 				GridPane yRange = new GridPane();
@@ -456,8 +794,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				maxY.promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_Y_MAX.getProperty());
 				minY.setMaxWidth(Double.MAX_VALUE);
 				maxY.setMaxWidth(Double.MAX_VALUE);
-				minY.textProperty().addListener((a, o, n) -> updateUserInputPresent());
-				maxY.textProperty().addListener((a, o, n) -> updateUserInputPresent());
+				minY.textProperty().addListener((a, o, n) -> {
+					updateUserInputPresent();
+					clearPresetSelectionAfterEdit();
+				});
+				maxY.textProperty().addListener((a, o, n) -> {
+					updateUserInputPresent();
+					clearPresetSelectionAfterEdit();
+				});
 				yRange.add(minLabel, 0, 0);
 				yRange.add(minY, 1, 0);
 				yRange.add(maxLabel, 2, 0);
@@ -484,6 +828,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 						return;
 					}
 					updateUserInputPresent();
+					clearPresetSelectionAfterEdit();
 					if (!updatingBiomeItems) {
 						Platform.runLater(() -> {
 							if (!suppressBiomeSuggestions) {
@@ -522,6 +867,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			String generated = generatedValue();
 			if (generated == null) {
 				return new ValueResult(null, ReplaceBlocksDiagnostics.builderInvalid());
+			}
+			if (!source && generated.contains(";")) {
+				ReplaceBlocksField field = new ReplaceBlocksField();
+				boolean valid = ReplaceBlocksDiagnostics.parseReplaceBlocksValue(field, "minecraft:stone=" + generated);
+				return new ValueResult(generated, valid ? ReplaceBlocksDiagnostics.none() : ReplaceBlocksDiagnostics.builderInvalid());
 			}
 			if (source && isSourceModeExpression(generated)) {
 				ReplaceBlocksField field = new ReplaceBlocksField();
@@ -989,6 +1339,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				value.setCellFactory(v -> new PropertyChoiceCell());
 				value.setButtonCell(new PropertyChoiceCell());
 				value.setValue(PropertyChoice.allChoice());
+				value.valueProperty().addListener((a, o, n) -> clearPresetSelectionAfterEdit());
 				value.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
 					if (!value.isShowing()) {
 						Platform.runLater(value::show);
@@ -1124,6 +1475,81 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private record ValueResult(String value, ReplaceBlocksDiagnostics.Diagnostic diagnostic) {}
 
 	private record Rule(String from, String to) {}
+
+	private static class RuleCell extends TableCell<Rule, String> {
+
+		@Override
+		protected void updateItem(String item, boolean empty) {
+			super.updateItem(item, empty);
+			if (empty || item == null || item.isEmpty()) {
+				setText(null);
+				setTooltip(null);
+				return;
+			}
+			setText(item);
+			setTooltip(new Tooltip(item));
+		}
+	}
+
+	private static class PresetItemCell extends ListCell<PresetItem> {
+
+		@Override
+		protected void updateItem(PresetItem item, boolean empty) {
+			super.updateItem(item, empty);
+			setText(null);
+			if (empty || item == null) {
+				setGraphic(null);
+				return;
+			}
+			Text text = new Text(item.toString());
+			text.setFill(PROPERTY_CHOICE_TEXT);
+			setGraphic(text);
+		}
+	}
+
+	private record PresetItem(ReplaceBlocksPreset builtin, GlobalConfig.ReplaceBlocksUserPreset userPreset) {
+
+		private static PresetItem builtin(ReplaceBlocksPreset preset) {
+			return new PresetItem(preset, null);
+		}
+
+		private static PresetItem custom(GlobalConfig.ReplaceBlocksUserPreset preset) {
+			return new PresetItem(null, preset);
+		}
+
+		private boolean custom() {
+			return userPreset != null;
+		}
+
+		private String name() {
+			return custom() ? userPreset.name() : builtin.toString();
+		}
+
+		private String value() {
+			return userPreset == null ? null : userPreset.value();
+		}
+
+		private String source() {
+			return builtin.source();
+		}
+
+		private String target() {
+			return builtin.target();
+		}
+
+		private SourceTileMode tileMode() {
+			return builtin.tileMode();
+		}
+
+		private Translation warning() {
+			return builtin.warning();
+		}
+
+		@Override
+		public String toString() {
+			return name();
+		}
+	}
 
 	private enum ReplaceBlocksPreset {
 		AIR_TO_STONE(

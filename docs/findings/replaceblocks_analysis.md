@@ -307,11 +307,11 @@ Risk: this can materially expand sparse chunk data across the existing section r
 
 ## Preview / dry-run
 
-`ChangeNBTDialog` now exposes a `Preview` button for the current ReplaceBlocks value.
+`ReplaceBlocksRuleBuilderDialog` exposes a Builder-local `Preview` button for the current generated ReplaceBlocks value. The raw field remains editable; opening Builder reparses existing values into the rule table where possible so advanced text can still be previewed through the Builder path.
 
 Preview path:
 
-- `ChangeNBTDialog.previewReplaceBlocks(...)`
+- `ReplaceBlocksRuleBuilderDialog.previewReplaceBlocks(...)`
 - `ReplaceBlocksPreviewer.preview(...)`
 - read selected region data
 - for each real region chunk, call `ChunkFilter.Blocks.previewReplaceBlocks(...)`

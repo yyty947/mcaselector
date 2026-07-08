@@ -207,16 +207,16 @@ dialog.request_number.title.enter_number;價值
 button.cancel;取消
 button.ok;確定
 dialog.replace_blocks.builder.button;Builder
-dialog.replace_blocks.builder.title;ReplaceBlocks Builder
-dialog.replace_blocks.builder.from;From block
-dialog.replace_blocks.builder.to;To block
-dialog.replace_blocks.builder.add_rule;Add rule
-dialog.replace_blocks.builder.delete_rule;Delete rule
-dialog.replace_blocks.builder.rules;Rules
-dialog.replace_blocks.builder.result;Generated ReplaceBlocks
-dialog.replace_blocks.builder.invalid;Invalid block id or generated rule.
+dialog.replace_blocks.builder.title;ReplaceBlocks 構建器
+dialog.replace_blocks.builder.from;來源方塊
+dialog.replace_blocks.builder.to;目標方塊
+dialog.replace_blocks.builder.add_rule;新增規則
+dialog.replace_blocks.builder.delete_rule;刪除規則
+dialog.replace_blocks.builder.rules;規則
+dialog.replace_blocks.builder.result;生成的 ReplaceBlocks
+dialog.replace_blocks.builder.invalid;方塊 ID 或生成規則無效。
 dialog.replace_blocks.builder.duplicate;這條規則已存在。
-dialog.replace_blocks.builder.empty;Add at least one rule.
+dialog.replace_blocks.builder.empty;請至少新增一條規則。
 dialog.replace_blocks.builder.advanced;高级文本输入仍可用；from/to 也可输入包含 Name 的方块状态 SNBT。
 dialog.replace_blocks.builder.tile_source.any;附加NBT：不限
 dialog.replace_blocks.builder.tile_source.require;附加NBT：有
@@ -227,7 +227,19 @@ dialog.replace_blocks.builder.biome;生物群系
 dialog.replace_blocks.builder.biome.prompt;minecraft:plains;minecraft:forest
 dialog.replace_blocks.builder.preset;预设
 dialog.replace_blocks.builder.preset.prompt;选择预设
-dialog.replace_blocks.builder.preset.apply;使用预设
+dialog.replace_blocks.builder.preset.apply;填入預設
+dialog.replace_blocks.builder.preset.save;存為預設
+dialog.replace_blocks.builder.preset.delete;刪除預設
+dialog.replace_blocks.builder.preset.title;ReplaceBlocks 預設
+dialog.replace_blocks.builder.preset.save.title;儲存 ReplaceBlocks 預設
+dialog.replace_blocks.builder.preset.save.header;將目前生成的規則儲存為可重複使用的 Builder 預設。
+dialog.replace_blocks.builder.preset.save.name;預設名稱
+dialog.replace_blocks.builder.preset.name_empty;請輸入預設名稱。
+dialog.replace_blocks.builder.preset.builtin_locked;不能覆蓋內建預設名稱。
+dialog.replace_blocks.builder.preset.overwrite_confirm;已存在名為「%s」的預設。要覆蓋嗎？
+dialog.replace_blocks.builder.preset.delete_confirm;刪除預設「%s」？
+dialog.replace_blocks.builder.preset.replace_confirm;載入這個預設會取代目前 Builder 規則和正在編輯的輸入。
+dialog.replace_blocks.builder.preset.saved;預設「%s」已儲存。
 dialog.replace_blocks.builder.preset.air_to_stone;空气 -> 石头
 dialog.replace_blocks.builder.preset.fluids_to_air;流体 -> 空气
 dialog.replace_blocks.builder.preset.logs_leaves_to_air;原木/树叶 -> 空气
@@ -235,6 +247,7 @@ dialog.replace_blocks.builder.preset.ores_to_stone;矿石 -> 石头
 dialog.replace_blocks.builder.preset.containers_to_air;带附加NBT的容器 -> 空气
 dialog.replace_blocks.builder.preset.warning_air;空气替换可能创建缺失或稀疏区段。请先在小范围复制世界中预览。
 dialog.replace_blocks.builder.preset.warning_containers;容器预设只匹配附加NBT存在的位置，但替换仍可能移除箱子等内部内容。请先在复制世界中预览。
+dialog.replace_blocks.builder.edit_rule;載入編輯
 dialog.replace_blocks.builder.property.all;全部
 dialog.replace_blocks.builder.help.button;帮助
 dialog.replace_blocks.builder.help.title;ReplaceBlocks Builder 帮助

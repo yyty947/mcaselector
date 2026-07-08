@@ -36,7 +36,7 @@ Current use:
 
 - The ReplaceBlocks row keeps the raw field text input.
 - A `Builder` button opens `ReplaceBlocksRuleBuilderDialog`.
-- A dialog-level `Preview` button runs a ReplaceBlocks dry-run for the current valid field.
+- Builder has a button-bar `Preview` button beside Help. It runs a ReplaceBlocks dry-run for the current generated Builder value.
 - ReplaceBlocks field-row diagnostics are delayed until typing pauses briefly; advanced-query parse errors are surfaced near the relevant input.
 - The default NBT Changer dialog size keeps the ReplaceBlocks `Builder` button visible without horizontal scrolling.
 
@@ -134,18 +134,19 @@ Implemented controls:
 - Existing advanced ReplaceBlocks text input remains available.
 - `Builder` dialog has searchable, editable `from` and `to` block selectors with auto-opening A-Z filtered suggestions, Tab/click completion, and no empty-query full-list popup.
 - Builder helper text below the generated value is shown before manual From/To input and hidden after the user types non-empty text into either field.
-- `Builder` dialog has add/delete controls and a rule table.
+- `Builder` dialog has add/load-for-edit/delete controls and a rule table.
 - The generated ReplaceBlocks string is shown and returned to the existing field row.
 - Generated values are validated through `ReplaceBlocksField.parseNewValue(...)`.
 - Empty builders start with blank From/To inputs and do not show an empty-rule validation error before user action.
-- The `Preview` button runs dry-run counts without saving region data.
+- The Builder `Preview` button runs dry-run counts without saving region data.
 - Preview output includes aggregate counts, one row per rule with source mode/source text/target text/matched blocks, and an overlap warning when multiple rules match the same original position.
 - Error text distinguishes common invalid values and source regex warnings.
 - Java 1.21.9 catalog data is wired into the builder for property dropdowns.
 - The source tile/block entity selector is presented as `Extra NBT: any/present/absent`, and the Builder has a Help button that opens a separate explanation dialog.
 - The source side has optional Min Y / Max Y inputs. Empty fields mean no Y restriction; filling either field wraps the generated source with `y(...)`.
 - The source side has an optional searchable Biome input. Empty means no biome restriction; one or more biome IDs separated by semicolons wrap the generated source with `biome(...)`. The dropdown suggests known vanilla biome IDs, completes the current semicolon-separated token with Tab or mouse click, and keeps the empty-query list empty. Help text states that matching is block-position aware at the modern 4x4x4 biome-cell granularity.
-- The Builder has a Preset row. Presets fill visible editable From/To and source condition controls for common starting points instead of adding hidden behavior; air and container/data-block presets show warning text.
+- The Builder has a Preset row. Built-in presets fill visible editable From/To and source condition controls for common starting points instead of adding hidden behavior; air and container/data-block presets show warning text.
+- The Builder can save the current generated ReplaceBlocks value as a custom global preset. Custom presets load through the same parser path into the rule table and can be overwritten or deleted.
 
 Builder-supported rule syntax:
 
@@ -241,7 +242,8 @@ Current 4B usage:
 
 - The From/To block selector is an editable JavaFX `ComboBox`, so keyboard completion and mouse-click completion are not equivalent internally. Test both paths before shipping input changes.
 - The Biome input is also an editable JavaFX `ComboBox`, but completion replaces only the current semicolon-separated token.
-- Presets should continue to fill the existing visible controls and use the normal Add rule path. Do not let future presets bypass generated text validation or hide source mode, Extra NBT, Y range, or biome conditions.
+- Built-in presets should continue to fill the existing visible controls and use the normal Add rule path. Do not let future built-ins bypass generated text validation or hide source mode, Extra NBT, Y range, or biome conditions.
+- Custom presets should remain full generated ReplaceBlocks text stored in global config, not serialized UI widget state. This keeps advanced syntax round-trippable and prevents future Builder layout changes from invalidating saved presets.
 - Avoid changing the ComboBox value, selection, or item list synchronously while JavaFX is handling popup mouse selection. This previously caused `ListViewBehavior` index errors when users clicked a suggestion.
 - Keep the empty-query suggestion list empty. Showing the whole block catalog before the user typed made the first popup visually noisy and could place it above the input.
 - Keep hover/focus/selected styling on suggestion and property dropdown cells; otherwise the dark popup looks inert even when it is interactive.

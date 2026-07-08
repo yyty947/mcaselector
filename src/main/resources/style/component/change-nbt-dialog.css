@@ -87,6 +87,14 @@
     -fx-text-fill: -color-text-light;
 }
 
+.replace-blocks-builder-pane .replace-blocks-builder-preset-combo {
+    -fx-min-width: 260;
+}
+
+.replace-blocks-builder-pane .replace-blocks-builder-rule-actions {
+    -fx-spacing: 6;
+}
+
 .replace-blocks-builder-pane .replace-blocks-builder-properties .label {
     -fx-text-fill: -color-text-light;
 }
@@ -131,6 +139,12 @@
     -fx-text-fill: -color-text-light;
 }
 
+.replace-blocks-builder-pane .replace-blocks-builder-result {
+    -fx-text-fill: -color-text-light;
+    -fx-control-inner-background: -color-field-cell-even;
+    -fx-background-color: -color-field-cell-even;
+}
+
 .replace-blocks-builder-pane .replace-blocks-builder-rules-table .table-row-cell:even {
     -fx-background-color: -color-field-cell-even;
 }
@@ -153,6 +167,10 @@
 
 .combo-box-popup .list-view .list-cell:filled {
     -fx-text-fill: -color-text-light;
+}
+
+.combo-box-popup .list-view .list-cell:filled .text {
+    -fx-fill: -color-text-light;
 }
 
 .combo-box-popup .list-view .list-cell:filled:hover,

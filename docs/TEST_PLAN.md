@@ -106,10 +106,14 @@ Manual checks:
 - In the Builder Biome field, typing `pla` or `for` should open a filtered biome list, highlight the typed substring, and support Tab completion and mouse-click completion without console errors.
 - In the Builder Biome field, typing after a semicolon such as `minecraft:plains;for` should complete only the current biome token, preserving the earlier token.
 - Clicking the empty Builder Biome dropdown before typing should not show the full biome list.
-- Choose each Builder preset and click `Use preset`. The From/To inputs should be filled visibly, remain editable, and require the normal `Add rule` action before the generated ReplaceBlocks value changes.
+- Choose each built-in Builder preset and click `Fill preset` / `填入预设`. The From/To inputs should be filled visibly, remain editable, and require the normal `Add rule` action before the generated ReplaceBlocks value changes.
 - The Air preset should fill `minecraft:air` -> `minecraft:stone` and show a warning about sparse/missing sections.
 - The Fluids, Logs/leaves, and Ores presets should fill visible source-mode regex text and ordinary target blocks, then generate valid ReplaceBlocks text after `Add rule`.
 - The Containers preset should set Extra NBT to present, fill a visible container source regex, target `minecraft:air`, show a data-loss warning, and generate a `tile(regex(...))=minecraft:air` rule after `Add rule`.
+- After adding one or more rules, `Save preset` / `存为预设` should enable. Saving with a new name should add a custom preset to the dropdown; selecting it and applying it should confirm replacement, then restore the same generated ReplaceBlocks value through the rule table.
+- Saving again with an existing custom preset name should ask for overwrite confirmation. Built-in preset names should not be overwritable.
+- Selecting a custom preset should enable `Delete preset` / `删除预设`; deletion should ask for confirmation and remove the preset from the dropdown.
+- The Builder button bar should show `Help` and `Preview` together on the left. Preview should stay disabled until the Builder has a valid generated ReplaceBlocks value, then run the same non-mutating dry-run counts described below.
 
 ## Per-rule preview counts
 

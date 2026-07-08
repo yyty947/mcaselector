@@ -3,7 +3,6 @@ package net.querz.mcaselector.ui.dialog;
 import javafx.application.Platform;
 import javafx.animation.PauseTransition;
 import javafx.css.PseudoClass;
-import javafx.event.ActionEvent;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.*;
@@ -16,11 +15,9 @@ import javafx.util.Duration;
 import net.querz.mcaselector.changer.ChangeParser;
 import net.querz.mcaselector.changer.Field;
 import net.querz.mcaselector.changer.FieldType;
-import net.querz.mcaselector.changer.fields.ReplaceBlocksField;
 import net.querz.mcaselector.changer.fields.ScriptField;
 import net.querz.mcaselector.config.ConfigProvider;
 import net.querz.mcaselector.io.FileHelper;
-import net.querz.mcaselector.io.job.ReplaceBlocksPreviewer;
 import net.querz.mcaselector.io.mca.ChunkData;
 import net.querz.mcaselector.io.mca.RegionChunk;
 import net.querz.mcaselector.io.mca.RegionMCAFile;
@@ -41,7 +38,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class ChangeNBTDialog extends Dialog<ChangeNBTDialog.Result> implements PersistentDialogProperties {
 
@@ -68,16 +64,17 @@ public class ChangeNBTDialog extends Dialog<ChangeNBTDialog.Result> implements P
 	private final TabPane tabs = new TabPane();
 	private final TextField changeQuery = new TextField();
 	private final Label changeQueryValidation = new Label();
-	private final ButtonType preview = new ButtonType(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_BUTTON.toString(), ButtonBar.ButtonData.OTHER);
 	private final RadioButton change = UIFactory.radio(Translation.DIALOG_CHANGE_NBT_CHANGE);
 	private final RadioButton force = UIFactory.radio(Translation.DIALOG_CHANGE_NBT_FORCE);
 	private final CheckBox selectionOnly = UIFactory.checkbox(Translation.DIALOG_CHANGE_NBT_SELECTION_ONLY);
 	private final Stage primaryStage;
+	private final TileMap tileMap;
 	private static final CodeEditor codeEditor = new CodeEditor(initScript);
 	private static int lastSelectedTab;
 
 	public ChangeNBTDialog(TileMap tileMap, Stage primaryStage) {
 		this.primaryStage = primaryStage;
+		this.tileMap = tileMap;
 		titleProperty().bind(Translation.DIALOG_CHANGE_NBT_TITLE.getProperty());
 
 		initStyle(StageStyle.UTILITY);
@@ -122,11 +119,7 @@ public class ChangeNBTDialog extends Dialog<ChangeNBTDialog.Result> implements P
 		codeEditor.setRecentFiles(ConfigProvider.GLOBAL.getRecentChangeScripts());
 		codeEditor.setSource(ConfigProvider.GLOBAL.getChangeScript());
 
-		getDialogPane().getButtonTypes().addAll(preview, ButtonType.OK, ButtonType.CANCEL);
-		getDialogPane().lookupButton(preview).addEventFilter(ActionEvent.ACTION, e -> {
-			e.consume();
-			previewReplaceBlocks(tileMap);
-		});
+		getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
 
 		FieldView fieldView = new FieldView();
 		for (FieldType fieldType : FieldType.uiValues()) {
@@ -223,97 +216,6 @@ public class ChangeNBTDialog extends Dialog<ChangeNBTDialog.Result> implements P
 		return Translation.DIALOG_CHANGE_NBT_QUERY_INVALID.format(message);
 	}
 
-	private void previewReplaceBlocks(TileMap tileMap) {
-		ReplaceBlocksField field = getReplaceBlocksField();
-		if (field == null) {
-			showPreviewMessage(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_NO_FIELD.toString());
-			return;
-		}
-		AtomicReference<ReplaceBlocksPreviewer.Result> previewResult = new AtomicReference<>();
-		CancellableProgressDialog progress = new CancellableProgressDialog(Translation.DIALOG_PROGRESS_TITLE_PREVIEW_REPLACE_BLOCKS, primaryStage);
-		progress.showProgressBar(t -> previewResult.set(ReplaceBlocksPreviewer.preview(
-				field,
-				selectionOnly.isSelected() ? tileMap.getSelection() : null,
-				t
-		)));
-		if (!progress.cancelled() && previewResult.get() != null) {
-			showPreviewMessage(formatPreviewResult(previewResult.get()));
-		}
-	}
-
-	private ReplaceBlocksField getReplaceBlocksField() {
-		for (Field<?> field : fields) {
-			if (field instanceof ReplaceBlocksField replaceBlocksField && replaceBlocksField.needsChange()) {
-				return replaceBlocksField;
-			}
-		}
-		return null;
-	}
-
-	private void showPreviewMessage(String message) {
-		Alert alert = new Alert(Alert.AlertType.INFORMATION, message, ButtonType.OK);
-		alert.initOwner(getDialogPane().getScene().getWindow());
-		alert.titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_TITLE.getProperty());
-		alert.setHeaderText(null);
-		alert.getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
-		alert.showAndWait();
-	}
-
-	private String formatPreviewResult(ReplaceBlocksPreviewer.Result result) {
-		StringBuilder builder = new StringBuilder(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_RESULT.format(
-				result.getScannedRegions(),
-				result.getScannedChunks(),
-				result.getAffectedChunks(),
-				result.getAffectedSections(),
-				result.getMatchedBlocks(),
-				result.getTileEntityAdditions(),
-				result.getTileEntityRemovals(),
-				result.getTileEntityUpdates()
-		));
-		appendPreviewRules(builder, result);
-		if (result.getOverlappingBlocks() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_OVERLAP.format(result.getOverlappingBlocks()));
-		}
-		if (result.replacesAir()) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_AIR.format(result.getCompletedAirSections()));
-		}
-		if (result.replacesWithTileEntity() || result.getTileEntityAdditions() > 0 || result.getTileEntityRemovals() > 0 || result.getTileEntityUpdates() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_TILE.toString());
-		}
-		if (result.getLightSections() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_LIGHT.format(result.getLightSections()));
-		}
-		if (result.getScannedChunks() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_HEIGHTMAPS.format(result.getScannedChunks()));
-		}
-		if (result.getUnsupportedChunks() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_UNSUPPORTED.format(result.getUnsupportedChunks()));
-		}
-		if (result.getErrorChunks() > 0 || result.getErrorRegions() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_ERRORS.format(result.getErrorChunks(), result.getErrorRegions()));
-			for (String error : result.getErrors()) {
-				builder.append("\n").append(error);
-			}
-		}
-		return builder.toString();
-	}
-
-	private void appendPreviewRules(StringBuilder builder, ReplaceBlocksPreviewer.Result result) {
-		if (result.getRules().isEmpty()) {
-			return;
-		}
-		builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_RULES.toString());
-		for (ReplaceBlocksPreviewer.RulePreview rule : result.getRules()) {
-			builder.append("\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_RULE.format(
-					rule.getIndex(),
-					rule.getSourceMode(),
-					rule.getSourceText(),
-					rule.getTargetText(),
-					rule.getBlocks()
-			));
-		}
-	}
-
 	private void readSingleChunkAsync(TileMap tileMap, FieldView fieldView) {
 		new Thread(() -> {
 			Selection selection = tileMap.getSelection();
@@ -403,7 +305,7 @@ public class ChangeNBTDialog extends Dialog<ChangeNBTDialog.Result> implements P
 			input.getChildren().addAll(new Label(value.getType().toString()), textField);
 			if (value.getType() == FieldType.REPLACE_BLOCKS) {
 				Button builder = UIFactory.button(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_BUTTON);
-				builder.setOnAction(e -> new ReplaceBlocksRuleBuilderDialog(primaryStage, textField.getText()).showAndWait().ifPresent(textField::setText));
+				builder.setOnAction(e -> new ReplaceBlocksRuleBuilderDialog(primaryStage, tileMap, selectionOnly.isSelected(), textField.getText()).showAndWait().ifPresent(textField::setText));
 				input.getChildren().add(builder);
 			}
 			validation.getStyleClass().add("field-cell-validation");
