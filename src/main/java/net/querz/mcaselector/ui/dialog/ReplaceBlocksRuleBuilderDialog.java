@@ -38,6 +38,9 @@ import net.querz.mcaselector.ui.UIFactory;
 import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.mcaselector.version.mapping.blockstate.BlockStateCatalog;
 import net.querz.mcaselector.version.mapping.registry.BiomeRegistry;
+import net.querz.nbt.CompoundTag;
+import net.querz.nbt.StringTag;
+import net.querz.nbt.Tag;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -53,6 +56,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 	private static final PseudoClass error = PseudoClass.getPseudoClass("error");
 	private static final PseudoClass warning = PseudoClass.getPseudoClass("warning");
+	private static final PseudoClass success = PseudoClass.getPseudoClass("success");
 	private static final ButtonType HELP = new ButtonType("", ButtonBar.ButtonData.LEFT);
 	private static final ButtonType PREVIEW = new ButtonType("", ButtonBar.ButtonData.LEFT);
 	private static final Color PROPERTY_CHOICE_TEXT = Color.web("#f2f2f2");
@@ -340,8 +344,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			return;
 		}
 		ruleItems.remove(selected);
-		from.applyPreset(selected.from(), SourceTileMode.ANY);
-		to.applyPreset(selected.to(), SourceTileMode.ANY);
+		ParsedRule parsed = parseEditableRule(selected);
+		if (parsed == null) {
+			from.applyPreset(selected.from(), SourceTileMode.ANY);
+			to.applyPreset(selected.to(), SourceTileMode.ANY);
+		} else {
+			from.applySource(parsed.source(), selected.from());
+			to.applyTarget(parsed.target(), selected.to());
+		}
 		updateResult();
 		clearPresetSelectionAfterEdit();
 		from.focusInput();
@@ -463,6 +473,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		validation.textProperty().unbind();
 		validation.pseudoClassStateChanged(error, false);
 		validation.pseudoClassStateChanged(warning, false);
+		validation.pseudoClassStateChanged(success, true);
 		validation.setText(message);
 	}
 
@@ -595,6 +606,20 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				.anyMatch(rule -> rule.from().equals(from) && rule.to().equals(to));
 	}
 
+	private ParsedRule parseEditableRule(Rule rule) {
+		ParsedRule parsed = parseSingleRule(formatFrom(rule.from()) + "=" + formatTo(rule.to()));
+		return parsed == null ? parseSingleRule(rule.from() + "=" + rule.to()) : parsed;
+	}
+
+	private ParsedRule parseSingleRule(String value) {
+		ReplaceBlocksField field = new ReplaceBlocksField();
+		if (!ReplaceBlocksDiagnostics.parseReplaceBlocksValue(field, value) || field.getNewValue().isEmpty()) {
+			return null;
+		}
+		Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> parsed = field.getNewValue().entrySet().iterator().next();
+		return new ParsedRule(parsed.getKey(), parsed.getValue());
+	}
+
 	private void loadSimpleRules(String initialValue) {
 		if (initialValue == null || initialValue.isBlank()) {
 			return;
@@ -617,6 +642,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			validation.setText("");
 			validation.pseudoClassStateChanged(error, false);
 			validation.pseudoClassStateChanged(warning, false);
+			validation.pseudoClassStateChanged(success, false);
 			getDialogPane().lookupButton(ButtonType.OK).setDisable(true);
 			setPreviewDisabled(true);
 			updatePresetButtons();
@@ -724,6 +750,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		validation.textProperty().unbind();
 		validation.pseudoClassStateChanged(error, false);
 		validation.pseudoClassStateChanged(warning, false);
+		validation.pseudoClassStateChanged(success, false);
 		if (diagnostic.isNone()) {
 			validation.setText("");
 			return;
@@ -748,6 +775,29 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 		builder.append("}");
 		return builder.toString();
+	}
+
+	private static Map<String, String> editableStateProperties(CompoundTag state) {
+		if (state == null || state.getString("Name") == null) {
+			return null;
+		}
+		for (Map.Entry<String, Tag> entry : state) {
+			if (!"Name".equals(entry.getKey()) && !"Properties".equals(entry.getKey())) {
+				return null;
+			}
+		}
+		CompoundTag properties = state.getCompoundTag("Properties");
+		if (properties == null || properties.isEmpty()) {
+			return Map.of();
+		}
+		Map<String, String> values = new LinkedHashMap<>();
+		for (Map.Entry<String, Tag> property : properties) {
+			if (!(property.getValue() instanceof StringTag value)) {
+				return null;
+			}
+			values.put(property.getKey(), value.getValue());
+		}
+		return values;
 	}
 
 	private class BlockInput extends VBox {
@@ -1096,6 +1146,87 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			}
 		}
 
+		private void applySource(ChunkFilter.BlockReplaceSource source, String fallback) {
+			boolean applied = switch (source.getType()) {
+				case LITERAL_NAME -> applyEditableBlock(source.getName(), Map.of());
+				case SELECTED_PROPERTIES -> {
+					Map<String, String> selectedProperties = editableStateProperties(source.getState());
+					yield selectedProperties != null && applyEditableBlock(source.getName(), selectedProperties);
+				}
+				case REGEX_NAME -> {
+					applyPreset("regex(" + formatWrapperArgument(source.getName()) + ")", SourceTileMode.fromTileEntityMode(source.getTileEntityMode()));
+					yield true;
+				}
+				default -> false;
+			};
+			if (applied) {
+				applySourceConditions(source);
+			} else {
+				applyPreset(fallback, SourceTileMode.ANY);
+			}
+		}
+
+		private void applyTarget(ChunkFilter.BlockReplaceData target, String fallback) {
+			boolean applied = switch (target.getType()) {
+				case NAME -> applyEditableBlock(target.getName(), Map.of());
+				case STATE -> {
+					Map<String, String> selectedProperties = editableStateProperties(target.getState());
+					yield selectedProperties != null && applyEditableBlock(target.getName(), selectedProperties);
+				}
+				default -> false;
+			};
+			if (!applied) {
+				applyPreset(fallback, SourceTileMode.ANY);
+			}
+		}
+
+		private boolean applyEditableBlock(String name, Map<String, String> selectedProperties) {
+			String blockName = BlockStateCatalog.normalizeName(name);
+			suppressSuggestions = true;
+			try {
+				block.setValue(null);
+				block.getSelectionModel().clearSelection();
+				block.getEditor().setText(blockName);
+				block.hide();
+				updateBlockSuggestions(blockName);
+				rebuildProperties(blockName);
+				if (!selectProperties(blockName, selectedProperties)) {
+					return false;
+				}
+				normalizeNextTyped = false;
+				collapseEditorCaretToEnd();
+				updateUserInputPresent();
+				return true;
+			} finally {
+				suppressSuggestions = false;
+			}
+		}
+
+		private boolean selectProperties(String blockName, Map<String, String> selectedProperties) {
+			for (Map.Entry<String, String> selected : selectedProperties.entrySet()) {
+				if (!catalog.isValidPropertyValue(blockName, selected.getKey(), selected.getValue())) {
+					return false;
+				}
+				ComboBox<PropertyChoice> editor = propertyEditors.get(selected.getKey());
+				if (editor == null) {
+					return false;
+				}
+				editor.setValue(PropertyChoice.value(selected.getValue()));
+			}
+			return true;
+		}
+
+		private void applySourceConditions(ChunkFilter.BlockReplaceSource source) {
+			if (!this.source) {
+				return;
+			}
+			tileEntityMode.setValue(SourceTileMode.fromTileEntityMode(source.getTileEntityMode()));
+			minY.setText(source.getMinY() == null ? "" : Integer.toString(source.getMinY()));
+			maxY.setText(source.getMaxY() == null ? "" : Integer.toString(source.getMaxY()));
+			setBiomeText(source.getBiomes().stream().collect(Collectors.joining(";")));
+			updateUserInputPresent();
+		}
+
 		private void focusInput() {
 			block.requestFocus();
 			block.getEditor().requestFocus();
@@ -1267,6 +1398,21 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				biomeNames.getSelectionModel().clearSelection();
 				biomeNames.getEditor().clear();
 				biomeNames.hide();
+				normalizeBiomeNextTyped = false;
+				normalizedBiomeCaret = -1;
+			} finally {
+				suppressBiomeSuggestions = false;
+			}
+		}
+
+		private void setBiomeText(String value) {
+			suppressBiomeSuggestions = true;
+			try {
+				biomeNames.setValue(null);
+				biomeNames.getSelectionModel().clearSelection();
+				biomeNames.getEditor().setText(value == null ? "" : value);
+				biomeNames.hide();
+				updateBiomeSuggestions();
 				normalizeBiomeNextTyped = false;
 				normalizedBiomeCaret = -1;
 			} finally {
@@ -1535,6 +1681,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 	private record PresetValue(String value, ReplaceBlocksDiagnostics.Diagnostic diagnostic) {}
 
+	private record ParsedRule(ChunkFilter.BlockReplaceSource source, ChunkFilter.BlockReplaceData target) {}
+
 	private record Rule(String from, String to) {}
 
 	private static class RuleCell extends TableCell<Rule, String> {
@@ -1723,6 +1871,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		SourceTileMode(Translation label, String wrapper) {
 			this.label = label;
 			this.wrapper = wrapper;
+		}
+
+		private static SourceTileMode fromTileEntityMode(ChunkFilter.BlockReplaceTileEntityMode mode) {
+			return switch (mode) {
+				case REQUIRE_TILE_ENTITY -> REQUIRE;
+				case EXCLUDE_TILE_ENTITY -> EXCLUDE;
+				default -> ANY;
+			};
 		}
 
 		private String wrap(String value) {

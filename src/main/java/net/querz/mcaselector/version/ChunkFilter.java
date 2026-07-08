@@ -375,6 +375,10 @@ public interface ChunkFilter {
 			return name;
 		}
 
+		public CompoundTag getState() {
+			return state;
+		}
+
 		public boolean hasYRange() {
 			return minY != null || maxY != null;
 		}

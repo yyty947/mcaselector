@@ -71,6 +71,10 @@
     -fx-text-fill: -color-field-warning-text;
 }
 
+.replace-blocks-builder-pane .replace-blocks-builder-validation:success {
+    -fx-text-fill: #8fd694;
+}
+
 .replace-blocks-builder-pane .replace-blocks-builder-block {
     -fx-min-width: 300;
 }
