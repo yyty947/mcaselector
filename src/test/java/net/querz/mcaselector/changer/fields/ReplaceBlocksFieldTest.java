@@ -4,6 +4,7 @@ import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.nbt.CompoundTag;
 import org.junit.jupiter.api.Test;
 import java.util.Map;
+import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -195,6 +196,34 @@ class ReplaceBlocksFieldTest {
 	}
 
 	@Test
+	void parsesBiomeSourceFilter() {
+		ReplaceBlocksField field = parse("biome(plains;minecraft:forest, literal(stone))=minecraft:dirt");
+		ChunkFilter.BlockReplaceSource source = onlySource(field);
+
+		assertEquals(Set.of("minecraft:plains", "minecraft:forest"), source.getBiomes());
+		assertEquals("biome(minecraft:plains;minecraft:forest, literal(minecraft:stone))=minecraft:dirt", field.valueToString());
+		assertTrue(source.matches(state("minecraft:stone"), false, 0, "minecraft:plains"));
+		assertTrue(source.matches(state("minecraft:stone"), false, 0, "minecraft:forest"));
+		assertFalse(source.matches(state("minecraft:stone"), false, 0, "minecraft:desert"));
+		assertFalse(source.matches(state("minecraft:stone"), false, 0));
+
+		ReplaceBlocksField custom = parse("biome(example:glowing_grove, literal(stone))=minecraft:dirt");
+		assertEquals(Set.of("example:glowing_grove"), onlySource(custom).getBiomes());
+	}
+
+	@Test
+	void combinesBiomeWithYRangeAndTileSourceFilters() {
+		ReplaceBlocksField field = parse("biome(minecraft:plains, y(0..15, tile(literal(chest))))=minecraft:stone");
+		ChunkFilter.BlockReplaceSource source = onlySource(field);
+
+		assertEquals("biome(minecraft:plains, y(0..15, tile(literal(minecraft:chest))))=minecraft:stone", field.valueToString());
+		assertTrue(source.matches(state("minecraft:chest"), true, 0, "minecraft:plains"));
+		assertFalse(source.matches(state("minecraft:chest"), false, 0, "minecraft:plains"));
+		assertFalse(source.matches(state("minecraft:chest"), true, 16, "minecraft:plains"));
+		assertFalse(source.matches(state("minecraft:chest"), true, 0, "minecraft:forest"));
+	}
+
+	@Test
 	void rejectsInvalidYRangeSourceFilters() {
 		ReplaceBlocksField field = new ReplaceBlocksField();
 
@@ -202,6 +231,16 @@ class ReplaceBlocksFieldTest {
 		assertFalse(field.parseNewValue("y(10..0, literal(stone))=minecraft:dirt"));
 		assertFalse(field.parseNewValue("y(foo..10, literal(stone))=minecraft:dirt"));
 		assertFalse(field.parseNewValue("y(0..10)=minecraft:dirt"));
+	}
+
+	@Test
+	void rejectsInvalidBiomeSourceFilters() {
+		ReplaceBlocksField field = new ReplaceBlocksField();
+
+		assertFalse(field.parseNewValue("biome(, literal(stone))=minecraft:dirt"));
+		assertFalse(field.parseNewValue("biome(minecraft:not_a_biome, literal(stone))=minecraft:dirt"));
+		assertFalse(field.parseNewValue("biome(minecraft:plains)=minecraft:dirt"));
+		assertFalse(field.parseNewValue("biome(minecraft:plains,)=minecraft:dirt"));
 	}
 
 	private ReplaceBlocksField parse(String value) {

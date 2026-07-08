@@ -5,12 +5,15 @@ import net.querz.mcaselector.changer.FieldType;
 import net.querz.mcaselector.io.mca.ChunkData;
 import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.mcaselector.version.VersionHandler;
+import net.querz.mcaselector.version.mapping.registry.BiomeRegistry;
 import net.querz.mcaselector.version.mapping.registry.BlockRegistry;
 import net.querz.nbt.CompoundTag;
 import net.querz.nbt.Tag;
 import net.querz.nbt.io.snbt.ParseException;
 import net.querz.nbt.io.snbt.SNBTParser;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -37,6 +40,7 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 		//              tile(<source>)
 		//              no_tile(<source>)
 		//              y(<min>..<max>, <source>)
+		//              biome(<biome>[;<biome>...], <source>)
 		// to format:   minecraft:<block-name>
 		//              <block-name>
 		//              '<custom-block-name-with-namespace>'
@@ -201,10 +205,13 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 
 	private boolean startsWithSourceWrapper(String s) {
 		return s.startsWith("literal(") || s.startsWith("regex(") || s.startsWith("props(")
-				|| s.startsWith("tile(") || s.startsWith("no_tile(") || s.startsWith("y(");
+				|| s.startsWith("tile(") || s.startsWith("no_tile(") || s.startsWith("y(") || s.startsWith("biome(");
 	}
 
 	private SourceReadResult readWrappedSource(String s) {
+		if (s.startsWith("biome(")) {
+			return readBiomeWrapper(s);
+		}
 		if (s.startsWith("y(")) {
 			return readYRangeWrapper(s);
 		}
@@ -267,6 +274,27 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 		return new SourceReadResult(source.source().withYRange(yRange.minY(), yRange.maxY()), end + 1);
 	}
 
+	private SourceReadResult readBiomeWrapper(String s) {
+		int end = findWrapperEnd(s, "biome(".length());
+		if (end < 0) {
+			return null;
+		}
+		String argument = s.substring("biome(".length(), end).trim();
+		int comma = argument.indexOf(',');
+		if (comma < 0) {
+			return null;
+		}
+		List<String> biomes = parseBiomeList(argument.substring(0, comma));
+		if (biomes == null) {
+			return null;
+		}
+		SourceReadResult source = readSourceExpression(argument.substring(comma + 1));
+		if (source == null) {
+			return null;
+		}
+		return new SourceReadResult(source.source().withBiomes(biomes), end + 1);
+	}
+
 	private SourceReadResult readSourceExpression(String raw) {
 		String source = raw.trim();
 		if (source.isEmpty()) {
@@ -299,6 +327,26 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 		} catch (NumberFormatException ex) {
 			return null;
 		}
+	}
+
+	private List<String> parseBiomeList(String raw) {
+		String[] parts = raw.trim().split(";", -1);
+		List<String> biomes = new ArrayList<>(parts.length);
+		for (String part : parts) {
+			String biome = part.trim();
+			if (biome.isEmpty()) {
+				return null;
+			}
+			if (!biome.contains(":")) {
+				biome = "minecraft:" + biome;
+			}
+			if (biome.startsWith("minecraft:") && !BiomeRegistry.isValidName(biome)
+					|| !biome.startsWith("minecraft:") && !RESOURCE_LOCATION.matcher(biome).matches()) {
+				return null;
+			}
+			biomes.add(biome);
+		}
+		return biomes.isEmpty() ? null : biomes;
 	}
 
 	private SourceReadResult readNameWrapper(String s, String prefix, boolean literal) {

@@ -28,6 +28,9 @@ class ReplaceBlocksDiagnosticsTest {
 		assertTrue(ReplaceBlocksDiagnostics
 				.diagnoseValue("y(64.., tile(literal(minecraft:chest)))=minecraft:stone", true)
 				.isNone());
+		assertTrue(ReplaceBlocksDiagnostics
+				.diagnoseValue("biome(minecraft:plains;minecraft:forest, y(64.., literal(minecraft:stone)))=minecraft:dirt", true)
+				.isNone());
 	}
 
 	@Test
@@ -56,6 +59,12 @@ class ReplaceBlocksDiagnosticsTest {
 				.isError());
 		assertTrue(ReplaceBlocksDiagnostics
 				.diagnoseValue("y(foo..10, literal(minecraft:stone))=minecraft:dirt", false)
+				.isError());
+		assertTrue(ReplaceBlocksDiagnostics
+				.diagnoseValue("biome(minecraft:not_a_biome, literal(minecraft:stone))=minecraft:dirt", false)
+				.isError());
+		assertTrue(ReplaceBlocksDiagnostics
+				.diagnoseValue("biome(minecraft:plains)=minecraft:dirt", false)
 				.isError());
 	}
 }

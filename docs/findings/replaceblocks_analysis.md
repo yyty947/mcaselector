@@ -91,6 +91,7 @@ chest=minecraft:barrel;{id:"minecraft:barrel"}
 - returns `false` through `super.parseNewValue(...)` on any parse failure
 - parses source tile wrappers `tile(...)` and `no_tile(...)`, which can wrap existing source expressions such as `literal(...)`, `regex(...)`, `props(...)`, source SNBT, `y(...)`, or legacy bare sources
 - parses source Y wrapper `y(min..max, source)`, which can wrap existing source expressions and requires at least one integer boundary
+- parses source biome wrapper `biome(<biome>[;<biome>...], source)`, which can wrap existing source expressions and uses block-position-aware biome matching in modern 1.18+ preview/execution; the stored biome value covers a 4x4x4 block cell
 
 Important details:
 
@@ -99,7 +100,7 @@ Important details:
 - A source that already starts with `minecraft:` is not registry-validated in the source parser path.
 - A quoted source is not registry-validated.
 - Replacement uses `BlockReplaceSource.matches(blockState)`, which now dispatches by source mode: legacy regex name, explicit regex name, literal name, exact state, or selected properties.
-- Explicit source wrappers are implemented as `regex(...)`, `literal(...)`, `props(...)`, `tile(...)`, `no_tile(...)`, and `y(...)`.
+- Explicit source wrappers are implemented as `regex(...)`, `literal(...)`, `props(...)`, `tile(...)`, `no_tile(...)`, `y(...)`, and `biome(...)`.
 - `BlockReplaceData(String)` creates a block state compound `{Name:<name>}`.
 - `BlockReplaceData(CompoundTag)` uses the SNBT compound directly as the target block state.
 - `BlockReplaceData.toString()` emits either a block name, SNBT state, or `target;tileSNBT`.
@@ -360,6 +361,7 @@ Current catalog and UI behavior impact:
 - Builder-generated simple source choices serialize as `literal(...)`.
 - Builder-generated source property choices serialize as `props(...)`.
 - Builder-generated source Y fields serialize as `y(min..max, source)` when either boundary is set.
+- Builder-generated source biome fields serialize as `biome(<biome>[;<biome>...], source)` when one or more biome IDs are entered.
 - Empty builders start with blank From/To inputs and stay visually quiet until user action produces a real diagnostic.
 - Empty block selector queries do not show the full catalog; suggestion completion should be verified through both Tab and mouse-click paths because JavaFX handles those paths differently.
 - Property dropdowns default to `all`/`全部`; source properties left at `all` are omitted from `props(...)`, and a source with every property at `all` serializes as `literal(...)`.

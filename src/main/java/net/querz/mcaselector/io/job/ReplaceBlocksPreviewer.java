@@ -235,6 +235,9 @@ public final class ReplaceBlocksPreviewer {
 			if (source.getTileEntityMode() != ChunkFilter.BlockReplaceTileEntityMode.ANY) {
 				mode += "/" + source.getTileEntityMode().name().toLowerCase(Locale.ROOT).replace('_', '-');
 			}
+			if (source.hasBiomeRestriction()) {
+				mode += "/biome";
+			}
 			sourceMode = mode;
 			sourceText = source.toString();
 			targetText = target.toString();

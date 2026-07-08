@@ -8,6 +8,7 @@ import net.querz.nbt.CompoundTag;
 import net.querz.nbt.ListTag;
 import org.junit.jupiter.api.Test;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -162,6 +163,65 @@ class ReplaceBlocksPreviewCountsTest {
 		assertEquals("minecraft:stone", blocks.blockAt(root, 256));
 	}
 
+	@Test
+	void previewCountsOnlyBlocksInsideBiomeCell() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
+		replace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:stone").withBiomes(List.of("minecraft:forest")),
+				new ChunkFilter.BlockReplaceData("minecraft:dirt"));
+
+		ChunkFilter.BlockReplacePreviewData preview = new PreviewBlocks().preview(root(), sectionsWithForestBiomeCell(), replace);
+
+		assertEquals(64, preview.getBlocks());
+		assertEquals(1, preview.getSections());
+		assertEquals(64, preview.getRules().get(0).getBlocks());
+	}
+
+	@Test
+	void replaceBlocksChangesOnlyBlocksInsideBiomeCell() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
+		replace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:stone").withBiomes(List.of("minecraft:forest")),
+				new ChunkFilter.BlockReplaceData("minecraft:dirt"));
+
+		CompoundTag root = root();
+		root.putInt("DataVersion", 2844);
+		root.put("sections", sectionsWithForestBiomeCell());
+		RegionChunk region = new RegionChunk(new Point2i(0, 0));
+		region.setData(root);
+		PreviewBlocks blocks = new PreviewBlocks();
+
+		blocks.replaceBlocks(new ChunkData(new Point2i(0, 0), region, null, null, true), replace);
+
+		assertEquals("minecraft:dirt", blocks.blockAt(root, 0));
+		assertEquals("minecraft:stone", blocks.blockAt(root, 4));
+	}
+
+	@Test
+	void biomeFilteredSyntheticAirSectionsOnlyCompleteWhenDefaultBiomeMatches() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> forestReplace = new LinkedHashMap<>();
+		forestReplace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:air").withYRange(16, 16).withBiomes(List.of("minecraft:forest")),
+				new ChunkFilter.BlockReplaceData("minecraft:glass"));
+
+		ListTag sections = sections();
+		sections.add(incompleteSection(1));
+		ChunkFilter.BlockReplacePreviewData forestPreview = new PreviewBlocks().preview(root(), sections, forestReplace);
+
+		assertEquals(0, forestPreview.getBlocks());
+		assertEquals(0, forestPreview.getCompletedAirSections());
+
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> plainsReplace = new LinkedHashMap<>();
+		plainsReplace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:air").withYRange(16, 16).withBiomes(List.of("minecraft:plains")),
+				new ChunkFilter.BlockReplaceData("minecraft:glass"));
+
+		ChunkFilter.BlockReplacePreviewData plainsPreview = new PreviewBlocks().preview(root(), sections, plainsReplace);
+
+		assertEquals(256, plainsPreview.getBlocks());
+		assertEquals(1, plainsPreview.getCompletedAirSections());
+	}
+
 	private CompoundTag root() {
 		CompoundTag root = new CompoundTag();
 		root.putInt("xPos", 0);
@@ -184,6 +244,22 @@ class ReplaceBlocksPreviewCountsTest {
 
 		sections.add(section);
 		return sections;
+	}
+
+	private ListTag sectionsWithForestBiomeCell() {
+		ListTag sections = sections();
+		sections.getCompound(0).put("biomes", biomes("minecraft:plains", "minecraft:forest", 1L));
+		return sections;
+	}
+
+	private CompoundTag biomes(String first, String second, long data) {
+		CompoundTag biomes = new CompoundTag();
+		ListTag palette = new ListTag();
+		palette.addString(first);
+		palette.addString(second);
+		biomes.put("palette", palette);
+		biomes.putLongArray("data", new long[] { data });
+		return biomes;
 	}
 
 	private CompoundTag incompleteSection(int y) {

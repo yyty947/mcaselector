@@ -38,24 +38,23 @@ Implemented:
 - Phase 4E: tile/block entity source safety controls using `tile(...)` and `no_tile(...)`, with duplicate target tile cleanup, preview add/remove/update estimates, Extra NBT Builder labels, and copied-world in-game validation reported complete on 2026-06-28.
 - Phase 5A: per-rule preview counts with source-mode rows and overlap warnings.
 - Phase 4F-1: Y range restrictions using `y(min..max, source)`, with Builder min/max Y inputs, parser/diagnostic coverage, preview filtering, and modern 1.18+ execution filtering.
+- Phase 4F-2: biome restrictions using `biome(<biome>[;<biome>...], source)`, with Builder source biome input, parser/diagnostic coverage, preview filtering, and modern 1.18+ execution filtering. Matching is block-position aware using the candidate block's biome value; in modern chunks one stored biome value covers a 4x4x4 block cell.
 - UI polish: ReplaceBlocks field-row validation waits for a short typing pause, the default NBT Changer width shows the Builder button, empty Builder From/To inputs start blank, Builder validation stays quiet until user action creates a real diagnostic, and Builder From/To inputs have auto-opening A-Z filtered suggestions with blue match highlights, Tab/click completion, no empty-query full-list popup, pre-input helper text that hides after manual typing or selection, and a Help dialog for Builder-specific explanations.
 
 Not implemented yet:
 
-- Phase 4F-2: biome restrictions.
 - Phase 4G: presets.
 - Phase 6: copied-world test hardening and release prep.
 
 ## Next Recommended Task
 
-Next best target: Phase 4F-2 design, biome restrictions.
+Next best target: Phase 4G presets.
 
 Goal:
 
-- Decide whether biome matching is block-position aware, section/palette aware, or chunk/selection aware before coding.
-- Keep preview and execution granularity identical.
-- Preserve Phase 4E tile eligibility, Phase 4F-1 Y filtering, and per-rule preview counts while adding biome filtering.
-- Plan copied-world testing around at least one biome boundary case.
+- Generate editable rules for common safe replacements without hiding source mode, target, tile behavior, Y range, or biome conditions.
+- Preserve Phase 4E tile eligibility, Phase 4F-1 Y filtering, Phase 4F-2 biome filtering, and per-rule preview counts.
+- Keep copied-world validation focused on preview-vs-execution consistency before release hardening.
 
 Current builder/UI manual validation checklist:
 
@@ -120,12 +119,13 @@ Tests:
 - Source-side wrappers are `regex(...)`, `literal(...)`, and `props(...)`.
 - Tile source wrappers are `tile(...)` for only positions with existing block entities and `no_tile(...)` for excluding positions with existing block entities.
 - Y range source wrapper is `y(min..max, source)`; either boundary may be omitted, but at least one integer boundary is required.
+- Biome source wrapper is `biome(<biome>[;<biome>...], source)`. Biomes may omit the `minecraft:` namespace in Builder/parser input, but serialized values use full IDs. Modern preview and execution use block-position-aware biome matching at the stored 4x4x4 biome-cell granularity.
 - Target tile SNBT still uses the existing `target;{tile SNBT}` syntax; rich target tile NBT editing is not in the builder yet.
 - Phase 4A/4B catalog data is UI/help data. The builder consumes it to generate `literal(...)` and `props(...)` text.
 - `BlockRegistry` validates block IDs but does not provide per-block property schema.
 - Modern colored wool blocks are separate IDs, for example `minecraft:yellow_wool=minecraft:blue_wool`, not a color property replacement.
 - Preview must stay non-mutating: do not call `replaceBlocks(...)`, do not save regions, and do not enqueue save jobs.
-- Per-rule preview counts are implemented and should be preserved before biome condition and preset work.
+- Per-rule preview counts are implemented and should be preserved before preset work.
 
 ## Forbidden Actions
 

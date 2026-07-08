@@ -221,6 +221,7 @@ public interface ChunkFilter {
 		private final CompoundTag state;
 		private final Integer minY;
 		private final Integer maxY;
+		private final Set<String> biomes;
 
 		public BlockReplaceSource(String name) {
 			this.type = BlockReplaceSourceType.LEGACY_REGEX_NAME;
@@ -229,6 +230,7 @@ public interface ChunkFilter {
 			state = null;
 			minY = null;
 			maxY = null;
+			biomes = Collections.emptySet();
 		}
 
 		public BlockReplaceSource(CompoundTag state) {
@@ -238,35 +240,41 @@ public interface ChunkFilter {
 			name = state.getString("Name");
 			minY = null;
 			maxY = null;
+			biomes = Collections.emptySet();
 		}
 
-		private BlockReplaceSource(BlockReplaceSourceType type, BlockReplaceTileEntityMode tileEntityMode, String name, CompoundTag state, Integer minY, Integer maxY) {
+		private BlockReplaceSource(BlockReplaceSourceType type, BlockReplaceTileEntityMode tileEntityMode, String name, CompoundTag state, Integer minY, Integer maxY, Set<String> biomes) {
 			this.type = type;
 			this.tileEntityMode = tileEntityMode;
 			this.name = name;
 			this.state = state;
 			this.minY = minY;
 			this.maxY = maxY;
+			this.biomes = biomes == null || biomes.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(new LinkedHashSet<>(biomes));
 		}
 
 		public static BlockReplaceSource regexName(String pattern) {
-			return new BlockReplaceSource(BlockReplaceSourceType.REGEX_NAME, BlockReplaceTileEntityMode.ANY, pattern, null, null, null);
+			return new BlockReplaceSource(BlockReplaceSourceType.REGEX_NAME, BlockReplaceTileEntityMode.ANY, pattern, null, null, null, Collections.emptySet());
 		}
 
 		public static BlockReplaceSource literalName(String name) {
-			return new BlockReplaceSource(BlockReplaceSourceType.LITERAL_NAME, BlockReplaceTileEntityMode.ANY, name, null, null, null);
+			return new BlockReplaceSource(BlockReplaceSourceType.LITERAL_NAME, BlockReplaceTileEntityMode.ANY, name, null, null, null, Collections.emptySet());
 		}
 
 		public static BlockReplaceSource selectedProperties(CompoundTag state) {
-			return new BlockReplaceSource(BlockReplaceSourceType.SELECTED_PROPERTIES, BlockReplaceTileEntityMode.ANY, state.getString("Name"), state, null, null);
+			return new BlockReplaceSource(BlockReplaceSourceType.SELECTED_PROPERTIES, BlockReplaceTileEntityMode.ANY, state.getString("Name"), state, null, null, Collections.emptySet());
 		}
 
 		public BlockReplaceSource withTileEntityMode(BlockReplaceTileEntityMode tileEntityMode) {
-			return new BlockReplaceSource(type, tileEntityMode, name, state, minY, maxY);
+			return new BlockReplaceSource(type, tileEntityMode, name, state, minY, maxY, biomes);
 		}
 
 		public BlockReplaceSource withYRange(Integer minY, Integer maxY) {
-			return new BlockReplaceSource(type, tileEntityMode, name, state, minY, maxY);
+			return new BlockReplaceSource(type, tileEntityMode, name, state, minY, maxY, biomes);
+		}
+
+		public BlockReplaceSource withBiomes(Collection<String> biomes) {
+			return new BlockReplaceSource(type, tileEntityMode, name, state, minY, maxY, biomes == null ? Collections.emptySet() : new LinkedHashSet<>(biomes));
 		}
 
 		public boolean matches(CompoundTag blockState) {
@@ -278,7 +286,11 @@ public interface ChunkFilter {
 		}
 
 		public boolean matches(CompoundTag blockState, boolean hasTileEntity, int y) {
-			return matchesY(y) && matches(blockState, hasTileEntity);
+			return matches(blockState, hasTileEntity, y, null);
+		}
+
+		public boolean matches(CompoundTag blockState, boolean hasTileEntity, int y, String biome) {
+			return matchesY(y) && matchesBiome(biome) && matches(blockState, hasTileEntity);
 		}
 
 		private boolean matchesBlockState(CompoundTag blockState) {
@@ -347,6 +359,10 @@ public interface ChunkFilter {
 			return (minY == null || sectionMaxY >= minY) && (maxY == null || sectionMinY <= maxY);
 		}
 
+		public boolean matchesBiome(String biome) {
+			return biomes.isEmpty() || biome != null && biomes.contains(biome);
+		}
+
 		public BlockReplaceSourceType getType() {
 			return type;
 		}
@@ -363,12 +379,20 @@ public interface ChunkFilter {
 			return minY != null || maxY != null;
 		}
 
+		public boolean hasBiomeRestriction() {
+			return !biomes.isEmpty();
+		}
+
 		public Integer getMinY() {
 			return minY;
 		}
 
 		public Integer getMaxY() {
 			return maxY;
+		}
+
+		public Set<String> getBiomes() {
+			return biomes;
 		}
 
 		@Override
@@ -383,7 +407,10 @@ public interface ChunkFilter {
 					break;
 			}
 			if (hasYRange()) {
-				return "y(" + formatYRange() + ", " + value + ")";
+				value = "y(" + formatYRange() + ", " + value + ")";
+			}
+			if (hasBiomeRestriction()) {
+				value = "biome(" + formatBiomes() + ", " + value + ")";
 			}
 			return value;
 		}
@@ -417,6 +444,14 @@ public interface ChunkFilter {
 
 		private String formatYRange() {
 			return (minY == null ? "" : minY) + ".." + (maxY == null ? "" : maxY);
+		}
+
+		private String formatBiomes() {
+			StringJoiner joiner = new StringJoiner(";");
+			for (String biome : biomes) {
+				joiner.add(biome);
+			}
+			return joiner.toString();
 		}
 	}
 

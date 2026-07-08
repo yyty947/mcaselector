@@ -31,11 +31,14 @@ import net.querz.mcaselector.text.Translation;
 import net.querz.mcaselector.ui.UIFactory;
 import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.mcaselector.version.mapping.blockstate.BlockStateCatalog;
+import net.querz.mcaselector.version.mapping.registry.BiomeRegistry;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
@@ -44,6 +47,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private static final PseudoClass warning = PseudoClass.getPseudoClass("warning");
 	private static final ButtonType HELP = new ButtonType("", ButtonBar.ButtonData.LEFT);
 	private static final Color PROPERTY_CHOICE_TEXT = Color.web("#f2f2f2");
+	private static final Pattern RESOURCE_LOCATION = Pattern.compile("[a-z0-9_.-]+:[a-z0-9_./-]+");
 
 	private final Stage primaryStage;
 	private final BlockStateCatalog catalog = BlockStateCatalog.latestJava();
@@ -242,7 +246,10 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_NBT_ANY, "replace-blocks-builder-help-text"),
 				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_NBT_PRESENT, "replace-blocks-builder-help-text"),
 				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_NBT_ABSENT, "replace-blocks-builder-help-text"),
-				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_NBT_NOTE, "replace-blocks-builder-help-text")
+				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_NBT_NOTE, "replace-blocks-builder-help-text"),
+				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_BIOME_TITLE, "replace-blocks-builder-help-heading"),
+				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_BIOME_INTRO, "replace-blocks-builder-help-text"),
+				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_BIOME_SYNTAX, "replace-blocks-builder-help-text")
 		);
 
 		ScrollPane scroll = new ScrollPane(content);
@@ -278,7 +285,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 	private static boolean isSourceModeExpression(String value) {
 		return value.startsWith("literal(") || value.startsWith("regex(") || value.startsWith("props(")
-				|| value.startsWith("tile(") || value.startsWith("no_tile(") || value.startsWith("y(");
+				|| value.startsWith("tile(") || value.startsWith("no_tile(") || value.startsWith("y(") || value.startsWith("biome(");
 	}
 
 	private static boolean isTileEntityModeExpression(String value) {
@@ -287,6 +294,10 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 	private static boolean isYRangeExpression(String value) {
 		return value.startsWith("y(");
+	}
+
+	private static boolean isBiomeExpression(String value) {
+		return value.startsWith("biome(");
 	}
 
 	private static String formatWrapperArgument(String value) {
@@ -334,6 +345,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		private final ComboBox<SourceTileMode> tileEntityMode = new ComboBox<>();
 		private final TextField minY = new TextField();
 		private final TextField maxY = new TextField();
+		private final TextField biomeNames = new TextField();
 		private final GridPane properties = new GridPane();
 		private final Map<String, ComboBox<PropertyChoice>> propertyEditors = new LinkedHashMap<>();
 		private final BooleanProperty userInputPresent = new SimpleBooleanProperty(false);
@@ -414,6 +426,18 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				GridPane.setHgrow(minY, Priority.ALWAYS);
 				GridPane.setHgrow(maxY, Priority.ALWAYS);
 				getChildren().add(yRange);
+
+				GridPane biomeFilter = new GridPane();
+				biomeFilter.getStyleClass().add("replace-blocks-builder-biome");
+				biomeFilter.setHgap(6);
+				Label biomeLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_BIOME);
+				biomeNames.promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_BIOME_PROMPT.getProperty());
+				biomeNames.setMaxWidth(Double.MAX_VALUE);
+				biomeNames.textProperty().addListener((a, o, n) -> updateUserInputPresent());
+				biomeFilter.add(biomeLabel, 0, 0);
+				biomeFilter.add(biomeNames, 1, 0);
+				GridPane.setHgrow(biomeNames, Priority.ALWAYS);
+				getChildren().add(biomeFilter);
 			}
 			getChildren().add(properties);
 			VBox.setVgrow(properties, Priority.NEVER);
@@ -481,7 +505,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 
 		private String applySourceConditions(String value) {
-			return applySourceYRange(applySourceTileMode(value));
+			return applySourceBiome(applySourceYRange(applySourceTileMode(value)));
 		}
 
 		private String applySourceTileMode(String value) {
@@ -523,6 +547,44 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			}
 		}
 
+		private String applySourceBiome(String value) {
+			if (!source || value == null || value.isEmpty() || isBiomeExpression(value)) {
+				return value;
+			}
+			String biomes = biomeText();
+			if (biomes == null) {
+				return value;
+			}
+			if (biomes.isEmpty()) {
+				return null;
+			}
+			return "biome(" + biomes + ", " + value + ")";
+		}
+
+		private String biomeText() {
+			String raw = biomeNames.getText() == null ? "" : biomeNames.getText().trim();
+			if (raw.isEmpty()) {
+				return null;
+			}
+			String[] parts = raw.split(";", -1);
+			List<String> normalized = new ArrayList<>(parts.length);
+			for (String part : parts) {
+				String biome = part.trim();
+				if (biome.isEmpty()) {
+					return "";
+				}
+				if (!biome.contains(":")) {
+					biome = "minecraft:" + biome;
+				}
+				if (biome.startsWith("minecraft:") && !BiomeRegistry.isValidName(biome)
+						|| !biome.startsWith("minecraft:") && !RESOURCE_LOCATION.matcher(biome).matches()) {
+					return "";
+				}
+				normalized.add(biome);
+			}
+			return String.join(";", normalized);
+		}
+
 		private void clear() {
 			suppressSuggestions = true;
 			try {
@@ -530,6 +592,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				block.getEditor().clear();
 				minY.clear();
 				maxY.clear();
+				biomeNames.clear();
 				propertyEditors.clear();
 				properties.getChildren().clear();
 				updateBlockSuggestions("");
@@ -552,7 +615,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		private void updateUserInputPresent() {
 			userInputPresent.set(!currentText().isEmpty()
 					|| minY.getText() != null && !minY.getText().isBlank()
-					|| maxY.getText() != null && !maxY.getText().isBlank());
+					|| maxY.getText() != null && !maxY.getText().isBlank()
+					|| biomeNames.getText() != null && !biomeNames.getText().isBlank());
 		}
 
 		private void updateBlockSuggestions(String query) {

@@ -3,7 +3,7 @@
 Date: 2026-06-04
 Last updated: 2026-07-07
 
-Scope: ReplaceBlocks reconnaissance plus implemented phases 1-5A, Phase 4E, and Phase 4F-1. Java source now includes a rule builder, validation diagnostics, modern preview/dry-run with per-rule counts, exact source block-state matching, a Java 1.21.9 block-state catalog foundation, a property-aware catalog-backed builder UI, explicit source modes, tile/block entity source safety controls, and source-side Y range restrictions. Gradle build logic and Minecraft world data were not modified by these development notes.
+Scope: ReplaceBlocks reconnaissance plus implemented phases 1-5A, Phase 4E, Phase 4F-1, and Phase 4F-2. Java source now includes a rule builder, validation diagnostics, modern preview/dry-run with per-rule counts, exact source block-state matching, a Java 1.21.9 block-state catalog foundation, a property-aware catalog-backed builder UI, explicit source modes, tile/block entity source safety controls, source-side Y range restrictions, and source-side biome restrictions. Gradle build logic and Minecraft world data were not modified by these development notes.
 
 ## Project stack
 
@@ -96,6 +96,7 @@ CLI path:
 - Match selected source properties with `props(...)`.
 - Match only source positions with existing block entities using `tile(...)`, or exclude those positions using `no_tile(...)`.
 - Limit source matches by world block Y using `y(min..max, source)`. Either boundary may be omitted, but at least one integer boundary is required.
+- Limit source matches by biome using `biome(<biome>[;<biome>...], source)`. Parser input may omit `minecraft:` for vanilla biomes, but serialized values use full IDs. Modern preview and execution evaluate the biome at each candidate block position; in 1.18+ chunk data, one biome value covers a 4x4x4 block cell.
 - Target can be a simple registry name, an SNBT block state, or a block plus tile entity SNBT.
 - Multiple rules are supported in one ReplaceBlocks value.
 - Legacy bare or quoted source block-name matching still uses Java regex matching via `String.matches(...)`.
@@ -103,6 +104,7 @@ CLI path:
 - Builder inputs can search/select Java 1.21.9 catalog block IDs, generate `literal(...)` for simple source IDs, generate `props(...)` for selected source property dropdowns, and omit properties whose dropdown is left at `all`.
 - Builder source tile filters are labeled as `Extra NBT: any/present/absent`; the Builder Help dialog explains the choices and is the intended home for future Builder-specific help text.
 - Builder source min/max Y fields default to empty; filling either field wraps the generated source with `y(...)`.
+- Builder source biome field defaults to empty; filling it with one or more biome IDs separated by semicolons wraps the generated source with `biome(...)`. The Builder Help dialog states the block-position-aware 4x4x4 biome-cell granularity.
 - The NBT Changer dialog shows ReplaceBlocks validation messages and warnings after a short typing pause, so incomplete in-progress input does not flash errors on every character.
 - The default NBT Changer dialog width keeps the ReplaceBlocks `Builder` button visible without horizontal scrolling.
 - When opened without an existing value, the builder starts with blank From/To inputs and does not immediately show an empty-rule validation error.
@@ -166,7 +168,7 @@ The current From/To block inputs use editable JavaFX `ComboBox` controls backed 
 
 Recommended next work:
 
-- Design biome restriction granularity before coding: block-position aware, section/palette aware, or chunk/selection aware.
+- Biome restriction granularity is block-position aware at the modern chunk 4x4x4 biome-cell level. Do not change this to chunk/selection-wide matching without updating parser tests, preview expectations, execution tests, and docs.
 - Keep rich target tile NBT editing out of the builder until copied-world tile validation has passed.
 - Continue to test duplicate block-entity behavior on copied worlds before release hardening.
 
@@ -213,6 +215,7 @@ Detailed roadmap: `docs/ROADMAP.md`.
 - Phase 4: exact source block-state matching implemented; Phase 4A 1.21.9 block-state catalog implemented; Phase 4B property-aware builder UI implemented; Gate A source matching design completed; Phase 4C/4D explicit source modes implemented.
 - Phase 4E: tile/block entity source filters, clearer Extra NBT Builder labels/help, preview add/remove/update estimates, modern duplicate tile cleanup, and user-reported copied-world in-game validation implemented.
 - Phase 5A: per-rule preview counts, source-mode rows, and overlap warnings implemented.
-- Phase 4F-1: Y range restrictions implemented with `y(min..max, source)`, Builder min/max Y controls, parser/diagnostic tests, preview tests, and modern 1.18+ execution tests. Next route is biome restrictions, presets, and release hardening.
+- Phase 4F-1: Y range restrictions implemented with `y(min..max, source)`, Builder min/max Y controls, parser/diagnostic tests, preview tests, and modern 1.18+ execution tests.
+- Phase 4F-2: biome restrictions implemented with `biome(<biome>[;<biome>...], source)`, Builder source biome input, parser/diagnostic tests, preview tests, and modern 1.18+ execution tests. Next route is presets and release hardening.
 
 Detailed next-development plan: `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.

@@ -102,12 +102,18 @@ public class ChunkFilter_21w37a {
 					if (!hasAirReplacementInSection(replace, y)) {
 						continue;
 					}
-					if (!sectionMap.containsKey(y)) {
+					CompoundTag section = sectionMap.get(y);
+					if (section == null) {
+						if (!hasSyntheticAirReplacementInSection(null, y, replace)) {
+							continue;
+						}
 						sectionMap.put(y, completeSection(new CompoundTag(), y));
 						heights.add(y);
 					} else {
-						CompoundTag section = sectionMap.get(y);
 						if (!section.containsKey("block_states")) {
+							if (!hasSyntheticAirReplacementInSection(section, y, replace)) {
+								continue;
+							}
 							completeSection(sectionMap.get(y), y);
 						}
 					}
@@ -156,9 +162,10 @@ public class ChunkFilter_21w37a {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
 					Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
 					boolean sourceHasTileEntity = sourceTileEntityLocations.contains(locationKey(location));
+					String biome = getBiomeAt(section, i);
 
 					for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-						if (!entry.getKey().matches(blockState, sourceHasTileEntity, location.getY())) {
+						if (!entry.getKey().matches(blockState, sourceHasTileEntity, location.getY(), biome)) {
 							continue;
 						}
 						ChunkFilter.BlockReplaceData replacement = entry.getValue();
@@ -230,9 +237,12 @@ public class ChunkFilter_21w37a {
 					}
 					CompoundTag section = sectionMap.get(y);
 					if (section == null || !section.containsKey("block_states")) {
-						result.incrementCompletedAirSections();
-						result.incrementLightSections();
-						result.addSection(countSyntheticAirSection(y, replace, result));
+						long matches = countSyntheticAirSection(section, y, replace, result);
+						if (matches > 0) {
+							result.incrementCompletedAirSections();
+							result.incrementLightSections();
+							result.addSection(matches);
+						}
 					}
 				}
 			}
@@ -272,7 +282,8 @@ public class ChunkFilter_21w37a {
 				for (int i = 0; i < 4096; i++) {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
 					Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
-					if (countMatchingBlock(blockState, replace, result, tileEntityLocations.contains(locationKey(location)), location.getY())) {
+					String biome = getBiomeAt(section, i);
+					if (countMatchingBlock(blockState, replace, result, tileEntityLocations.contains(locationKey(location)), location.getY(), biome)) {
 						sectionMatches++;
 					}
 				}
@@ -290,26 +301,27 @@ public class ChunkFilter_21w37a {
 			return replace.keySet().stream().anyMatch(source -> source.intersectsSection(sectionY));
 		}
 
-		private long countSyntheticAirSection(int sectionY, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, ChunkFilter.BlockReplacePreviewData result) {
+		private long countSyntheticAirSection(CompoundTag section, int sectionY, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, ChunkFilter.BlockReplacePreviewData result) {
+			CompoundTag syntheticSection = section == null ? completeSection(new CompoundTag(), sectionY) : completeSection((CompoundTag) section.copy(), sectionY);
 			CompoundTag air = new CompoundTag();
 			air.putString("Name", "minecraft:air");
 			long matches = 0;
 			for (int i = 0; i < 4096; i++) {
 				int y = sectionY * 16 + indexToLocation(i).getY();
-				if (countMatchingBlock(air, replace, result, false, y)) {
+				if (countMatchingBlock(air, replace, result, false, y, getBiomeAt(syntheticSection, i))) {
 					matches++;
 				}
 			}
 			return matches;
 		}
 
-		private boolean countMatchingBlock(CompoundTag blockState, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, ChunkFilter.BlockReplacePreviewData result, boolean hasTileEntity, int y) {
+		private boolean countMatchingBlock(CompoundTag blockState, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, ChunkFilter.BlockReplacePreviewData result, boolean hasTileEntity, int y, String biome) {
 			boolean matched = false;
 			boolean tileEntityPresent = hasTileEntity;
 			int matchedRules = 0;
 			int ruleIndex = 0;
 			for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-				if (!entry.getKey().matches(blockState, hasTileEntity, y)) {
+				if (!entry.getKey().matches(blockState, hasTileEntity, y, biome)) {
 					ruleIndex++;
 					continue;
 				}
@@ -333,6 +345,22 @@ public class ChunkFilter_21w37a {
 				result.incrementOverlappingBlocks();
 			}
 			return matched;
+		}
+
+		protected boolean hasSyntheticAirReplacementInSection(CompoundTag section, int sectionY, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
+			CompoundTag syntheticSection = section == null ? completeSection(new CompoundTag(), sectionY) : completeSection((CompoundTag) section.copy(), sectionY);
+			CompoundTag air = new CompoundTag();
+			air.putString("Name", "minecraft:air");
+			for (int i = 0; i < 4096; i++) {
+				int y = sectionY * 16 + indexToLocation(i).getY();
+				String biome = getBiomeAt(syntheticSection, i);
+				for (ChunkFilter.BlockReplaceSource source : replace.keySet()) {
+					if (source.matches(air, false, y, biome)) {
+						return true;
+					}
+				}
+			}
+			return false;
 		}
 
 		protected Set<String> getTileEntityLocations(CompoundTag root, String tileEntitiesKey) {
@@ -372,6 +400,34 @@ public class ChunkFilter_21w37a {
 
 		protected String locationKey(int x, int y, int z) {
 			return x + "," + y + "," + z;
+		}
+
+		protected String getBiomeAt(CompoundTag section, int blockIndex) {
+			CompoundTag biomes = Helper.tagFromCompound(section, "biomes");
+			ListTag palette = Helper.tagFromCompound(biomes, "palette");
+			if (palette == null || palette.isEmpty()) {
+				return null;
+			}
+			long[] data = Helper.longArrayFromCompound(biomes, "data");
+			if (data == null || data.length == 0) {
+				return palette.getString(0);
+			}
+
+			Point3i location = indexToLocation(blockIndex);
+			int index = (location.getY() >> 2) * 16 + (location.getZ() >> 2) * 4 + (location.getX() >> 2);
+			int bits = data.length;
+			int indexesPerLong = 64 / bits;
+			int biomeDataIndex = index / indexesPerLong;
+			if (biomeDataIndex >= data.length) {
+				return null;
+			}
+			int clean = (2 << (bits - 1)) - 1;
+			int startBit = (index % indexesPerLong) * bits;
+			int paletteIndex = (int) (data[biomeDataIndex] >> startBit) & clean;
+			if (paletteIndex >= palette.size()) {
+				return null;
+			}
+			return palette.getString(paletteIndex);
 		}
 
 		protected CompoundTag completeSection(CompoundTag section, int y) {

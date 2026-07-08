@@ -1,7 +1,7 @@
 # ReplaceBlocks Roadmap
 
 Date: 2026-06-04
-Last updated: 2026-07-07
+Last updated: 2026-07-08
 
 This roadmap is the current source of truth for ReplaceBlocks feature sequencing. The older linear phase list has been replaced with a dependency-driven route so later semantic work does not force repeated rewrites.
 
@@ -20,11 +20,11 @@ Implemented:
 - Phase 4E: tile/block entity source safety controls implemented with `tile(...)` and `no_tile(...)`; target tile replacement now removes existing block entities at the target coordinates before adding replacement tile SNBT. The Builder labels this as an "Extra NBT" source condition and includes an extensible Help dialog for this and future Builder explanations.
 - Phase 5A: per-rule preview counts, source-mode rows, and overlap warning in the ReplaceBlocks preview dialog.
 - Phase 4F-1: Y range restrictions implemented with `y(min..max, source)`, Builder min/max Y fields, parser diagnostics, preview counts, and modern 1.18+ execution filtering.
+- Phase 4F-2: biome restrictions implemented with `biome(<biome>[;<biome>...], source)`, Builder source biome input, parser diagnostics, preview counts, and modern 1.18+ execution filtering. Matching is block-position aware using the chunk biome value for the candidate block position; in modern chunks that value covers a 4x4x4 block cell.
 - UI polish: ReplaceBlocks field-row diagnostics are debounced, the main dialog defaults wide enough to show `Builder`, empty Builder inputs start blank without immediate empty-rule errors or empty-query full-list popups, block suggestions support Tab and mouse-click completion, and property dropdowns support an `all`/`全部` option.
 
 Still not implemented:
 
-- Biome restrictions.
 - Presets.
 - Release hardening for broader copied-world regression coverage.
 
@@ -71,7 +71,7 @@ Decisions:
 - Internal source modes are `legacy-regex-name`, `regex-name`, `literal-name`, `exact-state`, and `selected-properties`.
 - Legacy bare or quoted source strings stay as regex compatibility syntax.
 - Existing bare source SNBT stays exact-state matching.
-- New explicit source wrappers are `regex(...)`, `literal(...)`, and `props(...)`.
+- New explicit source wrappers are `regex(...)`, `literal(...)`, `props(...)`, `tile(...)`, `no_tile(...)`, `y(...)`, and `biome(...)`.
 - Builder-generated simple block-ID rules now use `literal(...)`.
 - Parser and diagnostic tests must land before version-layer behavior changes.
 
@@ -186,17 +186,20 @@ Success criteria:
 
 ### Phase 4F-2: Biome Restrictions
 
+Status: implemented on 2026-07-08.
+
 Goal: add biome-aware restrictions only after the Y-range path is stable.
 
 Required design decision:
 
-- Document whether biome matching is block-position aware, section/palette aware, or chunk/selection aware before implementation.
+- Decided: biome matching is block-position aware. For each candidate block position, preview and execution read the biome palette entry for that position. In modern 1.18+ chunks the stored biome value covers a 4x4x4 block cell, so every block in the same biome cell shares the same biome condition result.
 
 Success criteria:
 
-- The UI states the biome matching granularity.
-- Preview and execution use the same granularity.
-- Copied-world tests cover at least one boundary case near a biome transition.
+- Met in UI/parser: Builder exposes a source Biome field and generated rules use `biome(<biome>[;<biome>...], source)`.
+- Met in help/docs: Builder Help states the block-position/4x4x4 biome-cell granularity.
+- Met in automated modern-path tests: preview and execution both restrict replacements to the matching biome cell.
+- Still needs copied-world validation: test at least one boundary case near a biome transition and compare preview counts with execution on a fresh copy.
 
 ### Phase 4G: Presets
 

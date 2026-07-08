@@ -30,11 +30,13 @@ Implemented behavior:
 - Modern 1.18+ tile-target replacement removes existing block entities at the same coordinates before adding target tile SNBT.
 - Y range filters are available through `y(min..max, source)` and are applied in modern preview and execution.
 - The builder exposes source-side min/max Y inputs and leaves them empty by default.
+- Biome filters are available through `biome(<biome>[;<biome>...], source)` and are applied in modern preview and execution using the candidate block position's biome value. In modern chunks one biome value covers a 4x4x4 block cell.
+- The builder exposes a source-side biome input and leaves it empty by default.
 
 Not implemented:
 
 - Dedicated source-mode selector UI and per-property subset checkboxes.
-- Biome restrictions and presets.
+- Presets.
 - Rich target tile NBT editing.
 
 ## Source Matching Model
@@ -69,6 +71,7 @@ literal(stone)=minecraft:dirt
 props({Name:"minecraft:oak_stairs",Properties:{facing:"north"}})=minecraft:stone
 y(-64..64, literal(minecraft:stone))=minecraft:dirt
 y(64.., tile(literal(minecraft:chest)))=minecraft:stone
+biome(minecraft:plains;minecraft:forest, y(64.., literal(minecraft:stone)))=minecraft:dirt
 ```
 
 Meanings:
@@ -80,11 +83,12 @@ Meanings:
 - Bare source SNBT remains exact-state mode.
 - `props(...)` parses the inner SNBT as a block state selector, but only the listed `Properties` keys participate in matching.
 - `y(min..max, source)` limits the wrapped source expression by world block Y. Either boundary may be omitted, for example `y(64.., literal(stone))` or `y(..0, literal(stone))`, but at least one integer boundary is required.
+- `biome(<biome>[;<biome>...], source)` limits the wrapped source expression by biome. Short vanilla biome IDs normalize to `minecraft:<id>`, multiple biomes are separated by semicolons, and serialized values use full biome IDs.
 
 Wrapper parsing decisions:
 
-- Supported wrappers are `literal(...)`, `regex(...)`, and `props(...)`.
-- Spatial source wrapper `y(min..max, source)` may wrap the other source expressions.
+- Supported wrappers are `literal(...)`, `regex(...)`, `props(...)`, `tile(...)`, `no_tile(...)`, `y(...)`, and `biome(...)`.
+- Spatial source wrappers `y(min..max, source)` and `biome(<biome>[;<biome>...], source)` may wrap the other source expressions.
 - Wrapper names are lowercase and source-side only.
 - `literal(...)` accepts a block ID or short vanilla ID. Short IDs normalize to `minecraft:<id>`.
 - `regex(...)` accepts a Java regex pattern and should be validated by compiling the pattern before execution.
@@ -92,6 +96,7 @@ Wrapper parsing decisions:
 - `props(...)` must contain valid SNBT whose root compound has `Name` and a non-empty `Properties` compound.
 - `props(...)` with no selected properties should be rejected with a targeted diagnostic; use `literal(...)` for name-only matching.
 - Invalid Y ranges such as `y(.., source)`, `y(10..0, source)`, or `y(foo..10, source)` should be rejected with a targeted diagnostic.
+- Invalid biome lists such as `biome(, source)`, unknown biome IDs, or missing wrapped source expressions should be rejected with a targeted diagnostic.
 
 Selected-properties matching:
 
@@ -177,7 +182,7 @@ Matching tests:
 
 ## Preview Baseline Before More Conditions
 
-Source modes are now represented internally, and per-rule preview counts are implemented. Preserve this preview baseline while implementing biome restrictions or presets.
+Source modes are now represented internally, and per-rule preview counts are implemented. Preserve this preview baseline while implementing presets or release-hardening checks.
 
 Reason:
 
@@ -209,20 +214,14 @@ Recommended order:
 
 ## Spatial Restrictions
 
-Implement in two parts:
+Implemented in two parts:
 
 - Done: Y range first.
-- Biome restriction after Y range is stable.
+- Done: biome restriction after Y range stabilized.
 
 Y range is implemented through `y(min..max, source)`. It is source-side, uses world block Y, and can wrap `literal(...)`, `regex(...)`, `props(...)`, source SNBT, `tile(...)`, or `no_tile(...)`. Modern 1.18+ preview and execution use the same Y predicate. Air replacement still must be tested on tiny copied selections because it can create sparse sections; automated tests cover narrow synthetic air-section preview counts, but copied-world validation is still required.
 
-Biome restriction needs a documented granularity decision before coding:
-
-- block-position aware
-- section/palette aware
-- chunk/selection aware
-
-Do not implement biome UI until that decision is explicit.
+Biome restriction is implemented through `biome(<biome>[;<biome>...], source)`. The granularity decision is block-position aware: each candidate block position is checked against the biome value stored for that position, and in modern 1.18+ chunks that value covers a 4x4x4 block cell. Preview and execution use the same biome lookup. Automated modern tests cover a synthetic biome-cell boundary; copied-world validation should still cover at least one real biome transition and compare preview counts against execution on a fresh copy.
 
 ## Presets
 

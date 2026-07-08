@@ -99,12 +99,18 @@ public class ChunkFilter_21w43a {
 					if (!hasAirReplacementInSection(replace, y)) {
 						continue;
 					}
-					if (!sectionMap.containsKey(y)) {
+					CompoundTag section = sectionMap.get(y);
+					if (section == null) {
+						if (!hasSyntheticAirReplacementInSection(null, y, replace)) {
+							continue;
+						}
 						sectionMap.put(y, completeSection(new CompoundTag(), y));
 						heights.add(y);
 					} else {
-						CompoundTag section = sectionMap.get(y);
 						if (!section.containsKey("block_states")) {
+							if (!hasSyntheticAirReplacementInSection(section, y, replace)) {
+								continue;
+							}
 							completeSection(sectionMap.get(y), y);
 						}
 					}
@@ -153,9 +159,10 @@ public class ChunkFilter_21w43a {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
 					Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
 					boolean sourceHasTileEntity = sourceTileEntityLocations.contains(locationKey(location));
+					String biome = getBiomeAt(section, i);
 
 					for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-						if (!entry.getKey().matches(blockState, sourceHasTileEntity, location.getY())) {
+						if (!entry.getKey().matches(blockState, sourceHasTileEntity, location.getY(), biome)) {
 							continue;
 						}
 						ChunkFilter.BlockReplaceData replacement = entry.getValue();

@@ -144,6 +144,7 @@ Implemented controls:
 - Java 1.21.9 catalog data is wired into the builder for property dropdowns.
 - The source tile/block entity selector is presented as `Extra NBT: any/present/absent`, and the Builder has a Help button that opens a separate explanation dialog.
 - The source side has optional Min Y / Max Y inputs. Empty fields mean no Y restriction; filling either field wraps the generated source with `y(...)`.
+- The source side has an optional Biome input. Empty means no biome restriction; one or more biome IDs separated by semicolons wrap the generated source with `biome(...)`. Help text states that matching is block-position aware at the modern 4x4x4 biome-cell granularity.
 
 Builder-supported rule syntax:
 
@@ -154,6 +155,7 @@ Builder-supported rule syntax:
 - target block state SNBT
 - source tile/block entity eligibility (`Extra NBT: any`, `tile(...)`, `no_tile(...)`)
 - source Y range filtering (`y(min..max, source)`)
+- source biome filtering (`biome(<biome>[;<biome>...], source)`)
 - no rich target tile entity builder yet
 - advanced users can still type tile SNBT, quoted custom values, and complex values manually in the raw field
 
@@ -217,6 +219,7 @@ Current 4B usage:
 - The builder generates existing ReplaceBlocks text from selected catalog values.
 - Simple source IDs serialize as `literal(...)`.
 - Source Min Y / Max Y fields serialize by wrapping the source expression in `y(min..max, source)`.
+- Source Biome field serializes by wrapping the source expression in `biome(<biome>[;<biome>...], source)`.
 - Catalog-backed source property rules serialize as `props(...)` when at least one property is not `all`; leaving every source property at `all` serializes as `literal(...)`.
 - Target property dropdowns omit properties left at `all`, and a target with every property at `all` serializes as the simple target block name.
 - Existing source SNBT remains exact matching; selected-property matching is explicit through `props(...)`.
@@ -231,7 +234,7 @@ Current 4B usage:
 - Preserve per-rule preview counts before layering on more conditions.
 - Source tile entity eligibility is implemented and documented in the Builder Help dialog; keep future Builder help content in that dialog instead of adding more permanent helper text to the main form.
 - Rich target tile NBT editing is still pending.
-- Biome restrictions and presets are still pending.
+- Biome restrictions are implemented; presets are still pending.
 
 ## Builder UI implementation notes
 

@@ -102,10 +102,11 @@ Manual checks:
 - In the builder From block area, leaving Min Y and Max Y empty should generate the same rule as before.
 - Filling only Min Y should generate `y(<min>.., source)`, filling only Max Y should generate `y(..<max>, source)`, and filling both should generate `y(<min>..<max>, source)`.
 - Invalid Y input such as letters or Min Y greater than Max Y should prevent adding the rule and show validation feedback.
+- Leaving the Builder Biome field empty should generate the same rule as before. Filling `plains` should generate `biome(minecraft:plains, source)`, filling `plains;minecraft:forest` should generate a semicolon-separated multi-biome wrapper, and an unknown biome ID should prevent adding the rule and show validation feedback.
 
 ## Per-rule preview counts
 
-Implemented as Phase 5A. Preserve these checks before future biome restrictions or presets.
+Implemented as Phase 5A. Preserve these checks before future presets or release-hardening checks.
 
 Checks:
 
@@ -309,7 +310,34 @@ Syntax covered:
 - `y(0..15, tile(literal(minecraft:chest)))=minecraft:stone` combines Y filtering with source tile eligibility.
 - Invalid ranges such as `y(.., ...)`, `y(10..0, ...)`, and `y(foo..10, ...)` are rejected.
 
-Manual copied-world checks:
+## Biome replacement
+
+Phase 4F-2 automated coverage:
+
+```powershell
+.\gradlew.bat test --tests net.querz.mcaselector.changer.fields.ReplaceBlocksFieldTest --tests net.querz.mcaselector.ui.dialog.ReplaceBlocksDiagnosticsTest --tests net.querz.mcaselector.version.java_1_18.ReplaceBlocksPreviewCountsTest
+```
+
+Syntax covered:
+
+- `biome(minecraft:plains, literal(minecraft:stone))=minecraft:dirt` limits the source match to positions whose stored biome is plains.
+- `biome(plains;minecraft:forest, literal(minecraft:stone))=minecraft:dirt` accepts short vanilla IDs and multiple biome IDs separated by semicolons; serialized values use full IDs.
+- `biome(minecraft:plains, y(0..15, tile(literal(minecraft:chest))))=minecraft:stone` combines biome filtering with Y range and tile source eligibility.
+- Invalid biome wrappers such as `biome(, ...)`, unknown biome IDs, missing commas, or missing wrapped sources are rejected.
+
+Granularity:
+
+- Modern 1.18+ preview and execution are block-position aware: each candidate block position is checked against the biome value stored for that position.
+- In modern chunk data, one biome value covers a 4x4x4 block cell. Automated tests verify a synthetic boundary where only one 4x4x4 cell matches.
+
+Phase 4F-2 manual copied-world checks:
+
+- Pick a tiny copied selection crossing a visible biome boundary and replace a harmless marker block only in one biome.
+- Confirm preview counts match execution on a fresh copy of the same selection.
+- Verify blocks immediately across the biome boundary are not changed when their stored biome does not match.
+- Repeat one combined rule with Y range plus biome condition if the boundary area has blocks at different heights.
+
+Phase 4F-1 manual copied-world checks:
 
 - Repeat air replacement on a tiny copied selection with a narrow Y range.
 - Verify missing sections are not created outside the requested Y range.

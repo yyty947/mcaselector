@@ -2,6 +2,7 @@ package net.querz.mcaselector.ui.dialog;
 
 import net.querz.mcaselector.changer.fields.ReplaceBlocksField;
 import net.querz.mcaselector.text.Translation;
+import net.querz.mcaselector.version.mapping.registry.BiomeRegistry;
 import net.querz.mcaselector.version.mapping.registry.BlockRegistry;
 import net.querz.nbt.CompoundTag;
 import net.querz.nbt.NBTUtil;
@@ -208,10 +209,13 @@ final class ReplaceBlocksDiagnostics {
 
 	private static boolean startsWithSourceWrapper(String raw) {
 		return raw.startsWith("literal(") || raw.startsWith("regex(") || raw.startsWith("props(")
-				|| raw.startsWith("tile(") || raw.startsWith("no_tile(") || raw.startsWith("y(");
+				|| raw.startsWith("tile(") || raw.startsWith("no_tile(") || raw.startsWith("y(") || raw.startsWith("biome(");
 	}
 
 	private static SourceResult readWrappedSource(String raw) {
+		if (raw.startsWith("biome(")) {
+			return readBiomeWrapper(raw);
+		}
 		if (raw.startsWith("y(")) {
 			return readYRangeWrapper(raw);
 		}
@@ -244,6 +248,23 @@ final class ReplaceBlocksDiagnostics {
 			return new SourceResult(0, error(Translation.DIALOG_REPLACE_BLOCKS_VALIDATION_SOURCE_MODE_WRAPPER.toString()));
 		}
 		SourceResult source = readSourceExpression(unwrapWrapperArgument(raw.substring(prefix.length(), end)));
+		if (source.diagnostic().isError()) {
+			return source;
+		}
+		return new SourceResult(end + 1, source.diagnostic());
+	}
+
+	private static SourceResult readBiomeWrapper(String raw) {
+		int end = findWrapperEnd(raw, "biome(".length());
+		if (end < 0) {
+			return new SourceResult(0, error(Translation.DIALOG_REPLACE_BLOCKS_VALIDATION_SOURCE_MODE_WRAPPER.toString()));
+		}
+		String argument = raw.substring("biome(".length(), end).trim();
+		int comma = argument.indexOf(',');
+		if (comma < 0 || !isValidBiomeList(argument.substring(0, comma))) {
+			return new SourceResult(0, error(Translation.DIALOG_REPLACE_BLOCKS_VALIDATION_SOURCE_BIOME.toString()));
+		}
+		SourceResult source = readSourceExpression(argument.substring(comma + 1));
 		if (source.diagnostic().isError()) {
 			return source;
 		}
@@ -299,6 +320,27 @@ final class ReplaceBlocksDiagnostics {
 		} catch (NumberFormatException ex) {
 			return false;
 		}
+	}
+
+	private static boolean isValidBiomeList(String raw) {
+		String[] parts = raw.trim().split(";", -1);
+		if (parts.length == 0) {
+			return false;
+		}
+		for (String part : parts) {
+			String biome = part.trim();
+			if (biome.isEmpty()) {
+				return false;
+			}
+			if (!biome.contains(":")) {
+				biome = "minecraft:" + biome;
+			}
+			if (biome.startsWith("minecraft:") && !BiomeRegistry.isValidName(biome)
+					|| !biome.startsWith("minecraft:") && !RESOURCE_LOCATION.matcher(biome).matches()) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static SourceResult readNameWrapper(String raw, String prefix, boolean literal) {

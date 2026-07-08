@@ -94,7 +94,8 @@ Then manually inspect the relevant dialog. Do not claim world mutation behavior 
 - Keep legacy bare/quoted sources as regex compatibility syntax.
 - Keep bare source SNBT as exact-state matching.
 - Phase 4F-1 Y range restrictions are implemented through `y(min..max, source)`; do not change that syntax or matching semantics without updating parser tests, preview expectations, copied-world notes, and docs together.
-- Preserve per-rule preview counts before piling on biome or preset conditions.
+- Phase 4F-2 biome restrictions are implemented through `biome(<biome>[;<biome>...], source)`; matching is block-position aware at modern 1.18+ 4x4x4 biome-cell granularity. Do not change that syntax or granularity without updating parser tests, preview expectations, copied-world notes, and docs together.
+- Preserve per-rule preview counts before piling on preset conditions.
 - Warn about air replacement because it can create missing sections.
 - Keep preview/dry-run paths non-mutating: do not call `replaceBlocks(...)`, do not save regions, and do not enqueue save jobs from preview.
 - Verify tile/block entity replacement for duplicate entities before expanding tile UI support.
@@ -113,5 +114,6 @@ Then manually inspect the relevant dialog. Do not claim world mutation behavior 
 - Phase 4E tile/block entity source safety controls are implemented with `tile(...)` and `no_tile(...)`, clearer Extra NBT Builder labels/help, preview add/remove/update estimates, duplicate target tile cleanup in modern 1.18+ paths, and user-reported copied-world in-game validation.
 - Phase 5A per-rule preview counts are implemented.
 - Phase 4F-1 Y range restrictions are implemented with Builder min/max Y controls, parser/diagnostic support, preview filtering, and modern 1.18+ execution filtering.
+- Phase 4F-2 biome restrictions are implemented with Builder source biome input, parser/diagnostic support, preview filtering, and modern 1.18+ execution filtering.
 - ReplaceBlocks UI polish is implemented: debounced field-row diagnostics, visible default Builder button, and addable empty-builder example defaults.
-- Remaining work should follow the revised route: biome restrictions, presets, and release hardening.
+- Remaining work should follow the revised route: presets and release hardening.
