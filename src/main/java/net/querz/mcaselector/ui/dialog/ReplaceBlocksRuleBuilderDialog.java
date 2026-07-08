@@ -21,6 +21,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
@@ -42,6 +43,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private static final PseudoClass error = PseudoClass.getPseudoClass("error");
 	private static final PseudoClass warning = PseudoClass.getPseudoClass("warning");
 	private static final ButtonType HELP = new ButtonType("", ButtonBar.ButtonData.LEFT);
+	private static final Color PROPERTY_CHOICE_TEXT = Color.web("#f2f2f2");
 
 	private final Stage primaryStage;
 	private final BlockStateCatalog catalog = BlockStateCatalog.latestJava();
@@ -695,6 +697,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				value.setCellFactory(v -> new PropertyChoiceCell());
 				value.setButtonCell(new PropertyChoiceCell());
 				value.setValue(PropertyChoice.allChoice());
+				value.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+					if (!value.isShowing()) {
+						Platform.runLater(value::show);
+					}
+				});
 				propertyEditors.put(property.getKey(), value);
 				properties.add(name, 0, row);
 				properties.add(value, 1, row);
@@ -788,8 +795,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		@Override
 		protected void updateItem(PropertyChoice item, boolean empty) {
 			super.updateItem(item, empty);
-			setText(empty || item == null ? null : item.toString());
-			setGraphic(null);
+			setText(null);
+			if (empty || item == null) {
+				setGraphic(null);
+				return;
+			}
+			Text text = new Text(item.toString());
+			text.setFill(PROPERTY_CHOICE_TEXT);
+			setGraphic(text);
 		}
 	}
 
