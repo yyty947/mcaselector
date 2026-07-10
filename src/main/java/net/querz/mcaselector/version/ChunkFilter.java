@@ -278,19 +278,22 @@ public interface ChunkFilter {
 		}
 
 		public boolean matches(CompoundTag blockState) {
-			return matches(blockState, false);
+			return !requiresLocationContext() && matchesBlockState(blockState);
 		}
 
 		public boolean matches(CompoundTag blockState, boolean hasTileEntity) {
-			return matchesBlockState(blockState) && matchesTileEntityMode(hasTileEntity);
+			return !hasYRange() && !hasBiomeRestriction()
+					&& matchesBlockState(blockState) && matchesTileEntityMode(hasTileEntity);
 		}
 
 		public boolean matches(CompoundTag blockState, boolean hasTileEntity, int y) {
-			return matches(blockState, hasTileEntity, y, null);
+			return !hasBiomeRestriction() && matchesY(y)
+					&& matchesBlockState(blockState) && matchesTileEntityMode(hasTileEntity);
 		}
 
 		public boolean matches(CompoundTag blockState, boolean hasTileEntity, int y, String biome) {
-			return matchesY(y) && matchesBiome(biome) && matches(blockState, hasTileEntity);
+			return matchesY(y) && matchesBiome(biome)
+					&& matchesBlockState(blockState) && matchesTileEntityMode(hasTileEntity);
 		}
 
 		private boolean matchesBlockState(CompoundTag blockState) {
@@ -385,6 +388,10 @@ public interface ChunkFilter {
 
 		public boolean hasBiomeRestriction() {
 			return !biomes.isEmpty();
+		}
+
+		public boolean requiresLocationContext() {
+			return tileEntityMode != BlockReplaceTileEntityMode.ANY || hasYRange() || hasBiomeRestriction();
 		}
 
 		public Integer getMinY() {

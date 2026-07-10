@@ -44,11 +44,11 @@ Implemented:
 
 Not implemented yet:
 
-- Phase 6: copied-world test hardening and release prep.
+- Phase 6 remains in progress. Automated hardening, all 53 tests, translation completeness, and `build shadowJar` pass. Dual-locale JavaFX interaction, complete-JDK-21 `jpackage`, and disposable 1.18.x/1.21.x copied-world gates remain open.
 
 ## Next Recommended Task
 
-Next best target: Phase 6 release hardening.
+Next best target: finish the remaining Phase 6 environment and manual gates.
 
 Goal:
 

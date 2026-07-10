@@ -86,7 +86,7 @@ public class ChunkFilter_17w47a {
 			pos = pos.chunkToBlock();
 
 			// handle the special case when someone wants to replace air with something else
-			if (replace.keySet().stream().anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
+			if (replace.keySet().stream().filter(s -> !s.requiresLocationContext()).anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
 				Map<Integer, CompoundTag> sectionMap = new HashMap<>();
 				List<Integer> heights = new ArrayList<>(18);
 				for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
@@ -127,7 +127,10 @@ public class ChunkFilter_17w47a {
 
 				long[] blockStates = Helper.longArrayFromCompound(section, "BlockStates");
 				if (blockStates == null) {
-					continue;
+					if (palette.size() != 1) {
+						continue;
+					}
+					blockStates = new long[256];
 				}
 
 				int y = Helper.numberFromCompound(section, "Y", -1).intValue();
@@ -156,21 +159,14 @@ public class ChunkFilter_17w47a {
 						Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
 
 						if (replacement.getTile() != null) {
+							removeTileEntitiesAt(tileEntities, location);
 							CompoundTag tile = replacement.getTile().copy();
 							tile.putInt("x", location.getX());
 							tile.putInt("y", location.getY());
 							tile.putInt("z", location.getZ());
 							tileEntities.add(tile);
 						} else if (!tileEntities.isEmpty()) {
-							for (int t = 0; t < tileEntities.size(); t++) {
-								CompoundTag tile = tileEntities.getCompound(t);
-								if (tile.getInt("x") == location.getX()
-										&& tile.getInt("y") == location.getY()
-										&& tile.getInt("z") == location.getZ()) {
-									tileEntities.remove(t);
-									break;
-								}
-							}
+							removeTileEntitiesAt(tileEntities, location);
 						}
 					}
 				}
@@ -185,6 +181,17 @@ public class ChunkFilter_17w47a {
 			}
 
 			level.put("TileEntities", tileEntities);
+		}
+
+		private void removeTileEntitiesAt(ListTag tileEntities, Point3i location) {
+			for (int t = tileEntities.size() - 1; t >= 0; t--) {
+				CompoundTag tile = tileEntities.getCompound(t);
+				if (tile.getInt("x") == location.getX()
+						&& tile.getInt("y") == location.getY()
+						&& tile.getInt("z") == location.getZ()) {
+					tileEntities.remove(t);
+				}
+			}
 		}
 
 		protected Point3i indexToLocation(int i) {

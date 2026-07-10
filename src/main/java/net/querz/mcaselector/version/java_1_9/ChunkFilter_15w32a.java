@@ -226,7 +226,7 @@ public class ChunkFilter_15w32a {
 			}
 
 			// handle the special case when someone wants to replace air with something else
-			if (replace.keySet().stream().anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
+			if (replace.keySet().stream().filter(s -> !s.requiresLocationContext()).anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
 				Map<Integer, CompoundTag> sectionMap = new HashMap<>();
 				List<Integer> heights = new ArrayList<>(18);
 				for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
@@ -256,7 +256,15 @@ public class ChunkFilter_15w32a {
 
 			for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
 				for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
+					if (entry.getKey().requiresLocationContext()
+							|| entry.getKey().getType() != ChunkFilter.BlockReplaceSourceType.LEGACY_REGEX_NAME
+							&& entry.getKey().getType() != ChunkFilter.BlockReplaceSourceType.LITERAL_NAME) {
+						continue;
+					}
 					BlockData[] bd = mapping.get(entry.getKey().getName());
+					if (bd == null) {
+						continue;
+					}
 					BlockData bdr = mapping.get(entry.getValue().getName())[0];
 
 					byte[] blocks = section.getByteArray("Blocks");
@@ -287,7 +295,9 @@ public class ChunkFilter_15w32a {
 				for (int i = 0; i < tileEntities.size(); i++) {
 					CompoundTag tileEntity = tileEntities.getCompound(i);
 					String id = Helper.stringFromCompound(tileEntity, "id");
-					if (id != null && replace.containsKey(id)) {
+					if (id != null && replace.keySet().stream()
+							.filter(s -> !s.requiresLocationContext())
+							.anyMatch(s -> Objects.equals(s.getName(), id))) {
 						tileEntities.remove(i);
 						i--;
 					}

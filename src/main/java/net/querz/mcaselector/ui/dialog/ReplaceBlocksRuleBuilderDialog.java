@@ -344,7 +344,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			return;
 		}
 		ruleItems.remove(selected);
-		ParsedRule parsed = parseEditableRule(selected);
+		ParsedRule parsed = parseEditableRule(selected.from(), selected.to());
 		if (parsed == null) {
 			from.applyPreset(selected.from(), SourceTileMode.ANY);
 			to.applyPreset(selected.to(), SourceTileMode.ANY);
@@ -606,12 +606,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				.anyMatch(rule -> rule.from().equals(from) && rule.to().equals(to));
 	}
 
-	private ParsedRule parseEditableRule(Rule rule) {
-		ParsedRule parsed = parseSingleRule(formatFrom(rule.from()) + "=" + formatTo(rule.to()));
-		return parsed == null ? parseSingleRule(rule.from() + "=" + rule.to()) : parsed;
+	static ParsedRule parseEditableRule(String from, String to) {
+		ParsedRule parsed = parseSingleRule(formatFrom(from) + "=" + formatTo(to));
+		return parsed == null ? parseSingleRule(from + "=" + to) : parsed;
 	}
 
-	private ParsedRule parseSingleRule(String value) {
+	private static ParsedRule parseSingleRule(String value) {
 		ReplaceBlocksField field = new ReplaceBlocksField();
 		if (!ReplaceBlocksDiagnostics.parseReplaceBlocksValue(field, value) || field.getNewValue().isEmpty()) {
 			return null;
@@ -705,14 +705,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		return label;
 	}
 
-	private String formatFrom(String name) {
+	private static String formatFrom(String name) {
 		if (name.startsWith("{") || name.startsWith("'") || isSourceModeExpression(name)) {
 			return name;
 		}
 		return "literal(" + formatWrapperArgument(name) + ")";
 	}
 
-	private String formatTo(String name) {
+	private static String formatTo(String name) {
 		if (name.startsWith("{") || name.startsWith("'")) {
 			return name;
 		}
@@ -777,7 +777,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		return builder.toString();
 	}
 
-	private static Map<String, String> editableStateProperties(CompoundTag state) {
+	static Map<String, String> editableStateProperties(CompoundTag state) {
 		if (state == null || state.getString("Name") == null) {
 			return null;
 		}
@@ -1681,7 +1681,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 	private record PresetValue(String value, ReplaceBlocksDiagnostics.Diagnostic diagnostic) {}
 
-	private record ParsedRule(ChunkFilter.BlockReplaceSource source, ChunkFilter.BlockReplaceData target) {}
+	record ParsedRule(ChunkFilter.BlockReplaceSource source, ChunkFilter.BlockReplaceData target) {}
 
 	private record Rule(String from, String to) {}
 

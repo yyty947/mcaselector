@@ -273,7 +273,7 @@ Older 21w37a-era code uses `TileEntities`/level-style naming in some paths. The 
 
 For 21w43a+, `Heightmap.getHeightMap(...)` scans root `sections`, reads `block_states.palette` and `block_states.data`, walks x/z columns from highest section down, and writes packed height values based on matcher predicates loaded from version-specific heightmap config resources.
 
-Reconnaissance note: the scanner for modern sections was found, but no modern override of inherited `setHeightMap(...)` was found in the files read. Older `setHeightMap(...)` writes through `Helper.levelFromRoot(root)` to `Level.Heightmaps`. This should be verified against 1.18+ flat chunk data before relying on heightmap recomputation.
+Phase 6 confirmed and fixed three heightmap defects: packed values used the wrong entries-per-long loop bound, 21w37a read palette/data from the wrong section level, and 21w43a inherited a `Level.Heightmaps` writer even though its chunks store `Heightmaps` at root. Both early-flat and post-21w43a shapes now have automated scan/packing/writeback tests, including single-palette sections without a data array. Real copied-world surface and log validation remains a release gate.
 
 ## Light data
 

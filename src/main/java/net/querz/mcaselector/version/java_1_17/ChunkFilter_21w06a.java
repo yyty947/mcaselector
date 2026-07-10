@@ -269,7 +269,7 @@ public class ChunkFilter_21w06a {
 			int index = 0;
 			for (int i = 0; i < data.length; i++) {
 				long l = 0L;
-				for (int j = 0; j < bits - 1 && index < 256; j++, index++) {
+				for (int j = 0; j < 64 / bits && index < 256; j++, index++) {
 					l += ((long) rawHeightmap[index] << (bits * j));
 				}
 				data[i] = l;
@@ -284,7 +284,7 @@ public class ChunkFilter_21w06a {
 		@Override
 		public void replaceBlocks(ChunkData data, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
 			CompoundTag level = Helper.levelFromRoot(Helper.getRegion(data));
-			ListTag sections = Helper.tagFromLevelFromRoot(level, "Sections");
+			ListTag sections = Helper.tagFromCompound(level, "Sections");
 			if (sections == null) {
 				return;
 			}
@@ -298,7 +298,7 @@ public class ChunkFilter_21w06a {
 			Range sectionRange = Helper.findSectionRange(level, sections);
 
 			// handle the special case when someone wants to replace air with something else
-			if (replace.keySet().stream().anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
+			if (replace.keySet().stream().filter(s -> !s.requiresLocationContext()).anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
 				Map<Integer, CompoundTag> sectionMap = new HashMap<>();
 				List<Integer> heights = new ArrayList<>(sectionRange.num());
 				for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
@@ -339,7 +339,10 @@ public class ChunkFilter_21w06a {
 
 				long[] blockStates = Helper.longArrayFromCompound(section, "BlockStates");
 				if (blockStates == null) {
-					continue;
+					if (palette.size() != 1) {
+						continue;
+					}
+					blockStates = new long[256];
 				}
 
 				int y = Helper.numberFromCompound(section, "Y", sectionRange.getFrom() - 1).intValue();
@@ -368,21 +371,14 @@ public class ChunkFilter_21w06a {
 						Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
 
 						if (replacement.getTile() != null) {
+							removeTileEntityAt(tileEntities, location);
 							CompoundTag tile = replacement.getTile().copy();
 							tile.putInt("x", location.getX());
 							tile.putInt("y", location.getY());
 							tile.putInt("z", location.getZ());
 							tileEntities.add(tile);
 						} else if (!tileEntities.isEmpty()) {
-							for (int t = 0; t < tileEntities.size(); t++) {
-								CompoundTag tile = tileEntities.getCompound(t);
-								if (tile.getInt("x") == location.getX()
-										&& tile.getInt("y") == location.getY()
-										&& tile.getInt("z") == location.getZ()) {
-									tileEntities.remove(t);
-									break;
-								}
-							}
+							removeTileEntityAt(tileEntities, location);
 						}
 					}
 				}
@@ -397,6 +393,17 @@ public class ChunkFilter_21w06a {
 			}
 
 			level.put("TileEntities", tileEntities);
+		}
+
+		private void removeTileEntityAt(ListTag tileEntities, Point3i location) {
+			for (int t = tileEntities.size() - 1; t >= 0; t--) {
+				CompoundTag tile = tileEntities.getCompound(t);
+				if (tile.getInt("x") == location.getX()
+						&& tile.getInt("y") == location.getY()
+						&& tile.getInt("z") == location.getZ()) {
+					tileEntities.remove(t);
+				}
+			}
 		}
 
 		@Override

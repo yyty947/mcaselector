@@ -1,9 +1,60 @@
 # ReplaceBlocks Test Plan
 
 Date: 2026-06-04
-Last updated: 2026-07-07
+Last updated: 2026-07-10
 
 Safety rule: never test on a real world save. Always copy a small test world and keep an untouched backup.
+
+## Phase 6 release gates
+
+Phase 6 is complete only when every required gate below passes on the same candidate commit. A focused rerun may validate a fix while it is being developed, but it does not replace the final full gate.
+
+Version and capability matrix:
+
+| World format | Ordinary / legacy rules | `literal` / `regex` / state matching | Tile, Y, and biome conditions | Preview |
+|---|---|---|---|---|
+| Java 1.9 classic IDs | Existing exact legacy IDs and literal IDs | Unsupported source forms fail closed | Unsupported and must fail closed | Unsupported |
+| Java 1.13-1.17 palettes | Preserved | Evaluated against available block-state compounds | Unsupported and must fail closed | Unsupported |
+| Early flat 1.18 snapshots (21w37a path) | Supported | Supported | Supported with position, block entity, Y, and biome context | Supported |
+| 1.18 release and newer (21w43a path) | Supported | Supported | Supported with position, block entity, Y, and biome context | Supported |
+
+Required gates:
+
+| ID | Gate | Required evidence |
+|---|---|---|
+| `AUTO-01` | Java compile and all JUnit tests | Successful command output and test count |
+| `AUTO-02` | Translation completeness | No missing ReplaceBlocks translation keys |
+| `PKG-01` | `build shadowJar` | Successful build output |
+| `PKG-02` | Windows `jpackage` | Successful package output, or a recorded environment blocker that is resolved before PR |
+| `UI-01` | Chinese Builder regression pass | Completed checklist, screenshot, and clean console |
+| `UI-02` | English Builder regression pass | Completed checklist, screenshot, and clean console |
+| `WORLD-18` | Disposable Java 1.18.x world | Preview/execution comparison, world reload, and log check |
+| `WORLD-21` | Disposable Java 1.21.x world | Preview/execution comparison, world reload, and log check |
+| `DOC-01` | Internal docs alignment | No stale phase status or compatibility claims |
+
+Release blockers:
+
+- any preview path writes region, entities, or poi files
+- preview counts differ from execution on a fresh copy without an explained overlap case
+- unsupported old formats ignore a source condition and broaden the replacement
+- duplicate or stale block entities remain after replacement
+- modern heightmaps are absent, malformed, or written to the wrong NBT level
+- Minecraft reports chunk, palette, block entity, lighting, or heightmap errors after load and reload
+- Builder input, popup, property restoration, or preset actions log JavaFX exceptions
+- required translations render as raw keys
+
+Phase 6 execution record:
+
+| Gate | Status | Commit / environment | Evidence or remaining action |
+|---|---|---|---|
+| Focused parser, Builder model, legacy safety, modern preview, and heightmap tests | Passed | Windows, Java 21, 2026-07-10 | Focused Gradle test runs passed; final full gate still required |
+| `AUTO-01` | Passed | Windows 11, Java 21, 2026-07-10 | 53 tests passed; `compileJava` and full `test` succeeded |
+| `AUTO-02` | Passed | Windows 11, Java 21, 2026-07-10 | `run --args="--mode printMissingTranslations"` succeeded with no missing-key output |
+| `PKG-01` | Passed | Windows 11, Java 21, 2026-07-10 | `build shadowJar` succeeded and reran all 53 tests |
+| `PKG-02` | Blocked | Minecraft/Android Java 21 runtimes lack `jmods`; installed full JDKs are 17 and 25 | Rerun with a complete Java 21 JDK; do not treat JDK 25 packaging as the release gate |
+| JavaFX startup smoke | Passed | Chinese locale, Java 21, 2026-07-10 | Main window rendered with menu, chunk grid, status bar, and no startup exception |
+| `UI-01` / `UI-02` | Pending | Requires interactive Builder operation | Complete both locale passes and retain screenshots |
+| `WORLD-18` / `WORLD-21` | Blocked | No confirmed disposable fixtures | A possible 1.21 `mcatest` world exists in a version-specific saves directory but must not be used without confirmation; no 1.18.x fixture was found |
 
 ## Catalog data tests
 
@@ -89,6 +140,18 @@ Manual checks:
 
 ## UI interaction regression checks
 
+Execution matrix:
+
+| ID | Scenario | Pass condition |
+|---|---|---|
+| `UI-01A` / `UI-02A` | Empty Builder and validation timing | Blank inputs, no eager error, correct helper/status colors |
+| `UI-01B` / `UI-02B` | Block and biome completion | Tab and click both work; first popup, hover, caret, and token completion are stable |
+| `UI-01C` / `UI-02C` | Stateful two-column layout | Equal widths, aligned property rows, source-only controls below properties |
+| `UI-01D` / `UI-02D` | Rule add, select, edit, delete | `literal`, `props`, tile, Y, biome, and target state restore without losing editable controls |
+| `UI-01E` / `UI-02E` | Built-in and custom presets | Fill, save draft, overwrite, load, and delete preserve parser-equivalent rules |
+| `UI-01F` / `UI-02F` | Help and Preview | Correct enablement, non-mutating preview, per-rule/tile/overlap output |
+| `UI-01G` / `UI-02G` | Resize and console | No overlap/clipping at default and resized layouts; no JavaFX exception |
+
 Manual checks:
 
 - In the NBT Changer field row, type `minecraft:stone=minecraft:dirt` directly into ReplaceBlocks. The field should stay visually neutral while typing and only show valid/invalid feedback after a short pause.
@@ -139,21 +202,39 @@ Automated coverage:
 
 ## Test world preparation
 
-- Create a small creative-mode Java Edition world.
-- Save copies for at least:
-  - Minecraft 1.18.x or compatible 1.18+ DataVersion
-  - Minecraft 1.21.x or compatible 1.21+ DataVersion
-- Put test chunks near spawn for easy inspection.
-- Make a backup before every MCA Selector run.
-- Keep region, entities, and poi files together when copying.
+- Create one small creative-mode Java 1.18.x world and one Java 1.21.x world.
+- Keep each untouched baseline outside this repository and never open it with MCA Selector.
+- Before every test case, copy the entire world directory to a fresh case directory. Keep `region`, `entities`, `poi`, `level.dat`, and datapack files together.
+- Record the Minecraft version, world DataVersion, candidate commit, selected chunks, rule text, and copy path in the execution table.
+- Before preview, record modified times, sizes, and SHA-256 hashes for the selected region/entities/poi files. Record them again after preview; every value must be unchanged.
+- Execute the replacement only on a second fresh copy, never on the preview copy.
+- After execution, load the copy in Minecraft, visit the changed chunks, save, exit, reopen, and inspect the latest game log.
 
-Suggested layout:
+Required fixture layout near spawn:
 
-- one chunk with normal blocks
-- one chunk with block states
-- one chunk with containers / tile entities
-- one sparse or empty area for air replacement
-- signs or coordinate markers to identify positions
+| Fixture | Contents |
+|---|---|
+| A | Counted stone, dirt, deepslate, and glass groups for ordinary and multiple rules |
+| B | Logs, stairs, slabs, trapdoors, and waterlogged variants with visible orientation markers |
+| C | Chest and barrel with named items, furnace state, and sign text for block entity checks |
+| D | Marked Y layers plus a tiny sparse/empty section area for bounded air replacement |
+| E | Marker blocks spanning a stored biome boundary, with positions recorded on both sides |
+| F | A small exposed surface containing solid, leaves, water, and air for light/heightmap checks |
+
+Use exact block counts that are easy to verify (for example 16 or 64 blocks per group) and record the expected count before running preview.
+
+Copied-world execution matrix (run each ID on separate fresh copies for both required versions):
+
+| ID | Rule family | Expected evidence |
+|---|---|---|
+| `WORLD-*-01` | Ordinary, multiple rules, and selection-only | Exact counted groups change; outside blocks/chunks remain unchanged |
+| `WORLD-*-02` | Literal, regex, exact state, props, and waterlogged state | Only intended IDs/states change; generated text round-trips |
+| `WORLD-*-03` | `tile` / `no_tile` and tile targets | Preview add/remove/update counts match; no duplicate coordinates; item/sign data outcome is intentional |
+| `WORLD-*-04` | Bounded Y and sparse air | Only requested layers change; no section is created outside the intersecting Y range |
+| `WORLD-*-05` | Biome boundary and combined biome + Y + tile | Stored biome-cell boundary is respected and preview equals execution |
+| `WORLD-*-06` | Overlapping rules | Aggregate and per-rule counts follow documented first-match/order behavior |
+| `WORLD-*-07` | Light and heightmap-sensitive surface | Light arrays are invalidated, heightmaps remain valid, Minecraft relights and reloads cleanly |
+| `WORLD-*-08` | UI/CLI parity | Equivalent rules on two fresh copies produce equivalent selected chunk data |
 
 ## Test block types
 
@@ -324,6 +405,14 @@ Syntax covered:
 - `y(0..15, tile(literal(minecraft:chest)))=minecraft:stone` combines Y filtering with source tile eligibility.
 - Invalid ranges such as `y(.., ...)`, `y(10..0, ...)`, and `y(foo..10, ...)` are rejected.
 
+Phase 4F-1 manual copied-world checks:
+
+- Repeat air replacement on a tiny copied selection with a narrow Y range.
+- Verify missing sections are not created outside the requested Y range.
+- Compare preview counts with execution on a fresh copied world.
+- Verify a normal block replacement across two visible heights, for example replacing stone with glass only at one marked Y layer.
+- Verify a tile-filtered Y rule on containers if a copied test world has containers at different heights.
+
 ## Biome replacement
 
 Phase 4F-2 automated coverage:
@@ -350,14 +439,6 @@ Phase 4F-2 manual copied-world checks:
 - Confirm preview counts match execution on a fresh copy of the same selection.
 - Verify blocks immediately across the biome boundary are not changed when their stored biome does not match.
 - Repeat one combined rule with Y range plus biome condition if the boundary area has blocks at different heights.
-
-Phase 4F-1 manual copied-world checks:
-
-- Repeat air replacement on a tiny copied selection with a narrow Y range.
-- Verify missing sections are not created outside the requested Y range.
-- Compare preview counts with execution on a fresh copied world.
-- Verify a normal block replacement across two visible heights, for example replacing stone with glass only at one marked Y layer.
-- Verify a tile-filtered Y rule on containers if a copied test world has containers at different heights.
 
 ## Preview / dry-run
 
@@ -397,10 +478,11 @@ Minimum:
 - 1.18+ world using post-21w43a flat chunk structure
 - 1.21+ world
 
-Optional:
+Legacy safety coverage:
 
-- 1.17 world for old `Sections` / `TileEntities` comparison
-- one pre-1.18 world only if a regression touches shared helpers
+- Automated classic 1.9 execution confirms literal IDs still work and contextual or unsupported source modes fail closed.
+- Automated context-overload coverage protects 1.13-1.17 palette paths from silently dropping tile, Y, or biome conditions.
+- A pre-1.18 copied world remains optional because new conditional execution and preview are documented as modern-only; if one is used, it is a compatibility smoke test, not a substitute for `WORLD-18` or `WORLD-21`.
 
 ## World integrity checks
 

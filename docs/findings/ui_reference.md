@@ -236,7 +236,7 @@ Current 4B usage:
 - Preserve per-rule preview counts before layering on more conditions.
 - Source tile entity eligibility is implemented and documented in the Builder Help dialog; keep future Builder help content in that dialog instead of adding more permanent helper text to the main form.
 - Rich target tile NBT editing is still pending.
-- Biome restrictions and presets are implemented; release hardening is still pending.
+- Biome restrictions and presets are implemented. Phase 6 rule-edit model regression tests pass; dual-locale JavaFX interaction and final screenshot gates remain pending.
 
 ## Builder UI implementation notes
 

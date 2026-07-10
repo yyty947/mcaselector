@@ -117,4 +117,5 @@ Then manually inspect the relevant dialog. Do not claim world mutation behavior 
 - Phase 4F-2 biome restrictions are implemented with Builder source biome input, parser/diagnostic support, preview filtering, and modern 1.18+ execution filtering.
 - Phase 4G presets are implemented as visible Builder input fillers for common replacements, with warning text for air and container/data-block cases.
 - ReplaceBlocks UI polish is implemented: debounced field-row diagnostics, visible default Builder button, and addable empty-builder example defaults.
-- Remaining work should follow the revised route: release hardening.
+- Phase 6 automated hardening is implemented: 53 tests pass, including Builder rule-edit restoration, pre-1.18 fail-closed execution, modern preview/execution parity, light invalidation, and modern heightmap packing/writeback. Translation completeness and `build shadowJar` pass.
+- Remaining release gates are dual-locale JavaFX interaction, complete-JDK-21 `jpackage`, and disposable 1.18.x/1.21.x copied-world validation. Do not mark Phase 6 complete until all required gates pass.

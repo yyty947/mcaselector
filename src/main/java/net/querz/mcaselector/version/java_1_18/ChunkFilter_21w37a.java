@@ -566,10 +566,11 @@ public class ChunkFilter_21w37a {
 			ListTag[] palettes = new ListTag[sectionRange.num()];
 			long[][] blockStatesArray = new long[sectionRange.num()][];
 			sections.forEach(s -> {
-				ListTag p = Helper.tagFromCompound(s, "palette");
-				long[] b = Helper.longArrayFromCompound(s, "block_states");
+				CompoundTag blockStates = Helper.tagFromCompound(s, "block_states");
+				ListTag p = Helper.tagFromCompound(blockStates, "palette");
+				long[] b = Helper.longArrayFromCompound(blockStates, "data");
 				int y = Helper.numberFromCompound(s, "Y", sectionRange.getFrom() - 1).intValue();
-				if (sectionRange.contains(y) && p != null && b != null) {
+				if (sectionRange.contains(y) && p != null && !p.isEmpty() && (b != null || p.size() == 1)) {
 					palettes[y - sectionRange.getFrom()] = p;
 					blockStatesArray[y - sectionRange.getFrom()] = b;
 				}
@@ -587,6 +588,16 @@ public class ChunkFilter_21w37a {
 							continue;
 						}
 						long[] blockStates = blockStatesArray[i];
+						if (palette.size() == 1) {
+							if (matcher.test(palette.getCompound(0))) {
+								heightmap[cz * 16 + cx] = (short) ((i + 1) * 16);
+								continue loop;
+							}
+							continue;
+						}
+						if (blockStates == null) {
+							continue;
+						}
 						for (int cy = 15; cy >= 0; cy--) {
 							int blockIndex = cy * 256 + cz * 16 + cx;
 							if (matcher.test(getBlockAt(blockIndex, blockStates, palette))) {

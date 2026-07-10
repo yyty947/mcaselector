@@ -308,7 +308,7 @@ public class ChunkFilter_21w43a {
 				ListTag p = Helper.tagFromCompound(Helper.tagFromCompound(s, "block_states"), "palette");
 				long[] b = Helper.longArrayFromCompound(Helper.tagFromCompound(s, "block_states"), "data");
 				int y = Helper.numberFromCompound(s, "Y", sectionRange.getFrom() - 1).intValue();
-				if (sectionRange.contains(y) && p != null && b != null) {
+				if (sectionRange.contains(y) && p != null && !p.isEmpty() && (b != null || p.size() == 1)) {
 					palettes[y - sectionRange.getFrom()] = p;
 					blockStatesArray[y - sectionRange.getFrom()] = b;
 				}
@@ -326,6 +326,16 @@ public class ChunkFilter_21w43a {
 							continue;
 						}
 						long[] blockStates = blockStatesArray[i];
+						if (palette.size() == 1) {
+							if (matcher.test(palette.getCompound(0))) {
+								heightmap[cz * 16 + cx] = (short) ((i + 1) * 16);
+								continue loop;
+							}
+							continue;
+						}
+						if (blockStates == null) {
+							continue;
+						}
 						for (int cy = 15; cy >= 0; cy--) {
 							int blockIndex = cy * 256 + cz * 16 + cx;
 							if (matcher.test(getBlockAt(blockIndex, blockStates, palette))) {
@@ -339,6 +349,15 @@ public class ChunkFilter_21w43a {
 
 			int bits = 32 - Integer.numberOfLeadingZeros(sectionRange.num() * 16);
 			return applyHeightMap(heightmap, bits);
+		}
+
+		@Override
+		protected void setHeightMap(CompoundTag root, String name, long[] heightmap) {
+			if (root == null) {
+				return;
+			}
+			CompoundTag heightmaps = (CompoundTag) root.computeIfAbsent("Heightmaps", k -> new CompoundTag());
+			heightmaps.putLongArray(name, heightmap);
 		}
 	}
 

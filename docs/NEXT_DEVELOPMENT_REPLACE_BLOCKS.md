@@ -247,3 +247,5 @@ Minimum command checks after Java changes:
 ```
 
 Use narrower tests during development when possible, then broaden before release hardening.
+
+Phase 6 automated hardening began on 2026-07-10. It added rule-edit model regression coverage, fail-closed behavior for unsupported contextual rules in older execution paths, direct 1.9/1.13/1.17 execution tests, early-flat/modern preview parity checks, light invalidation assertions, and modern heightmap packing/writeback tests. Full tests, translation completeness, and `build shadowJar` pass; JavaFX, copied-world, and complete-JDK-21 `jpackage` gates remain open.

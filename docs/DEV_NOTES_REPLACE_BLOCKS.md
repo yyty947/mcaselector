@@ -119,8 +119,9 @@ CLI path:
 - When the target includes tile entity SNBT, modern 1.18+ paths remove existing block entities at the replacement coordinates before adding the new tile.
 - Preview estimates tile entity additions, removals, and updates.
 - Preview and modern 1.18+ execution apply Y filtering through the same `BlockReplaceSource` predicate.
+- Context-free pre-1.18 execution paths fail closed for tile, Y, and biome-restricted sources instead of silently dropping those conditions. Classic 1.9 execution also skips source modes that cannot be represented by its block-ID lookup.
 - Section light arrays are removed after section mutation.
-- Heightmaps are requested for recomputation after replacement.
+- Heightmaps are recomputed after replacement. Phase 6 fixed 1.17+ packed heightmap entry counts, early-flat nested `block_states` reads, single-palette section scans, and 21w43a+ root-level `Heightmaps` writeback.
 - Air replacement has special handling that creates missing sections in the existing section range; Y-restricted air replacement now only completes sections whose section Y range intersects an air-matching Y-restricted source.
 
 ## Current pain points
@@ -134,12 +135,12 @@ CLI path:
 - The builder now emits `props(...)` for catalog-backed source property rules, but it does not yet offer per-property enable/disable checkboxes or a dedicated source-mode selector.
 - The catalog currently includes Java 1.21.9. More versions need additional generated resources and a selection strategy.
 - Quoted custom target names appear fragile when followed by another rule or tile entity SNBT; this needs a focused test.
-- Modern 1.18+ target tile replacement now removes existing block entities at the same coordinates before adding the replacement tile; verify this on copied worlds before claiming real-world safety.
+- Modern 1.18+ target tile replacement removes existing block entities at the same coordinates before adding the replacement tile. Phase 6 also made the 1.13 and 1.17 palette paths remove all existing entries at the target coordinate before adding replacement tile SNBT. Copied-world release validation is still required.
 - Preview exists for modern 1.18+ paths, but unsupported older preview chunks are reported instead of estimated.
 - Replacing air can expand sparse sections across the existing section range, which is powerful but high risk.
 - Y-restricted air replacement reduces this risk by not completing sections outside the requested Y range, but copied-world validation is still required because creating a partial section can still grow sparse chunks.
 - Replacing blocks removes section light data and relies on Minecraft or later processing to rebuild lighting.
-- Heightmap writeback for post-21w43a flat chunk format should be verified in tests; reconnaissance found modern scanners, but did not find a modern `setHeightMap` override.
+- Automated Phase 6 tests verify early-flat and post-21w43a heightmap scan, packing, and writeback shape. Minecraft copied-world validation remains required for surface behavior and logs.
 
 ## UI status and improvement recommendation
 

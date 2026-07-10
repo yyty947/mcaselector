@@ -251,6 +251,25 @@ class ReplaceBlocksFieldTest {
 	}
 
 	@Test
+	void conditionalSourcesFailClosedWithoutRequiredContext() {
+		CompoundTag chest = state("minecraft:chest");
+		ChunkFilter.BlockReplaceSource tile = ChunkFilter.BlockReplaceSource.literalName("minecraft:chest")
+				.withTileEntityMode(ChunkFilter.BlockReplaceTileEntityMode.EXCLUDE_TILE_ENTITY);
+		ChunkFilter.BlockReplaceSource yRange = ChunkFilter.BlockReplaceSource.literalName("minecraft:chest")
+				.withYRange(0, 15);
+		ChunkFilter.BlockReplaceSource biome = ChunkFilter.BlockReplaceSource.literalName("minecraft:chest")
+				.withBiomes(Set.of("minecraft:plains"));
+
+		assertTrue(tile.requiresLocationContext());
+		assertFalse(tile.matches(chest));
+		assertFalse(yRange.matches(chest));
+		assertFalse(biome.matches(chest));
+		assertTrue(tile.matches(chest, false));
+		assertTrue(yRange.matches(chest, false, 8));
+		assertTrue(biome.matches(chest, false, 8, "minecraft:plains"));
+	}
+
+	@Test
 	void rejectsInvalidYRangeSourceFilters() {
 		ReplaceBlocksField field = new ReplaceBlocksField();
 

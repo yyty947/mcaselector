@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class ReplaceBlocksPreviewCountsTest {
 
@@ -152,7 +153,10 @@ class ReplaceBlocksPreviewCountsTest {
 
 		CompoundTag root = root();
 		root.putInt("DataVersion", 2844);
-		root.put("sections", sections());
+		ListTag sections = sections();
+		sections.getCompound(0).putByteArray("BlockLight", new byte[] { 1 });
+		sections.getCompound(0).putByteArray("SkyLight", new byte[] { 1 });
+		root.put("sections", sections);
 		RegionChunk region = new RegionChunk(new Point2i(0, 0));
 		region.setData(root);
 		PreviewBlocks blocks = new PreviewBlocks();
@@ -161,6 +165,44 @@ class ReplaceBlocksPreviewCountsTest {
 
 		assertEquals("minecraft:dirt", blocks.blockAt(root, 0));
 		assertEquals("minecraft:stone", blocks.blockAt(root, 256));
+		assertFalse(((ListTag) root.get("sections")).getCompound(0).containsKey("BlockLight"));
+		assertFalse(((ListTag) root.get("sections")).getCompound(0).containsKey("SkyLight"));
+	}
+
+	@Test
+	void earlyFlatPreviewAndExecutionRespectYAndBiomeConditions() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
+		replace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:stone")
+						.withYRange(0, 3)
+						.withBiomes(List.of("minecraft:forest")),
+				new ChunkFilter.BlockReplaceData("minecraft:dirt"));
+
+		CompoundTag level = new CompoundTag();
+		level.putInt("xPos", 0);
+		level.putInt("zPos", 0);
+		ListTag sections = sectionsWithForestBiomeCell();
+		sections.getCompound(0).putByteArray("BlockLight", new byte[] { 1 });
+		sections.getCompound(0).putByteArray("SkyLight", new byte[] { 1 });
+		level.put("Sections", sections);
+		level.put("TileEntities", new ListTag());
+		CompoundTag root = new CompoundTag();
+		root.putInt("DataVersion", 2834);
+		root.put("Level", level);
+		EarlyPreviewBlocks blocks = new EarlyPreviewBlocks();
+
+		ChunkFilter.BlockReplacePreviewData preview = blocks.preview(level, sections, replace);
+		assertEquals(64, preview.getBlocks());
+		assertEquals(64, preview.getRules().get(0).getBlocks());
+
+		RegionChunk region = new RegionChunk(new Point2i(0, 0));
+		region.setData(root);
+		blocks.replaceBlocks(new ChunkData(new Point2i(0, 0), region, null, null, true), replace);
+
+		assertEquals("minecraft:dirt", blocks.blockAt(level, 0));
+		assertEquals("minecraft:stone", blocks.blockAt(level, 4));
+		assertFalse(sections.getCompound(0).containsKey("BlockLight"));
+		assertFalse(sections.getCompound(0).containsKey("SkyLight"));
 	}
 
 	@Test
@@ -295,6 +337,19 @@ class ReplaceBlocksPreviewCountsTest {
 		private String blockAt(CompoundTag root, int index) {
 			CompoundTag section = ((ListTag) root.get("sections")).getCompound(0);
 			CompoundTag blockStates = section.getCompound("block_states");
+			return getBlockAt(index, blockStates.getLongArray("data"), blockStates.getListTag("palette")).getString("Name");
+		}
+	}
+
+	private static class EarlyPreviewBlocks extends ChunkFilter_21w37a.Blocks {
+
+		private ChunkFilter.BlockReplacePreviewData preview(CompoundTag level, ListTag sections, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
+			return previewReplaceBlocks(level, sections, "TileEntities", replace);
+		}
+
+		private String blockAt(CompoundTag level, int index) {
+			CompoundTag section = level.getListTag("Sections").getCompound(0);
+			CompoundTag blockStates = section.getCompoundTag("block_states");
 			return getBlockAt(index, blockStates.getLongArray("data"), blockStates.getListTag("palette")).getString("Name");
 		}
 	}
