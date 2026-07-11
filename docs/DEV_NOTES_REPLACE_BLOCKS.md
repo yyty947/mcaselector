@@ -135,12 +135,12 @@ CLI path:
 - The builder now emits `props(...)` for catalog-backed source property rules, but it does not yet offer per-property enable/disable checkboxes or a dedicated source-mode selector.
 - The catalog currently includes Java 1.21.9. More versions need additional generated resources and a selection strategy.
 - Quoted custom target names appear fragile when followed by another rule or tile entity SNBT; this needs a focused test.
-- Modern 1.18+ target tile replacement removes existing block entities at the same coordinates before adding the replacement tile. Phase 6 also made the 1.13 and 1.17 palette paths remove all existing entries at the target coordinate before adding replacement tile SNBT. Copied-world release validation is still required.
+- Modern 1.18+ target tile replacement removes existing block entities at the same coordinates before adding the replacement tile. Phase 6 also made the 1.13 and 1.17 palette paths remove all existing entries at the target coordinate before adding replacement tile SNBT. DataVersion 4671 copied-world files passed remove 2 / add 11 / update 2 checks with zero duplicate block-entity coordinates; Minecraft load/reload inspection is still required.
 - Preview exists for modern 1.18+ paths, but unsupported older preview chunks are reported instead of estimated.
 - Replacing air can expand sparse sections across the existing section range, which is powerful but high risk.
-- Y-restricted air replacement reduces this risk by not completing sections outside the requested Y range, but copied-world validation is still required because creating a partial section can still grow sparse chunks.
+- Y-restricted air replacement reduces this risk by not completing sections outside the requested Y range. DataVersion 2860 and 4671 copied-world files matched and wrote exactly 20,736 and 20,479 Y=80 air blocks, with no remaining source matches; Minecraft rendering/reload validation is still required.
 - Replacing blocks removes section light data and relies on Minecraft or later processing to rebuild lighting.
-- Automated Phase 6 tests verify early-flat and post-21w43a heightmap scan, packing, and writeback shape. Minecraft copied-world validation remains required for surface behavior and logs.
+- Automated Phase 6 tests verify early-flat and post-21w43a heightmap scan, packing, and writeback shape. File-level copied-world checks found all four heightmaps present at 37 longs with no malformed arrays after ordinary, state, and bounded-air execution. Minecraft surface behavior and logs remain manual gates.
 
 ## UI status and improvement recommendation
 
@@ -174,8 +174,8 @@ The current From/To block inputs use editable JavaFX `ComboBox` controls backed 
 Recommended next work:
 
 - Biome restriction granularity is block-position aware at the modern chunk 4x4x4 biome-cell level. Do not change this to chunk/selection-wide matching without updating parser tests, preview expectations, execution tests, and docs.
-- Keep rich target tile NBT editing out of the builder until copied-world tile validation has passed.
-- Continue to test duplicate block-entity behavior on copied worlds before release hardening.
+- Keep rich target tile NBT editing out of the builder until the remaining Minecraft tile load/reload gate has passed.
+- Preserve duplicate block-entity coordinate checks in future copied-world release runs.
 
 ## Risks
 
@@ -184,10 +184,10 @@ Recommended next work:
 - Regex source matching can affect more blocks than the user expects.
 - Source-state matching requires the full stored block-state compound; partial property SNBT intentionally does not match.
 - `props(...)` can intentionally match more states than exact SNBT because unlisted properties are ignored.
-- Tile-target duplicate cleanup is covered by automated modern-path tests, but real copied-world validation is still required.
-- Y range parser, diagnostics, preview counts, and modern execution have automated coverage; copied-world validation is still required before claiming mutation safety.
+- Tile-target duplicate cleanup is covered by automated tests and DataVersion 4671 file-level copied-world checks; Minecraft load/reload remains required.
+- Y range parser, diagnostics, preview counts, modern execution, and bounded-air copied-world files pass; Minecraft rendering/reload remains required before release.
 - Light arrays are removed and may require Minecraft to recalculate.
-- Heightmap writeback for 1.18+ must be empirically checked.
+- Heightmap writeback shape passes file-level DataVersion 2860/4671 checks; Minecraft surface rendering and logs remain to be checked.
 - Parser compatibility is important because CLI and UI share `ChangeParser` and `ReplaceBlocksField`.
 - Builder, preview, UI field, and advanced query must continue to round-trip through the ReplaceBlocks text format.
 - Catalog data must remain a UI/help source until a later phase explicitly changes matching semantics.

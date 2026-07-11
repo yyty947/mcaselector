@@ -219,7 +219,7 @@ Implemented in two parts:
 - Done: Y range first.
 - Done: biome restriction after Y range stabilized.
 
-Y range is implemented through `y(min..max, source)`. It is source-side, uses world block Y, and can wrap `literal(...)`, `regex(...)`, `props(...)`, source SNBT, `tile(...)`, or `no_tile(...)`. Modern 1.18+ preview and execution use the same Y predicate. Air replacement still must be tested on tiny copied selections because it can create sparse sections; automated tests cover narrow synthetic air-section preview counts, but copied-world validation is still required.
+Y range is implemented through `y(min..max, source)`. It is source-side, uses world block Y, and can wrap `literal(...)`, `regex(...)`, `props(...)`, source SNBT, `tile(...)`, or `no_tile(...)`. Modern 1.18+ preview and execution use the same Y predicate. DataVersion 2860/4671 copied files passed bounded Y=80 air preview/execution counts and heightmap-shape checks; Minecraft rendering and reload still need manual validation because partial sections can grow sparse chunks.
 
 Biome restriction is implemented through `biome(<biome>[;<biome>...], source)`. The granularity decision is block-position aware: each candidate block position is checked against the biome value stored for that position, and in modern 1.18+ chunks that value covers a 4x4x4 block cell. Preview and execution use the same biome lookup. Automated modern tests cover a synthetic biome-cell boundary; copied-world validation should still cover at least one real biome transition and compare preview counts against execution on a fresh copy.
 
@@ -248,4 +248,4 @@ Minimum command checks after Java changes:
 
 Use narrower tests during development when possible, then broaden before release hardening.
 
-Phase 6 automated hardening began on 2026-07-10. It added rule-edit model regression coverage, fail-closed behavior for unsupported contextual rules in older execution paths, direct 1.9/1.13/1.17 execution tests, early-flat/modern preview parity checks, light invalidation assertions, and modern heightmap packing/writeback tests. Full tests, translation completeness, and `build shadowJar` pass; JavaFX, copied-world, and complete-JDK-21 `jpackage` gates remain open.
+Phase 6 automated hardening began on 2026-07-10. It added rule-edit model regression coverage, fail-closed behavior for unsupported contextual rules in older execution paths, direct 1.9/1.13/1.17 execution tests, early-flat/modern preview parity checks, light invalidation assertions, and modern heightmap packing/writeback tests. Full tests, translation completeness, `build shadowJar`, Zulu JDK FX `jpackage`, and file-level DataVersion 2860/4671 copied-world checks pass. Dual-locale JavaFX interaction, a real biome boundary, Minecraft load/save/reload, visual state/light inspection, and game-log review remain open.

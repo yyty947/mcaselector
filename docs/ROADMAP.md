@@ -229,13 +229,12 @@ This is a release gate, not a place to begin testing. Each implementation phase 
 
 Release gates:
 
-- Passed on 2026-07-10: compile and 53 automated tests covering parser/source modes, rule-edit restoration, catalog data, legacy fail-closed behavior, modern preview/execution parity, light invalidation, and heightmap packing/writeback.
-- Passed on 2026-07-10: translation completeness and `build shadowJar`.
-- Environment blocker: Windows `jpackage` requires a complete Java 21 JDK with jmods; the available Minecraft and Android Java 21 runtimes are trimmed, and JDK 25 is not accepted as release-equivalent evidence.
+- Passed again on candidate `35261278` on 2026-07-11: compile and 53 automated tests covering parser/source modes, rule-edit restoration, catalog data, legacy fail-closed behavior, modern preview/execution parity, light invalidation, and heightmap packing/writeback.
+- Passed again on 2026-07-11: translation completeness and `build shadowJar`.
+- Passed on 2026-07-11: Windows `jpackage` with Azul Zulu 21.0.11 JDK FX; the packaged MCA Selector 2.8 image opened independently of Gradle.
 - Pending: Chinese and English JavaFX regression passes with clean console output and final screenshots.
-- Blocked until dedicated fixtures exist: copied-world tests for Java 1.18.x and 1.21.x.
-- Pending copied-world matrix: normal and multiple rules, stateful and waterlogged blocks, tile add/remove/update, bounded air, Y/biome combinations, overlap counts, and heightmap-sensitive terrain.
-- Pending: preview file-hash proof, preview-vs-execution counts on separate fresh copies, Minecraft load/save/reload, and game log inspection.
+- Passed at file level on 2026-07-11 using disposable DataVersion 2860 and 4671 copies: preview hashes, ordinary/multiple rules, selection-only execution, state/waterlogged round-trip, tile add/remove/update, bounded air, Y + biome + tile composition, overlap counts, light invalidation, and heightmap shape.
+- Pending copied-world game gates: a real stored biome boundary, Minecraft load/save/reload, visible state/light checks, and game log inspection.
 - Pending: final alignment of all internal docs and preparation of clean local code/Wiki PR branches.
 
 Any failed gate is fixed on the feature branch, receives the narrowest practical automated regression, and reruns both its focused checks and the final full gate. Phase 6 must not be marked complete while a required UI or copied-world gate remains blocked.

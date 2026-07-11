@@ -1,7 +1,7 @@
 # ReplaceBlocks Test Plan
 
 Date: 2026-06-04
-Last updated: 2026-07-10
+Last updated: 2026-07-11
 
 Safety rule: never test on a real world save. Always copy a small test world and keep an untouched backup.
 
@@ -47,14 +47,31 @@ Phase 6 execution record:
 
 | Gate | Status | Commit / environment | Evidence or remaining action |
 |---|---|---|---|
-| Focused parser, Builder model, legacy safety, modern preview, and heightmap tests | Passed | Windows, Java 21, 2026-07-10 | Focused Gradle test runs passed; final full gate still required |
-| `AUTO-01` | Passed | Windows 11, Java 21, 2026-07-10 | 53 tests passed; `compileJava` and full `test` succeeded |
-| `AUTO-02` | Passed | Windows 11, Java 21, 2026-07-10 | `run --args="--mode printMissingTranslations"` succeeded with no missing-key output |
-| `PKG-01` | Passed | Windows 11, Java 21, 2026-07-10 | `build shadowJar` succeeded and reran all 53 tests |
-| `PKG-02` | Blocked | Minecraft/Android Java 21 runtimes lack `jmods`; installed full JDKs are 17 and 25 | Rerun with a complete Java 21 JDK; do not treat JDK 25 packaging as the release gate |
+| Focused parser, Builder model, legacy safety, modern preview, and heightmap tests | Passed | Windows, Java 21, 2026-07-11 | Focused and final full Gradle gates passed on candidate `35261278` |
+| `AUTO-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | 53 tests passed; `compileJava` and full `test` succeeded |
+| `AUTO-02` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | `run --args="--mode printMissingTranslations"` succeeded with no missing-key output |
+| `PKG-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | `build shadowJar` succeeded and reran all 53 tests |
+| `PKG-02` | Passed | Windows 11, Azul Zulu 21.0.11 JDK FX, 2026-07-11 | `jpackage` succeeded; the generated `MCA Selector 2.8` application image opened independently of Gradle |
 | JavaFX startup smoke | Passed | Chinese locale, Java 21, 2026-07-10 | Main window rendered with menu, chunk grid, status bar, and no startup exception |
 | `UI-01` / `UI-02` | Pending | Requires interactive Builder operation | Complete both locale passes and retain screenshots |
-| `WORLD-18` / `WORLD-21` | Blocked | No confirmed disposable fixtures | A possible 1.21 `mcatest` world exists in a version-specific saves directory but must not be used without confirmation; no 1.18.x fixture was found |
+| `WORLD-18` / `WORLD-21` file-level checks | Passed | Commit `35261278`, DataVersions 2860 and 4671, 2026-07-11 | Preview hashes, preview/execution counts, selection-only execution, bounded air, state round-trip, tile effects, duplicate coordinates, light invalidation, and heightmap shape passed on disposable copies |
+| `WORLD-18` / `WORLD-21` game checks | Pending | Prepared named copies in each version's `saves` directory | Load/save/reload, Minecraft log review, visual state/light checks, and a real biome-boundary case remain required |
+
+### Phase 6 copied-world evidence
+
+All writes below used fresh copies under `%LOCALAPPDATA%\Temp\mca-phase6-worlds-35261278-run1`. The original `mcatest1.18` and `mcatest` worlds were read-only baselines. Each selection contained 81 chunks centered on the saved player position.
+
+| Scenario | Java 1.18 / DataVersion 2860 | Java 1.21 / DataVersion 4671 |
+|---|---|---|
+| Preview non-mutation | 12 region/poi/entities hashes unchanged | 77 region/poi/entities hashes unchanged |
+| Ordinary / multiple rules | 41,492 dirt matches; post-execution source 0 and target 41,492 | 99,063 stone + 41,253 dirt = 140,316; post-execution sources 0 and targets exactly 99,063 / 41,253 |
+| Bounded air at Y=80 | 20,736 preview and target blocks; post-execution source 0 | 20,479 preview and target blocks; post-execution source 0 |
+| Exact state / selected properties | 20,736 north exact-state and 20,736 south / waterlogged matches; post-execution sources 0 and targets 20,736 each | 20,202 north exact-state and 20,148 south / waterlogged matches; post-execution sources 0 and targets 20,202 / 20,148 |
+| Overlap accounting | South-facing and waterlogged rules overlap on 20,736 positions | South-facing and waterlogged rules overlap on 20,148 positions |
+| Tile add/remove/update | Fixture had no relevant block entities | Preview reported remove 2, add 11, update 2; post-execution totals were 3 / 16 / 5 with 0 duplicate coordinates |
+| Light / heightmap integrity | Touched sections lost their light arrays; all four heightmaps existed with 37 longs and no malformed arrays | Same; bounded Y only invalidated the Y=80 section while ordinary/state rules invalidated their touched sections |
+
+The stateful fixtures in this pass were deliberately generated in copied `.mca` files and then round-tripped through exact-state and `props(...)` rules. This is valid file-format/execution evidence, but it does not replace Minecraft rendering and reload checks. The available copied selections were plains-only, so a real stored biome boundary remains a release requirement.
 
 ## Catalog data tests
 

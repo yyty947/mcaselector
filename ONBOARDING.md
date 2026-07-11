@@ -44,15 +44,15 @@ Implemented:
 
 Not implemented yet:
 
-- Phase 6 remains in progress. Automated hardening, all 53 tests, translation completeness, and `build shadowJar` pass. Dual-locale JavaFX interaction, complete-JDK-21 `jpackage`, and disposable 1.18.x/1.21.x copied-world gates remain open.
+- Phase 6 remains in progress. Automated hardening, all 53 tests, translation completeness, `build shadowJar`, Zulu JDK FX `jpackage`, and file-level DataVersion 2860/4671 copied-world checks pass. Dual-locale JavaFX interaction plus Minecraft biome-boundary/load/save/reload/log gates remain open.
 
 ## Next Recommended Task
 
-Next best target: finish the remaining Phase 6 environment and manual gates.
+Next best target: finish the remaining Phase 6 manual UI and Minecraft gates.
 
 Goal:
 
-- Run copied-world regression coverage across normal blocks, stateful blocks, tile/block entity cases, air, waterlogged blocks, Y and biome restrictions, and preview-vs-execution counts.
+- Complete dual-locale Builder interaction, real-biome-boundary behavior, Minecraft rendering/load/save/reload, and game-log checks using the prepared disposable copies.
 - Preserve Phase 4E tile eligibility, Phase 4F-1 Y filtering, Phase 4F-2 biome filtering, Phase 4G presets, and per-rule preview counts.
 - Keep preview checks non-mutating and only execute on fresh copied worlds.
 
