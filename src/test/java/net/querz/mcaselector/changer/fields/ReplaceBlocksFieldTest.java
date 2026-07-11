@@ -1,7 +1,14 @@
 package net.querz.mcaselector.changer.fields;
 
+import net.querz.mcaselector.io.mca.ChunkData;
+import net.querz.mcaselector.io.mca.RegionChunk;
+import net.querz.mcaselector.util.point.Point2i;
 import net.querz.mcaselector.version.ChunkFilter;
+import net.querz.mcaselector.version.VersionHandler;
+import net.querz.mcaselector.version.java_1_9.ChunkFilter_15w32a;
 import net.querz.nbt.CompoundTag;
+import net.querz.nbt.ListTag;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import java.util.Map;
 import java.util.Set;
@@ -11,6 +18,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReplaceBlocksFieldTest {
+
+	@BeforeAll
+	static void initializeVersionHandlers() {
+		VersionHandler.init();
+	}
 
 	@Test
 	void keepsLegacyNameSourcesAsRegexMode() {
@@ -287,6 +299,73 @@ class ReplaceBlocksFieldTest {
 		assertFalse(field.parseNewValue("biome(minecraft:not_a_biome, literal(stone))=minecraft:dirt"));
 		assertFalse(field.parseNewValue("biome(minecraft:plains)=minecraft:dirt"));
 		assertFalse(field.parseNewValue("biome(minecraft:plains,)=minecraft:dirt"));
+	}
+
+	@Test
+	void marksModernChunksForRelightingAfterReplacement() {
+		CompoundTag root = new CompoundTag();
+		root.putInt("DataVersion", 4671);
+		root.putInt("xPos", 0);
+		root.putInt("zPos", 0);
+		root.putByte("isLightOn", (byte) 1);
+		root.put("sections", modernSections());
+
+		changeStoneToDirt(root);
+
+		assertEquals(0, root.getByte("isLightOn"));
+	}
+
+	@Test
+	void marksEarlyFlatChunksForRelightingWithAByteTag() {
+		CompoundTag root = new CompoundTag();
+		root.putInt("DataVersion", 2834);
+		CompoundTag level = new CompoundTag();
+		level.putInt("xPos", 0);
+		level.putInt("zPos", 0);
+		level.putByte("isLightOn", (byte) 1);
+		level.put("Sections", modernSections());
+		root.put("Level", level);
+
+		changeStoneToDirt(root);
+
+		assertEquals(0, level.getByte("isLightOn"));
+		assertEquals(net.querz.nbt.Tag.Type.BYTE, level.get("isLightOn").getType());
+	}
+
+	@Test
+	void writesLegacyLightPopulatedAsAByteTag() {
+		CompoundTag root = new CompoundTag();
+		CompoundTag level = new CompoundTag();
+		level.putByte("LightPopulated", (byte) 1);
+		root.put("Level", level);
+		RegionChunk region = new RegionChunk(new Point2i(0, 0));
+		region.setData(root);
+
+		new ChunkFilter_15w32a.LightPopulated().setLightPopulated(
+				new ChunkData(new Point2i(0, 0), region, null, null, true), (byte) 0);
+
+		assertEquals(0, level.getByte("LightPopulated"));
+		assertEquals(net.querz.nbt.Tag.Type.BYTE, level.get("LightPopulated").getType());
+	}
+
+	private void changeStoneToDirt(CompoundTag root) {
+		RegionChunk region = new RegionChunk(new Point2i(0, 0));
+		region.setData(root);
+		parse("literal(minecraft:stone)=minecraft:dirt").change(
+				new ChunkData(new Point2i(0, 0), region, null, null, true));
+	}
+
+	private ListTag modernSections() {
+		ListTag palette = new ListTag();
+		palette.add(state("minecraft:stone"));
+		CompoundTag blockStates = new CompoundTag();
+		blockStates.put("palette", palette);
+		CompoundTag section = new CompoundTag();
+		section.putByte("Y", (byte) 0);
+		section.put("block_states", blockStates);
+		ListTag sections = new ListTag();
+		sections.add(section);
+		return sections;
 	}
 
 	private ReplaceBlocksField parse(String value) {

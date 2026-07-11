@@ -32,7 +32,7 @@ Implemented behavior:
 - The builder exposes source-side min/max Y inputs and leaves them empty by default.
 - Biome filters are available through `biome(<biome>[;<biome>...], source)` and are applied in modern preview and execution using the candidate block position's biome value. In modern chunks one biome value covers a 4x4x4 block cell.
 - The builder exposes a source-side biome input and leaves it empty by default.
-- The builder exposes built-in presets for Air to stone, Fluids to air, Logs/leaves to air, Ores to stone, and Containers with Extra NBT to air. Built-ins fill visible editable inputs and warning text; they do not add hidden execution behavior. Custom presets save the full generated ReplaceBlocks value in global config and load through the normal parser/rule table path.
+- The builder exposes built-in presets for Air to stone, Fluids to air, Logs/leaves to air, Ores to stone, and Containers with Extra NBT to air. Built-ins fill visible editable inputs and warning text. Custom presets store parser text, use selected-rule/draft/all-rules save precedence, and append through the normal parser/rule-table path.
 
 Not implemented:
 
@@ -227,7 +227,7 @@ Biome restriction is implemented through `biome(<biome>[;<biome>...], source)`. 
 
 Presets are implemented after source modes, preview, tile safety, Y range, and biome restrictions stabilized.
 
-The current preset row fills visible Builder fields rather than adding hidden rules. Air and container/data-block presets show warnings, and the container preset sets Extra NBT to present so it generates `tile(...)` when the user adds the rule. User custom presets store full generated ReplaceBlocks text, not widget state, and loading one replaces the current Builder rules/draft inputs after confirmation. Preserve this behavior during release hardening.
+The current preset row fills visible Builder fields rather than adding hidden rules. Air and container/data-block presets show warnings, and the container preset sets Extra NBT to present. User custom presets store ReplaceBlocks text, not widget state. Saving prefers a selected rule, then a valid draft, then all table rules; loading appends non-duplicate rules and preserves current work.
 
 ## Testing Rhythm
 
@@ -248,4 +248,4 @@ Minimum command checks after Java changes:
 
 Use narrower tests during development when possible, then broaden before release hardening.
 
-Phase 6 automated hardening began on 2026-07-10. It added rule-edit model regression coverage, fail-closed behavior for unsupported contextual rules in older execution paths, direct 1.9/1.13/1.17 execution tests, early-flat/modern preview parity checks, light invalidation assertions, and modern heightmap packing/writeback tests. Full tests, translation completeness, `build shadowJar`, Zulu JDK FX `jpackage`, and file-level DataVersion 2860/4671 copied-world checks pass. Dual-locale JavaFX interaction, a real biome boundary, Minecraft load/save/reload, visual state/light inspection, and game-log review remain open.
+Phase 6 automated hardening began on 2026-07-10. It now includes 58 tests for rule/preset restoration, legacy fail-closed behavior, early-flat/modern preview parity, relight flags, and heightmaps. Translation, `build shadowJar`, prior JDK FX packaging, DataVersion 2860/4671 checks, real biome boundaries, game reload, and log review have evidence. A focused dual-locale Builder rerun, 1.21 relight check, final screenshots, and final package rerun remain.

@@ -39,16 +39,16 @@ Implemented:
 - Phase 5A: per-rule preview counts with source-mode rows and overlap warnings.
 - Phase 4F-1: Y range restrictions using `y(min..max, source)`, with Builder min/max Y inputs, parser/diagnostic coverage, preview filtering, and modern 1.18+ execution filtering.
 - Phase 4F-2: biome restrictions using `biome(<biome>[;<biome>...], source)`, with Builder source biome input, parser/diagnostic coverage, preview filtering, and modern 1.18+ execution filtering. Matching is block-position aware using the candidate block's biome value; in modern chunks one stored biome value covers a 4x4x4 block cell.
-- Phase 4G: Builder presets for Air to stone, Fluids to air, Logs/leaves to air, Ores to stone, and Containers with Extra NBT to air. Built-in presets fill the visible Builder inputs and warnings, then users can edit the generated source/target/tile/Y/biome controls before adding a rule. Users can also save existing generated rules, or the current valid From/To draft rule, as a global custom preset, then load, overwrite, or delete it later.
+- Phase 4G: Builder presets for Air to stone, Fluids to air, Logs/leaves to air, Ores to stone, and Containers with Extra NBT to air. Built-ins fill visible inputs and warnings. Custom save precedence is selected rule, valid draft, then all table rules; loading appends non-duplicate rules without replacing current work.
 - UI polish: ReplaceBlocks field-row validation waits for a short typing pause, the default NBT Changer width shows the Builder button, empty Builder From/To inputs start blank, Builder validation stays quiet until user action creates a real diagnostic, and Builder From/To inputs have auto-opening A-Z filtered suggestions with blue match highlights, Tab/click completion, no empty-query full-list popup, pre-input helper text that hides after manual typing or selection, Builder-local Preview beside Help, and a Help dialog for Builder-specific explanations.
 
 Not implemented yet:
 
-- Phase 6 remains in progress. Automated hardening, all 53 tests, translation completeness, `build shadowJar`, Zulu JDK FX `jpackage`, and file-level DataVersion 2860/4671 copied-world checks pass. Dual-locale JavaFX interaction plus Minecraft biome-boundary/load/save/reload/log gates remain open.
+- Phase 6 remains in progress. All 58 tests, translation completeness, `build shadowJar`, prior Zulu JDK FX `jpackage`, DataVersion 2860/4671 file checks, real biome boundaries, game load/save/reload, and game-log review pass. The `d17f0247` UI pass exposed completion/preset/state issues and 1.21 stale lighting; fixes are implemented, with a focused dual-locale UI rerun and 1.21 relight check still required.
 
 ## Next Recommended Task
 
-Next best target: finish the remaining Phase 6 manual UI and Minecraft gates.
+Next best target: run the focused Builder regression and 1.21 relight checks, then finalize docs and refresh the local PR/Wiki branches.
 
 Goal:
 
@@ -73,7 +73,7 @@ Current builder/UI manual validation checklist:
 - Builder source min/max Y fields default to empty; filling either field wraps the source as `y(min..max, source)`, for example `y(-64..64, literal(minecraft:stone))=minecraft:dirt`.
 - Builder source Biome input is searchable like the From/To block selectors. It suggests known vanilla biome IDs, completes the current semicolon-separated biome token with Tab or mouse click, and keeps empty-query dropdowns empty.
 - Builder presets fill visible, editable From/To and source condition controls instead of adding hidden behavior. Air and container presets show warning text before the user adds a rule.
-- Builder custom presets save the full generated ReplaceBlocks value, or the current valid From/To draft when no rule has been added yet. They appear in the same preset dropdown and replace the current Builder rules/draft inputs only after confirmation.
+- Builder custom presets save one selected rule first, otherwise a valid draft, otherwise all table rules. Loading appends non-duplicate rules and preserves current table rules and draft input.
 - Builder Preview is next to Help in the Builder button bar. It uses the generated Builder value, respects the selection-only state captured when the Builder was opened, and must remain non-mutating.
 
 ## Important Files

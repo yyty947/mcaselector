@@ -47,15 +47,16 @@ Phase 6 execution record:
 
 | Gate | Status | Commit / environment | Evidence or remaining action |
 |---|---|---|---|
-| Focused parser, Builder model, legacy safety, modern preview, and heightmap tests | Passed | Windows, Java 21, 2026-07-11 | Focused and final full Gradle gates passed on candidate `35261278` |
-| `AUTO-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | 53 tests passed; `compileJava` and full `test` succeeded |
+| Focused parser, Builder model, legacy safety, modern preview, light, and heightmap tests | Passed | Windows, Java 21, 2026-07-11 | Focused and final full Gradle gates passed after the UI/game findings follow-up |
+| `AUTO-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | 58 tests passed; `compileJava` and full `test` succeeded |
 | `AUTO-02` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | `run --args="--mode printMissingTranslations"` succeeded with no missing-key output |
-| `PKG-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | `build shadowJar` succeeded and reran all 53 tests |
-| `PKG-02` | Passed | Windows 11, Azul Zulu 21.0.11 JDK FX, 2026-07-11 | `jpackage` succeeded; the generated `MCA Selector 2.8` application image opened independently of Gradle |
+| `PKG-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | Clean `build shadowJar` succeeded and reran all 58 tests |
+| `PKG-02` | Passed on prior candidate; final rerun pending | Windows 11, Azul Zulu 21.0.11 JDK FX, 2026-07-11 | `jpackage` and standalone image startup passed before this UI/light-only follow-up; the currently installed JDKs do not contain JavaFX jmods, so rerun on the final clean PR candidate with a JDK FX distribution |
 | JavaFX startup smoke | Passed | Chinese locale, Java 21, 2026-07-10 | Main window rendered with menu, chunk grid, status bar, and no startup exception |
-| `UI-01` / `UI-02` | Pending | Requires interactive Builder operation | Complete both locale passes and retain screenshots |
+| `UI-01` / `UI-02` | Failed on `d17f0247`; focused rerun pending | User report and console log, 2026-07-11 | Completion/preset/state restoration defects were fixed; rerun the focused cases below in both locales and retain final Builder screenshots |
 | `WORLD-18` / `WORLD-21` file-level checks | Passed | Commit `35261278`, DataVersions 2860 and 4671, 2026-07-11 | Preview hashes, preview/execution counts, selection-only execution, bounded air, state round-trip, tile effects, duplicate coordinates, light invalidation, and heightmap shape passed on disposable copies |
-| `WORLD-18` / `WORLD-21` game checks | Pending | Prepared named copies in each version's `saves` directory | Load/save/reload, Minecraft log review, visual state/light checks, and a real biome-boundary case remain required |
+| Real biome boundary | Passed | Disposable copies of user-provided 1.18 and 1.21 normal terrain, 2026-07-11 | Preview hashes unchanged; execution removed all selected-biome source matches while the control-biome counts stayed unchanged |
+| `WORLD-18` / `WORLD-21` game checks | 1.18 passed; 1.21 relight rerun pending | User game pass and log review, 2026-07-11 | Load/save/reload, state, containers, heightmaps, and logs passed; 1.21 exposed stale lighting, now fixed by writing `isLightOn=0` after replacement |
 
 ### Phase 6 copied-world evidence
 
@@ -70,8 +71,9 @@ All writes below used fresh copies under `%LOCALAPPDATA%\Temp\mca-phase6-worlds-
 | Overlap accounting | South-facing and waterlogged rules overlap on 20,736 positions | South-facing and waterlogged rules overlap on 20,148 positions |
 | Tile add/remove/update | Fixture had no relevant block entities | Preview reported remove 2, add 11, update 2; post-execution totals were 3 / 16 / 5 with 0 duplicate coordinates |
 | Light / heightmap integrity | Touched sections lost their light arrays; all four heightmaps existed with 37 longs and no malformed arrays | Same; bounded Y only invalidated the Y=80 section while ordinary/state rules invalidated their touched sections |
+| Real biome boundary follow-up | `snowy_plains` source 50,332; `forest` control 895,747 unchanged | `cold_ocean` source 1,408; `beach` control 59,954 unchanged |
 
-The stateful fixtures in this pass were deliberately generated in copied `.mca` files and then round-tripped through exact-state and `props(...)` rules. This is valid file-format/execution evidence, but it does not replace Minecraft rendering and reload checks. The available copied selections were plains-only, so a real stored biome boundary remains a release requirement.
+The stateful fixtures in this pass were deliberately generated in copied `.mca` files and then round-tripped through exact-state and `props(...)` rules. The later normal-terrain boundary pass used copies under `%LOCALAPPDATA%\Temp\mca-phase6-biome-final`; the original worlds were read-only. Game rendering remains the authority for the final 1.21 relight rerun.
 
 ## Catalog data tests
 
@@ -176,6 +178,8 @@ Manual checks:
 - Open an empty builder and confirm the From/To fields are blank, the generated value is empty, and no `Add at least one rule` error is shown before user action.
 - Before typing in an empty builder From/To field, click the dropdown arrow. The builder should not show the full block catalog and should not position a popup above the input on first open.
 - In the builder From/To fields, type `oak` or `sto`. The candidate list should open automatically, show every matching block ID in A-Z order, highlight the typed substring in blue, allow mouse scrolling, and collapse after Tab completion.
+- Narrow the suggestion list from many matches to two or three and drag its scrollbar repeatedly. The popup must shrink to the actual result count, show no empty rows, and log no `VirtualFlow index exceeds maxCellCount` warning.
+- With a Chinese IME active, select part of a completed block ID, enter two Latin letters, and confirm neither letter is swallowed and no `TextInputControl.replaceText` exception is logged.
 - Repeat the same suggestion test with mouse-click completion. The chosen block ID should fill the editor, the matching property rows should appear when applicable, and the JavaFX console should not log `ListViewBehavior` or index errors.
 - Moving the mouse over block suggestions, Extra NBT choices, and property dropdown choices should show a visible hover highlight consistent with the main menu hover color.
 - The builder helper text below the generated value should be visible before manual From/To input, then hide once the user types non-empty text into either From/To field.
@@ -191,7 +195,9 @@ Manual checks:
 - The Air preset should fill `minecraft:air` -> `minecraft:stone` and show a warning about sparse/missing sections.
 - The Fluids, Logs/leaves, and Ores presets should fill visible source-mode regex text and ordinary target blocks, then generate valid ReplaceBlocks text after `Add rule`.
 - The Containers preset should set Extra NBT to present, fill a visible container source regex, target `minecraft:air`, show a data-loss warning, and generate a `tile(regex(...))=minecraft:air` rule after `Add rule`.
-- After adding one or more rules, `Save preset` / `存为预设` should enable. Saving with a new name should add a custom preset to the dropdown; selecting it and applying it should confirm replacement, then restore the same generated ReplaceBlocks value through the rule table. The save success message should appear in the Builder validation/status area, not as a separate modal dialog.
+- Adding a valid rule should clear both input columns and source-only conditions while keeping the generated rule. With no draft and no selected row, saving stores all rules in the table.
+- Selecting one rule and clicking `Save preset` / `存为预设` should save only that rule. With no selected row, a valid current draft takes precedence over the rule table.
+- Applying a custom preset should append all non-duplicate preset rules to the current rule table without clearing the existing rules or draft. The save success message should appear in the Builder validation/status area, not as a separate modal dialog.
 - With no rules added yet, entering a valid From/To draft, including selected source/target properties, should enable `Save preset` / `存为预设`. Saving should validate that draft, store it as one ReplaceBlocks rule, and not require pressing `Add rule` first.
 - With no rules added yet, incomplete or invalid From/To draft input should keep `Save preset` / `存为预设` disabled or produce the existing Builder validation message rather than saving.
 - Saving again with an existing custom preset name should ask for overwrite confirmation. Built-in preset names should not be overwritable.
@@ -473,6 +479,7 @@ Checks:
 Checks:
 
 - inspect whether changed sections had `BlockLight` / `SkyLight` removed
+- inspect whether the changed chunk has `isLightOn=0` (or the equivalent legacy `LightPopulated=0`) with the correct numeric tag type
 - load world in Minecraft and wait for relighting
 - check client/server logs for lighting or chunk errors
 - revisit the area after save/reload

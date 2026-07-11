@@ -106,7 +106,7 @@ CLI path:
 - Builder source min/max Y fields default to empty; filling either field wraps the generated source with `y(...)`.
 - Builder source biome field defaults to empty; filling it with one or more biome IDs separated by semicolons wraps the generated source with `biome(...)`. It uses the known vanilla biome registry for filtered suggestions, Tab completion, and mouse-click completion while still allowing manually typed custom IDs. The Builder Help dialog states the block-position-aware 4x4x4 biome-cell granularity.
 - Builder built-in presets are editable starting points. They fill visible From/To and source condition controls for Air to stone, Fluids to air, Logs/leaves to air, Ores to stone, and Containers with Extra NBT to air, then rely on the normal Add rule path and existing generated ReplaceBlocks validation.
-- Builder custom presets save the full generated ReplaceBlocks value in global config. If no rule has been added yet, the Save preset action can also validate and save the current From/To draft rule directly. Loading one reparses that value into the rule table and replaces the current Builder rules/draft inputs after confirmation.
+- Builder custom presets store parser-compatible ReplaceBlocks text in global config. Save precedence is the selected rule, otherwise the current valid draft, otherwise all table rules. Loading reparses and appends every non-duplicate preset rule without clearing current table rules or draft inputs.
 - The NBT Changer dialog shows ReplaceBlocks validation messages and warnings after a short typing pause, so incomplete in-progress input does not flash errors on every character.
 - The default NBT Changer dialog width keeps the ReplaceBlocks `Builder` button visible without horizontal scrolling.
 - When opened without an existing value, the builder starts with blank From/To inputs and does not immediately show an empty-rule validation error.
@@ -120,7 +120,7 @@ CLI path:
 - Preview estimates tile entity additions, removals, and updates.
 - Preview and modern 1.18+ execution apply Y filtering through the same `BlockReplaceSource` predicate.
 - Context-free pre-1.18 execution paths fail closed for tile, Y, and biome-restricted sources instead of silently dropping those conditions. Classic 1.9 execution also skips source modes that cannot be represented by its block-ID lookup.
-- Section light arrays are removed after section mutation.
+- Section light arrays are removed after section mutation, and ReplaceBlocks writes the version-appropriate `isLightOn=0` / `LightPopulated=0` byte so Minecraft schedules relighting.
 - Heightmaps are recomputed after replacement. Phase 6 fixed 1.17+ packed heightmap entry counts, early-flat nested `block_states` reads, single-palette section scans, and 21w43a+ root-level `Heightmaps` writeback.
 - Air replacement has special handling that creates missing sections in the existing section range; Y-restricted air replacement now only completes sections whose section Y range intersects an air-matching Y-restricted source.
 
@@ -139,7 +139,7 @@ CLI path:
 - Preview exists for modern 1.18+ paths, but unsupported older preview chunks are reported instead of estimated.
 - Replacing air can expand sparse sections across the existing section range, which is powerful but high risk.
 - Y-restricted air replacement reduces this risk by not completing sections outside the requested Y range. DataVersion 2860 and 4671 copied-world files matched and wrote exactly 20,736 and 20,479 Y=80 air blocks, with no remaining source matches; Minecraft rendering/reload validation is still required.
-- Replacing blocks removes section light data and relies on Minecraft or later processing to rebuild lighting.
+- Replacing blocks removes section light data and marks the chunk lighting incomplete. A user game pass on the earlier candidate exposed stale light in a 1.21 selection because root `isLightOn` stayed set; the follow-up now clears that flag. Final in-game relight confirmation remains required.
 - Automated Phase 6 tests verify early-flat and post-21w43a heightmap scan, packing, and writeback shape. File-level copied-world checks found all four heightmaps present at 37 longs with no malformed arrays after ordinary, state, and bounded-air execution. Minecraft surface behavior and logs remain manual gates.
 
 ## UI status and improvement recommendation
@@ -186,7 +186,7 @@ Recommended next work:
 - `props(...)` can intentionally match more states than exact SNBT because unlisted properties are ignored.
 - Tile-target duplicate cleanup is covered by automated tests and DataVersion 4671 file-level copied-world checks; Minecraft load/reload remains required.
 - Y range parser, diagnostics, preview counts, modern execution, and bounded-air copied-world files pass; Minecraft rendering/reload remains required before release.
-- Light arrays are removed and may require Minecraft to recalculate.
+- Light arrays are removed and the chunk relight flag is cleared with a ByteTag; Minecraft is expected to recalculate on load.
 - Heightmap writeback shape passes file-level DataVersion 2860/4671 checks; Minecraft surface rendering and logs remain to be checked.
 - Parser compatibility is important because CLI and UI share `ChangeParser` and `ReplaceBlocksField`.
 - Builder, preview, UI field, and advanced query must continue to round-trip through the ReplaceBlocks text format.
@@ -222,6 +222,6 @@ Detailed roadmap: `docs/ROADMAP.md`.
 - Phase 5A: per-rule preview counts, source-mode rows, and overlap warnings implemented.
 - Phase 4F-1: Y range restrictions implemented with `y(min..max, source)`, Builder min/max Y controls, parser/diagnostic tests, preview tests, and modern 1.18+ execution tests.
 - Phase 4F-2: biome restrictions implemented with `biome(<biome>[;<biome>...], source)`, Builder source biome input, parser/diagnostic tests, preview tests, and modern 1.18+ execution tests.
-- Phase 4G: built-in presets implemented as visible Builder input fillers with warning text for air and container/data-block cases; user custom presets save full generated ReplaceBlocks values or current valid draft rules in global config. Next route is release hardening.
+- Phase 4G: built-in presets are visible input fillers with air/container warnings; custom presets use selected-rule/draft/all-rules save precedence and append on load. Next route is the focused Phase 6 rerun.
 
 Detailed next-development plan: `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.

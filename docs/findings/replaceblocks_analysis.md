@@ -282,7 +282,7 @@ For each changed section, the implementation removes:
 - `BlockLight`
 - `SkyLight`
 
-The inspected ReplaceBlocks path does not remove root `isLightOn`. Minecraft or later processing may need to recalculate lighting. This should be included in world-load validation.
+The first Phase 6 game pass confirmed that removing section light arrays while leaving root `isLightOn` set can preserve stale lighting in 1.21 chunks. ReplaceBlocks now writes the version-appropriate `isLightOn=0` / `LightPopulated=0` ByteTag after replacement; automated modern and legacy-format checks pass, with one final 1.21 visual relight rerun required.
 
 ## Replacing air
 

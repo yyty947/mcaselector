@@ -3,6 +3,7 @@ package net.querz.mcaselector.ui.dialog;
 import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.nbt.CompoundTag;
 import org.junit.jupiter.api.Test;
+import java.util.List;
 import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -66,5 +67,31 @@ class ReplaceBlocksRuleBuilderModelTest {
 	@Test
 	void rejectsMalformedRules() {
 		assertNull(ReplaceBlocksRuleBuilderDialog.parseEditableRule("literal(", "minecraft:stone"));
+	}
+
+	@Test
+	void parsesEveryRuleFromMultiRulePresetWithoutLosingState() {
+		List<ReplaceBlocksRuleBuilderDialog.Rule> rules = ReplaceBlocksRuleBuilderDialog.parseSimpleRules(
+				"props({Name:\"minecraft:acacia_stairs\",Properties:{facing:\"north\"}})="
+						+ "{Name:\"minecraft:andesite_stairs\",Properties:{facing:\"south\"}}, "
+						+ "biome(minecraft:plains, literal(minecraft:stone))=minecraft:dirt");
+
+		assertEquals(2, rules.size());
+		ReplaceBlocksRuleBuilderDialog.ParsedRule stateRule = ReplaceBlocksRuleBuilderDialog.parseEditableRule(
+				rules.get(0).from(), rules.get(0).to());
+		assertNotNull(stateRule);
+		assertEquals(Map.of("facing", "north"),
+				ReplaceBlocksRuleBuilderDialog.editableStateProperties(stateRule.source().getState()));
+		assertEquals(Map.of("facing", "south"),
+				ReplaceBlocksRuleBuilderDialog.editableStateProperties(stateRule.target().getState()));
+	}
+
+	@Test
+	void biomeCompletionUsesTokenAtCaret() {
+		String value = "minecraft:birch_forest;minecraft:pla";
+
+		assertEquals("minecraft:pla", ReplaceBlocksRuleBuilderDialog.biomeToken(value, value.length()));
+		assertEquals("minecraft:birch_forest", ReplaceBlocksRuleBuilderDialog.biomeToken(value, 8));
+		assertEquals("", ReplaceBlocksRuleBuilderDialog.biomeToken("minecraft:plains;", 17));
 	}
 }

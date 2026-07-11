@@ -7,7 +7,6 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
-import javafx.collections.transformation.FilteredList;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
 import javafx.geometry.Insets;
@@ -183,6 +182,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		rules.setPlaceholder(new Label());
 		rules.getColumns().add(fromColumn);
 		rules.getColumns().add(toColumn);
+		rules.getSelectionModel().selectedItemProperty().addListener((a, o, n) -> updatePresetButtons());
 		rules.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 		rules.setMinHeight(150);
 		rules.setPrefHeight(220);
@@ -256,15 +256,17 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		applyingPreset = true;
 		try {
 			if (preset.custom()) {
-				if (!confirmReplaceBuilderContent()) {
+				List<Rule> loaded = parseSimpleRules(preset.value());
+				if (loaded.isEmpty()) {
+					showDiagnostic(ReplaceBlocksDiagnostics.builderInvalid());
 					return;
 				}
-				from.clear();
-				to.clear();
-				ruleItems.clear();
-				loadSimpleRules(preset.value());
+				for (Rule rule : loaded) {
+					if (!hasRule(rule.from(), rule.to())) {
+						ruleItems.add(rule);
+					}
+				}
 				updateResult();
-				from.focusInput();
 				return;
 			}
 			from.applyPreset(preset.source(), preset.tileMode());
@@ -387,8 +389,15 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private PresetValue presetValue() {
-		String existing = result.getText() == null ? "" : result.getText().trim();
-		String value = existing;
+		Rule selected = rules.getSelectionModel().getSelectedItem();
+		if (selected != null) {
+			String value = formatFrom(selected.from()) + "=" + formatTo(selected.to());
+			boolean valid = ReplaceBlocksDiagnostics.parseReplaceBlocksValue(new ReplaceBlocksField(), value);
+			return new PresetValue(valid ? value : null,
+					valid ? ReplaceBlocksDiagnostics.none() : ReplaceBlocksDiagnostics.builderInvalid());
+		}
+
+		String value;
 		if (from.userInputPresentProperty().get() || to.userInputPresentProperty().get()) {
 			ValueResult fromName = from.value();
 			if (fromName.diagnostic().isError()) {
@@ -398,11 +407,9 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			if (toName.diagnostic().isError()) {
 				return new PresetValue(null, toName.diagnostic());
 			}
-			if (hasRule(fromName.value(), toName.value())) {
-				return new PresetValue(null, ReplaceBlocksDiagnostics.builderDuplicate());
-			}
-			String draftRule = formatFrom(fromName.value()) + "=" + formatTo(toName.value());
-			value = existing.isBlank() ? draftRule : existing + ", " + draftRule;
+			value = formatFrom(fromName.value()) + "=" + formatTo(toName.value());
+		} else {
+			value = result.getText() == null ? "" : result.getText().trim();
 		}
 		if (value == null || value.isBlank()) {
 			return new PresetValue(null, ReplaceBlocksDiagnostics.builderInvalid());
@@ -434,13 +441,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			}
 		}
 		return -1;
-	}
-
-	private boolean confirmReplaceBuilderContent() {
-		if (ruleItems.isEmpty() && !from.userInputPresentProperty().get() && !to.userInputPresentProperty().get()) {
-			return true;
-		}
-		return confirmPresetAction(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_REPLACE_CONFIRM.toString());
 	}
 
 	private boolean confirmPresetOverwrite(String name) {
@@ -596,9 +596,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			return;
 		}
 		ruleItems.add(new Rule(fromName.value(), toName.value()));
-		from.focusInput();
+		from.clear();
+		to.clear();
 		updateResult();
 		clearPresetSelectionAfterEdit();
+		from.focusInput();
 	}
 
 	private boolean hasRule(String from, String to) {
@@ -620,19 +622,23 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		return new ParsedRule(parsed.getKey(), parsed.getValue());
 	}
 
-	private void loadSimpleRules(String initialValue) {
+	static List<Rule> parseSimpleRules(String initialValue) {
 		if (initialValue == null || initialValue.isBlank()) {
-			return;
+			return List.of();
 		}
-		ObservableList<Rule> parsed = FXCollections.observableArrayList();
+		List<Rule> parsed = new ArrayList<>();
 		ReplaceBlocksField field = new ReplaceBlocksField();
 		if (!ReplaceBlocksDiagnostics.parseReplaceBlocksValue(field, initialValue)) {
-			return;
+			return List.of();
 		}
 		for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> rule : field.getNewValue().entrySet()) {
 			parsed.add(new Rule(rule.getKey().toString(), rule.getValue().toString()));
 		}
-		ruleItems.addAll(parsed);
+		return List.copyOf(parsed);
+	}
+
+	private void loadSimpleRules(String initialValue) {
+		ruleItems.addAll(parseSimpleRules(initialValue));
 	}
 
 	private void updateResult() {
@@ -746,6 +752,19 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		return value;
 	}
 
+	static String biomeToken(String text, int caretPosition) {
+		if (text == null || text.isEmpty()) {
+			return "";
+		}
+		int caret = Math.max(0, Math.min(caretPosition, text.length()));
+		int start = text.lastIndexOf(';', Math.max(0, caret - 1)) + 1;
+		int end = text.indexOf(';', caret);
+		if (end < 0) {
+			end = text.length();
+		}
+		return text.substring(start, end).trim();
+	}
+
 	private void showDiagnostic(ReplaceBlocksDiagnostics.Diagnostic diagnostic) {
 		validation.textProperty().unbind();
 		validation.pseudoClassStateChanged(error, false);
@@ -804,12 +823,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		private final boolean source;
 		private final ComboBox<String> block = new ComboBox<>();
-		private final FilteredList<String> blockSuggestions = new FilteredList<>(blockNames);
+		private final ObservableList<String> blockSuggestions = FXCollections.observableArrayList();
 		private final ComboBox<SourceTileMode> tileEntityMode = new ComboBox<>();
 		private final TextField minY = new TextField();
 		private final TextField maxY = new TextField();
 		private final ComboBox<String> biomeNames = new ComboBox<>();
-		private final FilteredList<String> biomeSuggestions = new FilteredList<>(biomeCatalogNames);
+		private final ObservableList<String> biomeSuggestions = FXCollections.observableArrayList();
 		private final GridPane properties = new GridPane();
 		private final Map<String, ComboBox<PropertyChoice>> propertyEditors = new LinkedHashMap<>();
 		private final BooleanProperty userInputPresent = new SimpleBooleanProperty(false);
@@ -817,9 +836,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		private boolean updatingBiomeItems;
 		private boolean suppressSuggestions;
 		private boolean suppressBiomeSuggestions;
-		private boolean normalizeNextTyped;
-		private boolean normalizeBiomeNextTyped;
-		private int normalizedBiomeCaret = -1;
+		private int blockSuggestionRevision;
+		private int biomeSuggestionRevision;
 
 		private BlockInput(boolean source) {
 			this.source = source;
@@ -841,8 +859,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			block.getEditor().setAlignment(Pos.CENTER);
 			block.getEditor().setOnAction(ReplaceBlocksRuleBuilderDialog.this::addRule);
 			block.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPressed);
-			block.getEditor().addEventFilter(KeyEvent.KEY_TYPED, this::handleKeyTyped);
-			block.getEditor().addEventFilter(MouseEvent.MOUSE_PRESSED, e -> normalizeNextTyped = false);
 			block.getEditor().textProperty().addListener((a, o, n) -> {
 				if (suppressSuggestions) {
 					return;
@@ -850,22 +866,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				updateUserInputPresent();
 				clearPresetSelectionAfterEdit();
 				if (!updatingItems) {
-					updateBlockSuggestions(n);
 					rebuildProperties(n);
-					showBlockSuggestions(n);
-				}
-			});
-			block.valueProperty().addListener((a, o, n) -> {
-				if (!updatingItems && !suppressSuggestions && n != null) {
-					if (blockNames.contains(n)) {
-						Platform.runLater(() -> {
-							if (!suppressSuggestions && Objects.equals(block.getValue(), n)) {
-								acceptSelectedValue(n);
-							}
-						});
-					} else {
-						rebuildProperties(n);
-					}
+					scheduleBlockSuggestions(n);
 				}
 			});
 
@@ -923,8 +925,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				biomeNames.setCellFactory(v -> new HighlightedBiomeCell());
 				biomeNames.getEditor().promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_BIOME_PROMPT.getProperty());
 				biomeNames.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, this::handleBiomeKeyPressed);
-				biomeNames.getEditor().addEventFilter(KeyEvent.KEY_TYPED, this::handleBiomeKeyTyped);
-				biomeNames.getEditor().addEventFilter(MouseEvent.MOUSE_PRESSED, e -> normalizeBiomeNextTyped = false);
 				biomeNames.getEditor().textProperty().addListener((a, o, n) -> {
 					if (suppressBiomeSuggestions) {
 						return;
@@ -932,21 +932,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					updateUserInputPresent();
 					clearPresetSelectionAfterEdit();
 					if (!updatingBiomeItems) {
-						Platform.runLater(() -> {
-							if (!suppressBiomeSuggestions) {
-								updateBiomeSuggestions();
-								showBiomeSuggestions();
-							}
-						});
-					}
-				});
-				biomeNames.valueProperty().addListener((a, o, n) -> {
-					if (!updatingBiomeItems && !suppressBiomeSuggestions && n != null && biomeCatalogNames.contains(n)) {
-						Platform.runLater(() -> {
-							if (!suppressBiomeSuggestions && Objects.equals(biomeNames.getValue(), n)) {
-								completeBiomeSuggestion(n);
-							}
-						});
+						scheduleBiomeSuggestions();
 					}
 				});
 				biomeFilter.add(biomeLabel, 0, 0);
@@ -1112,8 +1098,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				minY.clear();
 				maxY.clear();
 				clearBiomeInput();
+				if (source) {
+					tileEntityMode.setValue(SourceTileMode.ANY);
+				}
 				propertyEditors.clear();
 				properties.getChildren().clear();
+				setPropertiesVisible(false);
 				updateBlockSuggestions("");
 				updateBiomeSuggestions();
 				userInputPresent.set(false);
@@ -1132,7 +1122,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				block.hide();
 				updateBlockSuggestions(value);
 				rebuildProperties(value);
-				normalizeNextTyped = false;
 				collapseEditorCaretToEnd();
 				if (source) {
 					tileEntityMode.setValue(sourceTileMode == null ? SourceTileMode.ANY : sourceTileMode);
@@ -1193,7 +1182,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				if (!selectProperties(blockName, selectedProperties)) {
 					return false;
 				}
-				normalizeNextTyped = false;
 				collapseEditorCaretToEnd();
 				updateUserInputPresent();
 				return true;
@@ -1249,14 +1237,28 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			String text = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
 			updatingItems = true;
 			try {
+				block.hide();
 				if (text.isEmpty() || text.startsWith("{") || source && isSourceModeExpression(text)) {
-					blockSuggestions.setPredicate(name -> false);
+					blockSuggestions.clear();
 				} else {
-					blockSuggestions.setPredicate(name -> matchesBlockSearch(name, text));
+					blockSuggestions.setAll(blockNames.stream()
+							.filter(name -> matchesBlockSearch(name, text))
+							.collect(Collectors.toList()));
 				}
+				block.setVisibleRowCount(Math.max(1, Math.min(12, blockSuggestions.size())));
 			} finally {
 				updatingItems = false;
 			}
+		}
+
+		private void scheduleBlockSuggestions(String query) {
+			int revision = ++blockSuggestionRevision;
+			Platform.runLater(() -> {
+				if (revision == blockSuggestionRevision && !suppressSuggestions) {
+					updateBlockSuggestions(query);
+					showBlockSuggestions(query);
+				}
+			});
 		}
 
 		private void showBlockSuggestions(String query) {
@@ -1275,14 +1277,28 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			String query = currentBiomeQuery().toLowerCase(Locale.ROOT);
 			updatingBiomeItems = true;
 			try {
+				biomeNames.hide();
 				if (query.isEmpty()) {
-					biomeSuggestions.setPredicate(name -> false);
+					biomeSuggestions.clear();
 				} else {
-					biomeSuggestions.setPredicate(name -> matchesBlockSearch(name, query));
+					biomeSuggestions.setAll(biomeCatalogNames.stream()
+							.filter(name -> matchesBlockSearch(name, query))
+							.collect(Collectors.toList()));
 				}
+				biomeNames.setVisibleRowCount(Math.max(1, Math.min(12, biomeSuggestions.size())));
 			} finally {
 				updatingBiomeItems = false;
 			}
+		}
+
+		private void scheduleBiomeSuggestions() {
+			int revision = ++biomeSuggestionRevision;
+			Platform.runLater(() -> {
+				if (revision == biomeSuggestionRevision && !suppressBiomeSuggestions) {
+					updateBiomeSuggestions();
+					showBiomeSuggestions();
+				}
+			});
 		}
 
 		private void showBiomeSuggestions() {
@@ -1298,9 +1314,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		private void handleBiomeKeyPressed(KeyEvent event) {
 			if (event.getCode() != KeyCode.TAB || !biomeNames.isShowing()) {
-				if (isCaretControl(event)) {
-					normalizeBiomeNextTyped = false;
-				}
 				return;
 			}
 			String suggestion = selectedBiomeSuggestion();
@@ -1309,14 +1322,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			}
 			completeBiomeSuggestion(suggestion);
 			event.consume();
-		}
-
-		private void handleBiomeKeyTyped(KeyEvent event) {
-			if (!normalizeBiomeNextTyped) {
-				return;
-			}
-			normalizeBiomeNextTyped = false;
-			collapseBiomeCaret();
 		}
 
 		private String selectedBiomeSuggestion() {
@@ -1351,9 +1356,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				updateUserInputPresent();
 				updateBiomeSuggestions();
 				biomeNames.hide();
-				normalizedBiomeCaret = caretPosition;
-				normalizeBiomeNextTyped = true;
-				collapseBiomeCaretLater();
 			} finally {
 				suppressBiomeSuggestions = false;
 			}
@@ -1361,34 +1363,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		private String currentBiomeQuery() {
 			TextField editor = biomeNames.getEditor();
-			String text = editor.getText();
-			if (text == null || text.isEmpty()) {
-				return "";
-			}
-			int caret = Math.max(0, Math.min(editor.getCaretPosition(), text.length()));
-			int start = text.lastIndexOf(';', Math.max(0, caret - 1)) + 1;
-			int end = text.indexOf(';', caret);
-			if (end < 0) {
-				end = text.length();
-			}
-			return text.substring(start, end).trim();
-		}
-
-		private void collapseBiomeCaret() {
-			if (normalizedBiomeCaret < 0) {
-				return;
-			}
-			TextField editor = biomeNames.getEditor();
-			int caret = Math.min(normalizedBiomeCaret, editor.getLength());
-			editor.selectRange(caret, caret);
-		}
-
-		private void collapseBiomeCaretLater() {
-			Platform.runLater(() -> {
-				if (normalizeBiomeNextTyped) {
-					collapseBiomeCaret();
-				}
-			});
+			return biomeToken(editor.getText(), editor.getCaretPosition());
 		}
 
 		private void clearBiomeInput() {
@@ -1398,8 +1373,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				biomeNames.getSelectionModel().clearSelection();
 				biomeNames.getEditor().clear();
 				biomeNames.hide();
-				normalizeBiomeNextTyped = false;
-				normalizedBiomeCaret = -1;
 			} finally {
 				suppressBiomeSuggestions = false;
 			}
@@ -1413,8 +1386,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				biomeNames.getEditor().setText(value == null ? "" : value);
 				biomeNames.hide();
 				updateBiomeSuggestions();
-				normalizeBiomeNextTyped = false;
-				normalizedBiomeCaret = -1;
 			} finally {
 				suppressBiomeSuggestions = false;
 			}
@@ -1422,9 +1393,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		private void handleKeyPressed(KeyEvent event) {
 			if (event.getCode() != KeyCode.TAB || !block.isShowing()) {
-				if (isCaretControl(event)) {
-					normalizeNextTyped = false;
-				}
 				return;
 			}
 			String suggestion = selectedSuggestion();
@@ -1435,34 +1403,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			event.consume();
 		}
 
-		private boolean isCaretControl(KeyEvent event) {
-			return event.isShortcutDown() || event.isShiftDown()
-					|| event.getCode() == KeyCode.LEFT
-					|| event.getCode() == KeyCode.RIGHT
-					|| event.getCode() == KeyCode.HOME
-					|| event.getCode() == KeyCode.END
-					|| event.getCode() == KeyCode.BACK_SPACE
-					|| event.getCode() == KeyCode.DELETE;
-		}
-
-		private void handleKeyTyped(KeyEvent event) {
-			if (!normalizeNextTyped) {
-				return;
-			}
-			normalizeNextTyped = false;
-			collapseEditorCaretToEnd();
-		}
-
 		private String selectedSuggestion() {
 			String selected = block.getSelectionModel().getSelectedItem();
 			if (selected != null && block.getItems().contains(selected)) {
 				return selected;
 			}
 			return block.getItems().isEmpty() ? null : block.getItems().get(0);
-		}
-
-		private void acceptSelectedValue(String value) {
-			commitEditorText(value);
 		}
 
 		private void completeSuggestion(String suggestion) {
@@ -1480,8 +1426,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				rebuildProperties(text);
 				block.hide();
 				collapseEditorCaretToEnd();
-				collapseEditorCaretToEndLater();
-				normalizeNextTyped = true;
 			} finally {
 				suppressSuggestions = false;
 			}
@@ -1492,14 +1436,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			if (text != null) {
 				block.getEditor().selectRange(text.length(), text.length());
 			}
-		}
-
-		private void collapseEditorCaretToEndLater() {
-			Platform.runLater(() -> {
-				if (normalizeNextTyped) {
-					collapseEditorCaretToEnd();
-				}
-			});
 		}
 
 		private boolean matchesBlockSearch(String name, String query) {
@@ -1683,7 +1619,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 	record ParsedRule(ChunkFilter.BlockReplaceSource source, ChunkFilter.BlockReplaceData target) {}
 
-	private record Rule(String from, String to) {}
+	record Rule(String from, String to) {}
 
 	private static class RuleCell extends TableCell<Rule, String> {
 

@@ -449,6 +449,7 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 	@Override
 	public void change(ChunkData data) {
 		VersionHandler.getImpl(data, ChunkFilter.Blocks.class).replaceBlocks(data, getNewValue());
+		VersionHandler.getImpl(data, ChunkFilter.LightPopulated.class).setLightPopulated(data, (byte) 0);
 		ChunkFilter.Heightmap heightmap = VersionHandler.getImpl(data, ChunkFilter.Heightmap.class);
 		heightmap.worldSurface(data);
 		heightmap.oceanFloor(data);

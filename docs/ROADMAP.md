@@ -21,7 +21,7 @@ Implemented:
 - Phase 5A: per-rule preview counts, source-mode rows, and overlap warning in the ReplaceBlocks preview dialog.
 - Phase 4F-1: Y range restrictions implemented with `y(min..max, source)`, Builder min/max Y fields, parser diagnostics, preview counts, and modern 1.18+ execution filtering.
 - Phase 4F-2: biome restrictions implemented with `biome(<biome>[;<biome>...], source)`, Builder source biome input, parser diagnostics, preview counts, and modern 1.18+ execution filtering. Matching is block-position aware using the chunk biome value for the candidate block position; in modern chunks that value covers a 4x4x4 block cell.
-- Phase 4G: Builder presets implemented for common replacement starting points. Built-in presets fill visible From/To and source condition controls, keep the generated rules editable before adding, and show warnings for air and container/data-block cases. Custom presets save the full generated ReplaceBlocks value, or the current valid From/To draft rule, in global config and can be loaded, overwritten, or deleted from the Builder.
+- Phase 4G: Builder presets implemented for common replacement starting points. Built-in presets fill visible From/To and source condition controls, keep the generated rules editable before adding, and show warnings for air and container/data-block cases. Custom presets save the selected rule, otherwise the current valid draft, otherwise all table rules; loading appends non-duplicate rules without replacing current work.
 - UI polish: ReplaceBlocks field-row diagnostics are debounced, the main dialog defaults wide enough to show `Builder`, empty Builder inputs start blank without immediate empty-rule errors or empty-query full-list popups, block suggestions support Tab and mouse-click completion, property dropdowns support an `all`/`全部` option, and Preview now lives beside Help in the Builder.
 
 Still not implemented:
@@ -218,7 +218,7 @@ Success criteria:
 - Done: the Builder has a Preset row for Air to stone, Fluids to air, Logs/leaves to air, Ores to stone, and Containers with Extra NBT to air.
 - Done: built-in presets fill visible From/To and source condition controls instead of adding hidden behavior; users can edit source mode text, target, Extra NBT mode, Y range, and biome fields before adding a rule.
 - Done: air and container presets show warning text before adding a rule.
-- Done: custom presets can save the full generated ReplaceBlocks value, or a valid From/To draft rule before it is added to the table, to global config. They can then be loaded, overwritten, or deleted later. Loading a custom preset replaces the current Builder rules and draft inputs after confirmation.
+- Done: custom presets save the selected table rule when one is selected, otherwise a valid From/To draft, otherwise all table rules. Loading appends all non-duplicate preset rules without clearing the current table or draft. Presets can still be overwritten or deleted.
 - Done: advanced text remains available.
 
 ### Phase 6: Release Hardening
@@ -229,13 +229,14 @@ This is a release gate, not a place to begin testing. Each implementation phase 
 
 Release gates:
 
-- Passed again on candidate `35261278` on 2026-07-11: compile and 53 automated tests covering parser/source modes, rule-edit restoration, catalog data, legacy fail-closed behavior, modern preview/execution parity, light invalidation, and heightmap packing/writeback.
+- Passed after the 2026-07-11 findings follow-up: compile and 58 automated tests covering parser/source modes, rule/preset restoration, catalog data, legacy fail-closed behavior, modern preview/execution parity, relight flags, and heightmap packing/writeback.
 - Passed again on 2026-07-11: translation completeness and `build shadowJar`.
 - Passed on 2026-07-11: Windows `jpackage` with Azul Zulu 21.0.11 JDK FX; the packaged MCA Selector 2.8 image opened independently of Gradle.
-- Pending: Chinese and English JavaFX regression passes with clean console output and final screenshots.
+- Failed on `d17f0247`, fixed, focused rerun pending: Chinese/English completion, IME, popup resizing, property round-trip, preset precedence/append behavior, clean console, and final screenshots.
 - Passed at file level on 2026-07-11 using disposable DataVersion 2860 and 4671 copies: preview hashes, ordinary/multiple rules, selection-only execution, state/waterlogged round-trip, tile add/remove/update, bounded air, Y + biome + tile composition, overlap counts, light invalidation, and heightmap shape.
-- Pending copied-world game gates: a real stored biome boundary, Minecraft load/save/reload, visible state/light checks, and game log inspection.
-- Pending: final alignment of all internal docs and preparation of clean local code/Wiki PR branches.
+- Passed: real 1.18/1.21 stored-biome boundary checks on disposable normal-terrain copies; preview hashes stayed unchanged, selected-biome matches reached zero after execution, and control-biome counts were unchanged.
+- User game pass completed load/save/reload, state, container, heightmap, and log checks. A 1.21 stale-light result caused the execution path to write `isLightOn=0`; only the focused in-game relight rerun remains.
+- Pending: final post-rerun documentation status and refresh of the already prepared local code/Wiki PR branches.
 
 Any failed gate is fixed on the feature branch, receives the narrowest practical automated regression, and reruns both its focused checks and the final full gate. Phase 6 must not be marked complete while a required UI or copied-world gate remains blocked.
 
