@@ -92,6 +92,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private boolean dialogButtonClose;
 	private Point2D ruleMarqueeAnchor;
 	private boolean ruleMarqueeAdditive;
+	private boolean ruleMarqueeDragging;
 
 	public ReplaceBlocksRuleBuilderDialog(Stage primaryStage, String initialValue) {
 		this(primaryStage, null, true, initialValue);
@@ -553,12 +554,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		return false;
 	}
 
-	private boolean isRuleTableBackground(Object target) {
+	private boolean isRuleTableDragArea(Object target) {
 		Node node = target instanceof Node n ? n : null;
 		boolean excluded = false;
 		while (node != null) {
 			if (node == rules) {
-				return canStartRuleMarquee(true, isFilledRuleRow(target), excluded);
+				return canStartRuleMarquee(true, excluded);
 			}
 			if (node.getStyleClass().contains("column-header")
 					|| node.getStyleClass().contains("column-header-background")
@@ -567,7 +568,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			}
 			node = node.getParent();
 		}
-		return canStartRuleMarquee(false, false, excluded);
+		return canStartRuleMarquee(false, excluded);
 	}
 
 	private void handleBuilderShortcut(KeyEvent event) {
@@ -588,22 +589,31 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private void handleRulesMousePressed(MouseEvent event) {
-		if (event.getButton() != MouseButton.PRIMARY || !isRuleTableBackground(event.getTarget())) {
+		if (event.getButton() != MouseButton.PRIMARY || !isRuleTableDragArea(event.getTarget())) {
 			return;
 		}
 		rules.requestFocus();
 		ruleMarqueeAdditive = event.isControlDown();
-		if (!ruleMarqueeAdditive) {
+		ruleMarqueeDragging = false;
+		if (!ruleMarqueeAdditive && !isFilledRuleRow(event.getTarget())) {
 			rules.getSelectionModel().clearSelection();
 		}
 		ruleMarqueeAnchor = new Point2D(event.getX(), event.getY());
-		updateRuleMarquee(event.getX(), event.getY());
-		event.consume();
 	}
 
 	private void handleRulesMouseDragged(MouseEvent event) {
 		if (ruleMarqueeAnchor == null) {
 			return;
+		}
+		if (!ruleMarqueeDragging && !isRuleMarqueeDrag(
+				event.getX() - ruleMarqueeAnchor.getX(), event.getY() - ruleMarqueeAnchor.getY())) {
+			return;
+		}
+		if (!ruleMarqueeDragging) {
+			ruleMarqueeDragging = true;
+			if (!ruleMarqueeAdditive) {
+				rules.getSelectionModel().clearSelection();
+			}
 		}
 		updateRuleMarquee(event.getX(), event.getY());
 		event.consume();
@@ -613,9 +623,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		if (ruleMarqueeAnchor == null) {
 			return;
 		}
+		if (!ruleMarqueeDragging) {
+			ruleMarqueeAnchor = null;
+			return;
+		}
 		applyRuleMarquee();
 		ruleMarquee.setVisible(false);
 		ruleMarqueeAnchor = null;
+		ruleMarqueeDragging = false;
 		event.consume();
 	}
 
@@ -798,8 +813,26 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		return controlDown && (code == KeyCode.ENTER || code == KeyCode.SEPARATOR);
 	}
 
-	static boolean canStartRuleMarquee(boolean insideRulesTable, boolean filledRuleRow, boolean excludedControl) {
-		return insideRulesTable && !filledRuleRow && !excludedControl;
+	static boolean canStartRuleMarquee(boolean insideRulesTable, boolean excludedControl) {
+		return insideRulesTable && !excludedControl;
+	}
+
+	static boolean isRuleMarqueeDrag(double deltaX, double deltaY) {
+		return Math.hypot(deltaX, deltaY) >= 3;
+	}
+
+	static int popupSelectionTarget(KeyCode code, int selectedIndex, int itemCount, int visibleRows) {
+		if (itemCount <= 0) {
+			return -1;
+		}
+		int current = selectedIndex < 0 ? 0 : selectedIndex;
+		return switch (code) {
+			case UP -> Math.max(0, selectedIndex < 0 ? itemCount - 1 : current - 1);
+			case DOWN -> Math.min(itemCount - 1, selectedIndex < 0 ? 0 : current + 1);
+			case PAGE_UP -> Math.max(0, current - Math.max(1, visibleRows - 1));
+			case PAGE_DOWN -> Math.min(itemCount - 1, current + Math.max(1, visibleRows - 1));
+			default -> -1;
+		};
 	}
 
 	static List<Integer> intersectingRuleIndices(Rectangle2D marquee, List<VisibleRuleBounds> rows) {
@@ -1528,6 +1561,9 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					}
 					return;
 				}
+				if (moveBiomeSuggestionHighlight(event)) {
+					return;
+				}
 			}
 			if (event.getCode() == KeyCode.TAB && biomeNames.isShowing()) {
 				String suggestion = selectedBiomeSuggestion();
@@ -1544,6 +1580,28 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				return selected;
 			}
 			return biomeNames.getItems().isEmpty() ? null : biomeNames.getItems().get(0);
+		}
+
+		private boolean moveBiomeSuggestionHighlight(KeyEvent event) {
+			int target = popupSelectionTarget(event.getCode(), biomeNames.getSelectionModel().getSelectedIndex(),
+					biomeNames.getItems().size(), biomeNames.getVisibleRowCount());
+			if (target < 0) {
+				return false;
+			}
+			TextField editor = biomeNames.getEditor();
+			String query = editor.getText() == null ? "" : editor.getText();
+			int anchor = editor.getAnchor();
+			int caret = editor.getCaretPosition();
+			suppressBiomeSuggestions = true;
+			try {
+				biomeNames.getSelectionModel().select(target);
+				editor.setText(query);
+				editor.selectRange(anchor, caret);
+			} finally {
+				suppressBiomeSuggestions = false;
+			}
+			event.consume();
+			return true;
 		}
 
 		private void completeBiomeSuggestion(String suggestion) {
@@ -1615,6 +1673,9 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					}
 					return;
 				}
+				if (moveBlockSuggestionHighlight(event)) {
+					return;
+				}
 			}
 			if (event.getCode() == KeyCode.TAB && block.isShowing()) {
 				String suggestion = selectedSuggestion();
@@ -1631,6 +1692,28 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				return selected;
 			}
 			return block.getItems().isEmpty() ? null : block.getItems().get(0);
+		}
+
+		private boolean moveBlockSuggestionHighlight(KeyEvent event) {
+			int target = popupSelectionTarget(event.getCode(), block.getSelectionModel().getSelectedIndex(),
+					block.getItems().size(), block.getVisibleRowCount());
+			if (target < 0) {
+				return false;
+			}
+			TextField editor = block.getEditor();
+			String query = editor.getText() == null ? "" : editor.getText();
+			int anchor = editor.getAnchor();
+			int caret = editor.getCaretPosition();
+			suppressSuggestions = true;
+			try {
+				block.getSelectionModel().select(target);
+				editor.setText(query);
+				editor.selectRange(anchor, caret);
+			} finally {
+				suppressSuggestions = false;
+			}
+			event.consume();
+			return true;
 		}
 
 		private void completeSuggestion(String suggestion) {

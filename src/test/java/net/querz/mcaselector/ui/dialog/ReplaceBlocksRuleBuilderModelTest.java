@@ -139,10 +139,25 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
-	void permitsMarqueeFromEveryBlankRuleTableArea() {
-		assertTrue(ReplaceBlocksRuleBuilderDialog.canStartRuleMarquee(true, false, false));
-		assertFalse(ReplaceBlocksRuleBuilderDialog.canStartRuleMarquee(true, true, false));
-		assertFalse(ReplaceBlocksRuleBuilderDialog.canStartRuleMarquee(true, false, true));
-		assertFalse(ReplaceBlocksRuleBuilderDialog.canStartRuleMarquee(false, false, false));
+	void permitsMarqueeFromRulesAndBlankTableAreas() {
+		assertTrue(ReplaceBlocksRuleBuilderDialog.canStartRuleMarquee(true, false));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.canStartRuleMarquee(true, true));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.canStartRuleMarquee(false, false));
+	}
+
+	@Test
+	void movesAutocompleteHighlightWithoutChangingTheQuery() {
+		assertEquals(0, ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(KeyCode.DOWN, -1, 20, 12));
+		assertEquals(11, ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(KeyCode.PAGE_DOWN, 0, 20, 12));
+		assertEquals(0, ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(KeyCode.PAGE_UP, 11, 20, 12));
+		assertEquals(-1, ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(KeyCode.ENTER, 0, 20, 12));
+	}
+
+	@Test
+	void startsMarqueeOnlyAfterARealDrag() {
+		assertFalse(ReplaceBlocksRuleBuilderDialog.isRuleMarqueeDrag(0, 0));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.isRuleMarqueeDrag(2, 1));
+		assertTrue(ReplaceBlocksRuleBuilderDialog.isRuleMarqueeDrag(3, 0));
+		assertTrue(ReplaceBlocksRuleBuilderDialog.isRuleMarqueeDrag(0, 3));
 	}
 }
