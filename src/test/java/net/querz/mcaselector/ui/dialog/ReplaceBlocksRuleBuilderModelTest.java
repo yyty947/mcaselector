@@ -1,5 +1,7 @@
 package net.querz.mcaselector.ui.dialog;
 
+import javafx.geometry.Rectangle2D;
+import javafx.scene.input.KeyCode;
 import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.nbt.CompoundTag;
 import org.junit.jupiter.api.Test;
@@ -105,5 +107,34 @@ class ReplaceBlocksRuleBuilderModelTest {
 				"{ Properties: { persistent: \"false\", distance: \"2\", waterlogged: \"true\" }, Name: \"minecraft:acacia_leaves\" }");
 
 		assertEquals(first, reordered);
+	}
+
+	@Test
+	void formatsOnlyTheSelectedRulesForPresetSaving() {
+		List<ReplaceBlocksRuleBuilderDialog.Rule> selected = List.of(
+				new ReplaceBlocksRuleBuilderDialog.Rule("minecraft:stone", "minecraft:dirt"),
+				new ReplaceBlocksRuleBuilderDialog.Rule("minecraft:oak_log", "minecraft:air"));
+
+		assertEquals("literal(minecraft:stone)=minecraft:dirt, literal(minecraft:oak_log)=minecraft:air",
+				ReplaceBlocksRuleBuilderDialog.formatRulesValue(selected));
+	}
+
+	@Test
+	void returnsEveryVisibleRuleIntersectingTheMarquee() {
+		List<ReplaceBlocksRuleBuilderDialog.VisibleRuleBounds> rows = List.of(
+				new ReplaceBlocksRuleBuilderDialog.VisibleRuleBounds(0, new Rectangle2D(0, 0, 600, 24)),
+				new ReplaceBlocksRuleBuilderDialog.VisibleRuleBounds(1, new Rectangle2D(0, 24, 600, 24)),
+				new ReplaceBlocksRuleBuilderDialog.VisibleRuleBounds(2, new Rectangle2D(0, 48, 600, 24)));
+
+		assertEquals(List.of(0, 1), ReplaceBlocksRuleBuilderDialog.intersectingRuleIndices(
+				new Rectangle2D(16, 8, 120, 38), rows));
+	}
+
+	@Test
+	void movesAnOpenPopupSelectionByRowsOrPages() {
+		assertEquals(0, ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(KeyCode.DOWN, -1, 20, 12));
+		assertEquals(11, ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(KeyCode.PAGE_DOWN, 0, 20, 12));
+		assertEquals(0, ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(KeyCode.PAGE_UP, 11, 20, 12));
+		assertEquals(-1, ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(KeyCode.ENTER, 0, 20, 12));
 	}
 }

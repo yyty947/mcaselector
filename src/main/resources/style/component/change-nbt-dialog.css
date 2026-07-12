@@ -169,6 +169,12 @@
     -fx-border-color: transparent;
 }
 
+.replace-blocks-builder-pane .replace-blocks-builder-rule-marquee {
+    -fx-fill: rgba(74, 163, 255, 0.22);
+    -fx-stroke: #4aa3ff;
+    -fx-stroke-width: 1;
+}
+
 .combo-box-popup .list-view .list-cell:filled {
     -fx-text-fill: -color-text-light;
 }

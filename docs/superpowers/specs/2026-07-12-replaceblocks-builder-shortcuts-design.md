@@ -1,7 +1,7 @@
 # ReplaceBlocks Builder Shortcuts Design
 
 Date: 2026-07-12
-Status: Proposed design, implementation not started
+Status: Implemented
 Scope: ReplaceBlocks Builder only
 
 ## Goal
@@ -32,6 +32,12 @@ The controls keep their normal JavaFX behavior when no popup is open. Text field
 | `Esc` | Rules table has focus | Clear the table selection if a row is selected. |
 
 `Delete` must not delete text when any text input or editable ComboBox editor has focus. `Ctrl+Enter` must not bypass validation or create a rule from incomplete input.
+
+### Rule table multi-selection
+
+The rules table keeps native Ctrl/Shift row selection and additionally supports marquee selection from its empty area. Hold the left mouse button in empty table space and drag over rows to select every row intersecting the translucent rectangle. A normal marquee replaces the current selection; Ctrl-marquee adds its intersecting rows.
+
+Saving a custom preset serializes every selected row, in table order. A valid current draft is considered only when no rows are selected, and all table rules are used only when neither a selection nor a draft exists. Editing remains a single-row operation; the edit button is disabled for zero or multiple selected rows. Delete removes every selected rule.
 
 ## Deliberately Excluded Shortcuts
 
@@ -67,7 +73,8 @@ No global key filter should reinterpret ordinary keys across the entire dialog.
 - Test the pure shortcut-context decision logic if a helper is introduced.
 - Verify invalid drafts cannot be added through the keyboard path.
 - Verify `Ctrl+Enter` and the Add rule button produce equivalent generated rules for valid drafts.
-- Verify Delete is enabled only for a selected rule-table row and does not apply to text input controls.
+- Verify Delete is enabled only for selected rule-table rows and does not apply to text input controls.
+- Verify a marquee selects every visible row it intersects, and Ctrl-marquee adds to an existing selection.
 
 ### Manual UI regression
 
@@ -75,7 +82,7 @@ In both English and Chinese locales:
 
 - Open From/To, biome, property, and preset lists; verify Up/Down, PageUp/PageDown, Enter, Esc, Tab, and mouse completion.
 - Place the caret in the middle of an editable input, select text, and type; confirm the caret and selection are preserved.
-- Focus the rules table, delete a selected rule, press Esc to clear selection, and verify saving a preset still follows the documented precedence.
+- Focus the rules table, select rows with Ctrl/Shift and marquee, delete selected rules, press Esc to clear selection, and verify saving a preset still follows the documented precedence.
 - Focus each Builder input, use Ctrl+Enter for valid and invalid drafts, and verify the same result as Add rule.
 - Confirm Delete does not remove text while an input or editable ComboBox editor has focus.
 - Confirm no JavaFX exceptions appear in the console.
