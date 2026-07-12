@@ -217,10 +217,10 @@ dialog.replace_blocks.builder.result;生成的 ReplaceBlocks
 dialog.replace_blocks.builder.invalid;方块 ID 或生成规则无效。
 dialog.replace_blocks.builder.duplicate;这条规则已存在。
 dialog.replace_blocks.builder.empty;请至少添加一条规则。
-dialog.replace_blocks.builder.advanced;高级文本输入仍可用；from/to 也可输入包含 Name 的方块状态 SNBT。
-dialog.replace_blocks.builder.tile_source.any;附加NBT：不限
-dialog.replace_blocks.builder.tile_source.require;附加NBT：有
-dialog.replace_blocks.builder.tile_source.exclude;附加NBT：无
+dialog.replace_blocks.builder.advanced;仍可使用高级文本输入；来源方块和目标方块也支持输入包含 Name 的方块状态 SNBT。
+dialog.replace_blocks.builder.tile_source.any;附加 NBT：不限
+dialog.replace_blocks.builder.tile_source.require;附加 NBT：有
+dialog.replace_blocks.builder.tile_source.exclude;附加 NBT：无
 dialog.replace_blocks.builder.y_min;最低 Y
 dialog.replace_blocks.builder.y_max;最高 Y
 dialog.replace_blocks.builder.biome;生物群系
@@ -247,9 +247,9 @@ dialog.replace_blocks.builder.preset.air_to_stone;空气 -> 石头
 dialog.replace_blocks.builder.preset.fluids_to_air;流体 -> 空气
 dialog.replace_blocks.builder.preset.logs_leaves_to_air;原木/树叶 -> 空气
 dialog.replace_blocks.builder.preset.ores_to_stone;矿石 -> 石头
-dialog.replace_blocks.builder.preset.containers_to_air;带附加NBT的容器 -> 空气
+dialog.replace_blocks.builder.preset.containers_to_air;带附加 NBT 的容器 -> 空气
 dialog.replace_blocks.builder.preset.warning_air;空气替换可能创建缺失或稀疏区段。请先在小范围复制世界中预览。
-dialog.replace_blocks.builder.preset.warning_containers;容器预设只匹配附加NBT存在的位置，但替换仍可能移除箱子等内部内容。请先在复制世界中预览。
+dialog.replace_blocks.builder.preset.warning_containers;容器预设只匹配存在附加 NBT 的位置，但替换仍可能移除箱子等内部内容。请先在复制世界中预览。
 dialog.replace_blocks.builder.edit_rule;载入编辑
 dialog.replace_blocks.builder.property.all;全部
 dialog.replace_blocks.builder.help.button;帮助
@@ -288,10 +288,10 @@ dialog.change_nbt.replace_blocks_query_quote;在高级查询框中，ReplaceBloc
 dialog.replace_blocks.preview.button;预览
 dialog.replace_blocks.preview.title;ReplaceBlocks 预览
 dialog.replace_blocks.preview.no_field;请先输入有效的 ReplaceBlocks 值，再运行预览。
-dialog.replace_blocks.preview.result;Dry-run 完成。\n扫描 region：%d\n扫描 chunk：%d\n受影响 chunk：%d\n受影响 section：%d\n匹配方块数：%d\n将新增方块实体：%d\n将移除方块实体：%d\n将更新方块实体：%d
+dialog.replace_blocks.preview.result;试运行完成。\n扫描区域：%d\n扫描区块：%d\n受影响区块：%d\n受影响区段：%d\n匹配方块数：%d\n将新增方块实体：%d\n将移除方块实体：%d\n将更新方块实体：%d
 dialog.replace_blocks.preview.rules;规则命中：
 dialog.replace_blocks.preview.rule;#%d [%s] %s -> %s：%d
-dialog.replace_blocks.preview.warning_air;替换 air 可能会先补全缺失 section。预览已计入 %d 个缺失或不完整的 air section。
+dialog.replace_blocks.preview.warning_air;替换空气时可能会先补全缺失区段。预览已计入 %d 个缺失或不完整的空气区段。
 dialog.replace_blocks.preview.warning_overlap;%d 个方块位置同时命中多条规则。逐规则计数会分别计入每条命中规则，所以合计可能高于匹配方块数。
 dialog.replace_blocks.preview.warning_tile;方块实体替换可能新增、移除或更新 block entity。正式应用前请先用复制世界测试。
 dialog.replace_blocks.preview.warning_light;当前 ReplaceBlocks 实现可能会移除 %d 个已处理 section 的光照数组。

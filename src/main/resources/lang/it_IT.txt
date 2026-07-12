@@ -207,96 +207,96 @@ dialog.request_number.title.enter_number;Valore
 button.cancel;Annulla
 button.ok;Va bene
 dialog.replace_blocks.builder.button;Builder
-dialog.replace_blocks.builder.title;ReplaceBlocks Builder
-dialog.replace_blocks.builder.from;From block
-dialog.replace_blocks.builder.to;To block
-dialog.replace_blocks.builder.add_rule;Add rule
-dialog.replace_blocks.builder.delete_rule;Delete rule
-dialog.replace_blocks.builder.rules;Rules
-dialog.replace_blocks.builder.result;Generated ReplaceBlocks
-dialog.replace_blocks.builder.invalid;Invalid block id or generated rule.
-dialog.replace_blocks.builder.duplicate;This rule already exists.
-dialog.replace_blocks.builder.empty;Add at least one rule.
-dialog.replace_blocks.builder.advanced;Advanced text input remains available; from/to also accept block state SNBT with Name.
-dialog.replace_blocks.builder.tile_source.any;Extra NBT: any
-dialog.replace_blocks.builder.tile_source.require;Extra NBT: present
-dialog.replace_blocks.builder.tile_source.exclude;Extra NBT: absent
-dialog.replace_blocks.builder.y_min;Min Y
-dialog.replace_blocks.builder.y_max;Max Y
-dialog.replace_blocks.builder.biome;Biome
+dialog.replace_blocks.builder.title;Builder ReplaceBlocks
+dialog.replace_blocks.builder.from;Blocco origine
+dialog.replace_blocks.builder.to;Blocco destinazione
+dialog.replace_blocks.builder.add_rule;Aggiungi regola
+dialog.replace_blocks.builder.delete_rule;Elimina regola
+dialog.replace_blocks.builder.rules;Regole
+dialog.replace_blocks.builder.result;ReplaceBlocks generato
+dialog.replace_blocks.builder.invalid;ID blocco o regola generata non valido.
+dialog.replace_blocks.builder.duplicate;Questa regola esiste già.
+dialog.replace_blocks.builder.empty;Aggiungi almeno una regola.
+dialog.replace_blocks.builder.advanced;L'input di testo avanzato rimane disponibile; origine/destinazione accettano anche SNBT di stato blocco con Name.
+dialog.replace_blocks.builder.tile_source.any;NBT extra: qualsiasi
+dialog.replace_blocks.builder.tile_source.require;NBT extra: presente
+dialog.replace_blocks.builder.tile_source.exclude;NBT extra: assente
+dialog.replace_blocks.builder.y_min;Y min
+dialog.replace_blocks.builder.y_max;Y max
+dialog.replace_blocks.builder.biome;Bioma
 dialog.replace_blocks.builder.biome.prompt;minecraft:plains;minecraft:forest
-dialog.replace_blocks.builder.preset;Preset
-dialog.replace_blocks.builder.preset.prompt;Choose preset
-dialog.replace_blocks.builder.preset.apply;Fill preset
-dialog.replace_blocks.builder.preset.save;Save preset
-dialog.replace_blocks.builder.preset.delete;Delete preset
-dialog.replace_blocks.builder.preset.title;ReplaceBlocks presets
-dialog.replace_blocks.builder.preset.save.title;Save ReplaceBlocks preset
-dialog.replace_blocks.builder.preset.save.header;Save the generated rules as a reusable Builder preset.
-dialog.replace_blocks.builder.preset.save.name;Preset name
-dialog.replace_blocks.builder.preset.name_empty;Enter a preset name.
-dialog.replace_blocks.builder.preset.builtin_locked;Built-in preset names cannot be overwritten.
-dialog.replace_blocks.builder.preset.overwrite_confirm;A preset named "%s" already exists. Overwrite it?
-dialog.replace_blocks.builder.preset.delete_confirm;Delete preset "%s"?
-dialog.replace_blocks.builder.preset.replace_confirm;Loading this preset will replace the current Builder rules and draft inputs.
-dialog.replace_blocks.builder.preset.saved;Preset "%s" saved.
-dialog.replace_blocks.builder.preset.already_filled;This preset is already present in the rule list.
-dialog.replace_blocks.builder.discard.title;Discard Builder changes?
-dialog.replace_blocks.builder.discard.header;All rules and draft input in this Builder will be lost.
-dialog.replace_blocks.builder.preset.air_to_stone;Air -> stone
-dialog.replace_blocks.builder.preset.fluids_to_air;Fluids -> air
-dialog.replace_blocks.builder.preset.logs_leaves_to_air;Logs/leaves -> air
-dialog.replace_blocks.builder.preset.ores_to_stone;Ores -> stone
-dialog.replace_blocks.builder.preset.containers_to_air;Containers with Extra NBT -> air
-dialog.replace_blocks.builder.preset.warning_air;Air replacement can create missing or sparse sections. Preview on a small copied selection first.
-dialog.replace_blocks.builder.preset.warning_containers;The container preset matches only positions with Extra NBT present, but replacing them can remove stored contents. Preview on a copied world first.
-dialog.replace_blocks.builder.edit_rule;Load rule
-dialog.replace_blocks.builder.property.all;all
-dialog.replace_blocks.builder.help.button;Help
-dialog.replace_blocks.builder.help.title;ReplaceBlocks Builder Help
-dialog.replace_blocks.builder.help.nbt.title;Extra NBT source condition
-dialog.replace_blocks.builder.help.nbt.intro;Extra NBT is block entity data stored at a block position, such as sign text, container items, furnace progress, or command block commands. This option only checks whether the source position has that data; it does not inspect the contents.
-dialog.replace_blocks.builder.help.nbt.any;Extra NBT: any - match by block name and properties regardless of block entity data. Use this for normal blocks, or when replacing and discarding existing extra data is acceptable.
-dialog.replace_blocks.builder.help.nbt.present;Extra NBT: present - match only positions that already have block entity data. Use this when deliberately targeting chests, barrels, signs, furnaces, spawners, or similar data blocks; generates tile(...).
-dialog.replace_blocks.builder.help.nbt.absent;Extra NBT: absent - match only positions without block entity data. Use this to avoid container contents, sign text, and similar data, or to clean up unusual same-name blocks without entities; generates no_tile(...).
-dialog.replace_blocks.builder.help.nbt.note;This setting filters only the source side. If the target needs block entity SNBT, continue using advanced text input.
-dialog.replace_blocks.builder.help.biome.title;Biome condition
-dialog.replace_blocks.builder.help.biome.intro;Biome filtering checks the biome at each candidate block position. In modern 1.18+ chunks, one biome value covers a 4x4x4 block area, so nearby blocks in that cell share the same biome condition.
-dialog.replace_blocks.builder.help.biome.syntax;Leave the Builder biome field empty for no biome restriction. Enter one biome id or multiple ids separated by semicolons; generated rules use biome(..., source).
-dialog.replace_blocks.validation.source_empty;Enter a source block id.
-dialog.replace_blocks.validation.target_empty;Enter a target block id.
-dialog.replace_blocks.validation.source_unknown;Unknown source block "%s".
-dialog.replace_blocks.validation.target_unknown;Unknown target block "%s".
-dialog.replace_blocks.validation.source_format;Source block id must look like minecraft:stone or modid:block_name.
-dialog.replace_blocks.validation.target_format;Target block id must look like minecraft:dirt or modid:block_name.
-dialog.replace_blocks.validation.missing_equals;Each ReplaceBlocks rule needs from=to.
-dialog.replace_blocks.validation.state_snbt;Block state SNBT must be a valid compound, for example {Name:"minecraft:stone"}.
-dialog.replace_blocks.validation.tile_empty;Tile entity SNBT is missing after ;.
-dialog.replace_blocks.validation.tile_snbt;Tile entity SNBT must be a valid compound.
-dialog.replace_blocks.validation.trailing;Unexpected text after this rule. Separate rules with commas.
-dialog.replace_blocks.validation.target_quote;Quoted target block is missing a closing quote.
-dialog.replace_blocks.validation.quoted_target_ambiguous;Quoted target blocks are fragile before another rule or tile SNBT. Use {Name:"modid:block"} instead.
-dialog.replace_blocks.validation.source_regex;Source "%s" is treated as a Java regex when matching blocks.
-dialog.replace_blocks.validation.source_mode_wrapper;Source mode wrappers must be literal(...), regex(...), props(...), tile(...), or no_tile(...).
-dialog.replace_blocks.validation.source_literal;literal(...) source must contain a valid block id. Invalid source: "%s".
-dialog.replace_blocks.validation.source_regex_syntax;regex(...) source must contain a valid Java regex.
-dialog.replace_blocks.validation.source_props;props(...) source must contain block-state SNBT with Name and at least one selected property.
-dialog.replace_blocks.validation.source_y_range;y(...) source must use min..max with at least one integer boundary, for example y(-64..64, literal(minecraft:stone)).
-dialog.replace_blocks.validation.source_biome;biome(...) source must use valid biome IDs separated by semicolons, followed by a source expression, for example biome(minecraft:plains, literal(minecraft:stone)).
+dialog.replace_blocks.builder.preset;Predefinito
+dialog.replace_blocks.builder.preset.prompt;Scegli predefinito
+dialog.replace_blocks.builder.preset.apply;Applica predefinito
+dialog.replace_blocks.builder.preset.save;Salva predefinito
+dialog.replace_blocks.builder.preset.delete;Elimina predefinito
+dialog.replace_blocks.builder.preset.title;Predefiniti ReplaceBlocks
+dialog.replace_blocks.builder.preset.save.title;Salva predefinito ReplaceBlocks
+dialog.replace_blocks.builder.preset.save.header;Salva le regole generate come predefinito Builder riutilizzabile.
+dialog.replace_blocks.builder.preset.save.name;Nome predefinito
+dialog.replace_blocks.builder.preset.name_empty;Inserisci un nome per il predefinito.
+dialog.replace_blocks.builder.preset.builtin_locked;I nomi dei predefiniti integrati non possono essere sovrascritti.
+dialog.replace_blocks.builder.preset.overwrite_confirm;Un predefinito chiamato "%s" esiste già. Sovrascriverlo?
+dialog.replace_blocks.builder.preset.delete_confirm;Eliminare il predefinito "%s"?
+dialog.replace_blocks.builder.preset.replace_confirm;Caricare questo predefinito sostituirà le regole e l'input in corso del Builder.
+dialog.replace_blocks.builder.preset.saved;Predefinito "%s" salvato.
+dialog.replace_blocks.builder.preset.already_filled;Questo predefinito è già presente nell'elenco delle regole.
+dialog.replace_blocks.builder.discard.title;Scartare le modifiche del Builder?
+dialog.replace_blocks.builder.discard.header;Tutte le regole e l'input in corso in questo Builder andranno persi.
+dialog.replace_blocks.builder.preset.air_to_stone;Aria -> pietra
+dialog.replace_blocks.builder.preset.fluids_to_air;Fluidi -> aria
+dialog.replace_blocks.builder.preset.logs_leaves_to_air;Tronchi/foglie -> aria
+dialog.replace_blocks.builder.preset.ores_to_stone;Minerali -> pietra
+dialog.replace_blocks.builder.preset.containers_to_air;Contenitori con NBT extra -> aria
+dialog.replace_blocks.builder.preset.warning_air;La sostituzione dell'aria può creare sezioni mancanti o rade. Prima visualizza l'anteprima su una piccola selezione copiata.
+dialog.replace_blocks.builder.preset.warning_containers;Il predefinito contenitori corrisponde solo alle posizioni con NBT extra presente, ma la sostituzione può rimuovere i contenuti salvati come bauli e barili. Prima visualizza l'anteprima su un mondo copiato.
+dialog.replace_blocks.builder.edit_rule;Carica regola
+dialog.replace_blocks.builder.property.all;tutto
+dialog.replace_blocks.builder.help.button;Aiuto
+dialog.replace_blocks.builder.help.title;Guida del Builder ReplaceBlocks
+dialog.replace_blocks.builder.help.nbt.title;Condizione NBT extra
+dialog.replace_blocks.builder.help.nbt.intro;I NBT extra sono dati di entità blocco memorizzati in una posizione, come testo dei cartelli, oggetti nei contenitori, progresso della fornace o comandi dei blocchi comandi. Questa opzione verifica solo se la posizione origine ha tali dati; non ne ispeziona il contenuto.
+dialog.replace_blocks.builder.help.nbt.any;NBT extra: qualsiasi – corrisponde per nome blocco e proprietà, indipendentemente dai dati di entità blocco. Per blocchi normali, o quando scartare i dati extra esistenti è accettabile.
+dialog.replace_blocks.builder.help.nbt.present;NBT extra: presente – corrisponde solo alle posizioni che hanno già dati di entità blocco. Usalo per prendere di mira intenzionalmente bauli, barili, cartelli, fornaci, spawner o blocchi dati simili; genera tile(...).
+dialog.replace_blocks.builder.help.nbt.absent;NBT extra: assente – corrisponde solo alle posizioni senza dati di entità blocco. Usalo per evitare il contenuto dei contenitori, il testo dei cartelli e dati simili, o per ripulire blocchi anomali con lo stesso nome ma senza entità; genera no_tile(...).
+dialog.replace_blocks.builder.help.nbt.note;Questa impostazione filtra solo il lato origine. Se la destinazione ha bisogno di SNBT di entità blocco, continua a usare l'input di testo avanzato.
+dialog.replace_blocks.builder.help.biome.title;Condizione bioma
+dialog.replace_blocks.builder.help.biome.intro;Il filtro bioma controlla il bioma in ogni posizione di blocco candidata. Nei chunk moderni 1.18+, un valore di bioma copre un'area di 4×4×4 blocchi, quindi i blocchi vicini in quella cella condividono la stessa condizione di bioma.
+dialog.replace_blocks.builder.help.biome.syntax;Lascia vuoto il campo Bioma del Builder per nessuna restrizione di bioma. Inserisci un ID bioma o più ID separati da punto e virgola; le regole generate usano biome(..., source).
+dialog.replace_blocks.validation.source_empty;Inserisci un ID del blocco di origine.
+dialog.replace_blocks.validation.target_empty;Inserisci un ID del blocco di destinazione.
+dialog.replace_blocks.validation.source_unknown;Blocco di origine sconosciuto "%s".
+dialog.replace_blocks.validation.target_unknown;Blocco di destinazione sconosciuto "%s".
+dialog.replace_blocks.validation.source_format;L'ID del blocco di origine deve avere la forma minecraft:stone o modid:block_name.
+dialog.replace_blocks.validation.target_format;L'ID del blocco di destinazione deve avere la forma minecraft:dirt o modid:block_name.
+dialog.replace_blocks.validation.missing_equals;Ogni regola ReplaceBlocks richiede from=to.
+dialog.replace_blocks.validation.state_snbt;Lo SNBT dello stato del blocco deve essere un compound valido, ad esempio {Name:"minecraft:stone"}.
+dialog.replace_blocks.validation.tile_empty;Dopo ; manca lo SNBT dell'entità blocco.
+dialog.replace_blocks.validation.tile_snbt;Lo SNBT dell'entità blocco deve essere un compound valido.
+dialog.replace_blocks.validation.trailing;Testo imprevisto dopo questa regola. Separa le regole con virgole.
+dialog.replace_blocks.validation.target_quote;Al blocco di destinazione tra virgolette manca la virgoletta di chiusura.
+dialog.replace_blocks.validation.quoted_target_ambiguous;I blocchi di destinazione tra virgolette sono fragili prima di un'altra regola o di uno SNBT dell'entità blocco. Usa invece {Name:"modid:block"}.
+dialog.replace_blocks.validation.source_regex;L'origine "%s" viene trattata come espressione regolare Java durante la ricerca dei blocchi.
+dialog.replace_blocks.validation.source_mode_wrapper;I wrapper della modalità origine devono essere literal(...), regex(...), props(...), tile(...) o no_tile(...).
+dialog.replace_blocks.validation.source_literal;L'origine literal(...) deve contenere un ID blocco valido. Origine non valida: "%s".
+dialog.replace_blocks.validation.source_regex_syntax;L'origine regex(...) deve contenere un'espressione regolare Java valida.
+dialog.replace_blocks.validation.source_props;L'origine props(...) deve contenere SNBT dello stato del blocco con Name e almeno una proprietà selezionata.
+dialog.replace_blocks.validation.source_y_range;L'origine y(...) deve usare min..max con almeno un limite intero, ad esempio y(-64..64, literal(minecraft:stone)).
+dialog.replace_blocks.validation.source_biome;L'origine biome(...) deve usare ID bioma validi separati da punto e virgola, seguiti da un'espressione di origine, ad esempio biome(minecraft:plains, literal(minecraft:stone)).
 dialog.change_nbt.query_invalid;Invalid change query: %s
 dialog.change_nbt.replace_blocks_query_quote;In the advanced query field, wrap ReplaceBlocks values in double quotes, for example ReplaceBlocks = "minecraft:stone=minecraft:dirt".
-dialog.replace_blocks.preview.button;Preview
-dialog.replace_blocks.preview.title;ReplaceBlocks Preview
-dialog.replace_blocks.preview.no_field;Enter a valid ReplaceBlocks value before running preview.
-dialog.replace_blocks.preview.result;Dry-run completed.\nScanned regions: %d\nScanned chunks: %d\nAffected chunks: %d\nAffected sections: %d\nMatched blocks: %d\nTile entities to add: %d\nTile entities to remove: %d\nTile entities to update: %d
-dialog.replace_blocks.preview.rules;Rule matches:
+dialog.replace_blocks.preview.button;Anteprima
+dialog.replace_blocks.preview.title;Anteprima ReplaceBlocks
+dialog.replace_blocks.preview.no_field;Inserisci un valore ReplaceBlocks valido prima di eseguire l'anteprima.
+dialog.replace_blocks.preview.result;Simulazione completata.\nRegioni analizzate: %d\nChunk analizzati: %d\nChunk interessati: %d\nSezioni interessate: %d\nBlocchi corrispondenti: %d\nEntità blocco da aggiungere: %d\nEntità blocco da rimuovere: %d\nEntità blocco da aggiornare: %d
+dialog.replace_blocks.preview.rules;Corrispondenze delle regole:
 dialog.replace_blocks.preview.rule;#%d [%s] %s -> %s: %d
-dialog.replace_blocks.preview.warning_air;Air replacement may complete missing sections before replacement. Preview counted %d missing or incomplete air sections.
-dialog.replace_blocks.preview.warning_overlap;%d block positions matched more than one rule. Per-rule counts include each rule match, so their sum may be higher than matched blocks.
-dialog.replace_blocks.preview.warning_tile;Tile entity replacement can add, remove, or update block entities. Test on copied worlds before applying.
-dialog.replace_blocks.preview.warning_light;The current ReplaceBlocks implementation may remove light arrays from %d processed sections.
-dialog.replace_blocks.preview.warning_heightmaps;Heightmaps are recomputed for processed chunks during the real change. Preview scanned %d chunks.
-dialog.replace_blocks.preview.warning_unsupported;Preview is not implemented for %d scanned chunks in older or unsupported versions.
-dialog.replace_blocks.preview.warning_errors;Preview skipped %d chunks and %d regions because of errors:
-dialog.progress.title.preview_replace_blocks;Preview ReplaceBlocks
-dialog.replace_blocks.validation.source_state_snbt;Source block state SNBT must be a valid compound with a Name value.
+dialog.replace_blocks.preview.warning_air;La sostituzione dell'aria può completare sezioni mancanti prima della sostituzione. L'anteprima ha contato %d sezioni d'aria mancanti o incomplete.
+dialog.replace_blocks.preview.warning_overlap;%d posizioni di blocchi hanno corrisposto a più di una regola. I conteggi per regola includono ogni corrispondenza, quindi la loro somma può superare i blocchi corrispondenti.
+dialog.replace_blocks.preview.warning_tile;La sostituzione di entità blocco può aggiungere, rimuovere o aggiornare entità blocco. Prova su mondi copiati prima di applicarla.
+dialog.replace_blocks.preview.warning_light;L'attuale implementazione ReplaceBlocks può rimuovere gli array di luce da %d sezioni elaborate.
+dialog.replace_blocks.preview.warning_heightmaps;Le heightmap vengono ricalcolate per i chunk elaborati durante la modifica reale. L'anteprima ha analizzato %d chunk.
+dialog.replace_blocks.preview.warning_unsupported;L'anteprima non è implementata per %d chunk analizzati di versioni vecchie o non supportate.
+dialog.replace_blocks.preview.warning_errors;L'anteprima ha saltato %d chunk e %d regioni a causa di errori:
+dialog.progress.title.preview_replace_blocks;Anteprima ReplaceBlocks
+dialog.replace_blocks.validation.source_state_snbt;Lo SNBT dello stato del blocco di origine deve essere un compound valido con un valore Name.
