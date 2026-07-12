@@ -208,6 +208,32 @@
     -fx-font-weight: bold;
 }
 
+.combo-box-popup .replace-blocks-builder-dropdown .list-cell:filled:hover {
+    -fx-background-color: rgba(74, 163, 255, 0.32);
+    -fx-background-insets: 0;
+}
+
+.combo-box-popup .replace-blocks-builder-dropdown .list-cell:filled:focused,
+.combo-box-popup .replace-blocks-builder-dropdown .list-cell:filled:selected,
+.combo-box-popup .replace-blocks-builder-dropdown .list-cell:filled:autocomplete-highlighted {
+    -fx-background-color: #3188dc, #4aa3ff;
+    -fx-background-insets: 0, 1;
+    -fx-text-fill: white;
+}
+
+.combo-box-popup .replace-blocks-builder-dropdown .list-cell:filled:hover .text,
+.combo-box-popup .replace-blocks-builder-dropdown .list-cell:filled:focused .text,
+.combo-box-popup .replace-blocks-builder-dropdown .list-cell:filled:selected .text,
+.combo-box-popup .replace-blocks-builder-dropdown .list-cell:filled:autocomplete-highlighted .text {
+    -fx-fill: white;
+}
+
+.combo-box-popup .replace-blocks-builder-dropdown .list-cell:filled:focused .replace-blocks-builder-suggestion-highlight,
+.combo-box-popup .replace-blocks-builder-dropdown .list-cell:filled:selected .replace-blocks-builder-suggestion-highlight,
+.combo-box-popup .replace-blocks-builder-dropdown .list-cell:filled:autocomplete-highlighted .replace-blocks-builder-suggestion-highlight {
+    -fx-fill: white;
+}
+
 .replace-blocks-builder-help-pane .replace-blocks-builder-help {
     -fx-background-color: -color-dialog-background;
 }

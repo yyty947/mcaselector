@@ -10,6 +10,7 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.css.PseudoClass;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Bounds;
 import javafx.geometry.Point2D;
@@ -17,7 +18,10 @@ import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.skin.ComboBoxListViewSkin;
+import javafx.scene.control.skin.VirtualFlow;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -64,6 +68,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private static final PseudoClass error = PseudoClass.getPseudoClass("error");
 	private static final PseudoClass warning = PseudoClass.getPseudoClass("warning");
 	private static final PseudoClass success = PseudoClass.getPseudoClass("success");
+	private static final PseudoClass autocompleteHighlighted = PseudoClass.getPseudoClass("autocomplete-highlighted");
+	private static final String AUTOCOMPLETE_HIGHLIGHT_INDEX = "replace-blocks-autocomplete-highlight-index";
 	private static final ButtonType HELP = new ButtonType("", ButtonBar.ButtonData.LEFT);
 	private static final ButtonType PREVIEW = new ButtonType("", ButtonBar.ButtonData.LEFT);
 	private static final Color PROPERTY_CHOICE_TEXT = Color.web("#f2f2f2");
@@ -162,6 +168,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		GridPane.setValignment(addActions, VPos.TOP);
 
 		presets.setItems(presetItems);
+		configureBuilderComboBox(presets);
 		presets.getStyleClass().add("replace-blocks-builder-preset-combo");
 		presets.setCellFactory(v -> new PresetItemCell());
 		presets.setButtonCell(new PresetItemCell());
@@ -844,6 +851,179 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		};
 	}
 
+	static boolean focusPopupSuggestion(ComboBox<?> comboBox, int index) {
+		if (comboBox == null || index < 0
+				|| !(comboBox.getSkin() instanceof ComboBoxListViewSkin<?> skin)
+				|| !(skin.getPopupContent() instanceof ListView<?> popup)
+				|| index >= popup.getItems().size()) {
+			return false;
+		}
+		PopupVisibleRange range = popupVisibleRange(popup);
+		boolean reveal = range == null || popupNeedsReveal(index, range.first(), range.last());
+		applyPopupSuggestionHighlight(popup, index);
+		if (reveal) {
+			popup.scrollTo(index);
+			Platform.runLater(() -> {
+				if (Objects.equals(popup.getProperties().get(AUTOCOMPLETE_HIGHLIGHT_INDEX), index)) {
+					applyPopupSuggestionHighlight(popup, index);
+				}
+			});
+		}
+		return true;
+	}
+
+	private static PopupVisibleRange popupVisibleRange(ListView<?> popup) {
+		if (!(popup.lookup(".virtual-flow") instanceof VirtualFlow<?> flow)) {
+			return null;
+		}
+		IndexedCell<?> first = flow.getFirstVisibleCell();
+		IndexedCell<?> last = flow.getLastVisibleCell();
+		if (first == null || last == null) {
+			return null;
+		}
+		int firstFullyVisible = first.getIndex();
+		int lastFullyVisible = last.getIndex();
+		Node viewport = flow.lookup(".clipped-container");
+		if (viewport != null) {
+			Bounds viewportBounds = viewport.getBoundsInLocal();
+			Bounds firstBounds = viewport.sceneToLocal(first.localToScene(first.getBoundsInLocal()));
+			Bounds lastBounds = viewport.sceneToLocal(last.localToScene(last.getBoundsInLocal()));
+			if (!isPopupCellFullyVisible(firstBounds, viewportBounds)) {
+				firstFullyVisible++;
+			}
+			if (!isPopupCellFullyVisible(lastBounds, viewportBounds)) {
+				lastFullyVisible--;
+			}
+		}
+		return new PopupVisibleRange(firstFullyVisible, lastFullyVisible);
+	}
+
+	private static int popupVisibleRowCount(ComboBox<?> comboBox, int fallback) {
+		if (comboBox.getSkin() instanceof ComboBoxListViewSkin<?> skin
+				&& skin.getPopupContent() instanceof ListView<?> popup) {
+			PopupVisibleRange range = popupVisibleRange(popup);
+			if (range != null) {
+				return popupPageSize(range.first(), range.last(), fallback);
+			}
+		}
+		return Math.max(1, fallback);
+	}
+
+	static boolean popupNeedsReveal(int target, int firstVisible, int lastVisible) {
+		return target < firstVisible || target > lastVisible;
+	}
+
+	static int popupPageSize(int firstVisible, int lastVisible, int fallback) {
+		int visible = lastVisible - firstVisible + 1;
+		return visible > 0 ? visible : Math.max(1, fallback);
+	}
+
+	static boolean isPopupCellFullyVisible(Bounds cellBounds, Bounds viewportBounds) {
+		return cellBounds.getMinY() >= viewportBounds.getMinY() - 0.5
+				&& cellBounds.getMaxY() <= viewportBounds.getMaxY() + 0.5;
+	}
+
+	static List<String> suggestionsForQuery(List<String> names, String query, boolean allowEmpty) {
+		String text = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+		if (text.isEmpty()) {
+			return allowEmpty ? List.copyOf(names) : List.of();
+		}
+		return names.stream()
+				.filter(name -> matchesSuggestion(name, text))
+				.toList();
+	}
+
+	private static boolean matchesSuggestion(String name, String query) {
+		if (name.contains(query)) {
+			return true;
+		}
+		int namespace = name.indexOf(':');
+		return namespace >= 0 && name.substring(namespace + 1).contains(query);
+	}
+
+	static boolean isComboBoxArrowTarget(Object target) {
+		Node node = target instanceof Node n ? n : null;
+		while (node != null) {
+			if (node.getStyleClass().contains("arrow-button")) {
+				return true;
+			}
+			node = node.getParent();
+		}
+		return false;
+	}
+
+	private static void applyPopupSuggestionHighlight(ListView<?> popup, int index) {
+		popup.getProperties().put(AUTOCOMPLETE_HIGHLIGHT_INDEX, index);
+		for (Node node : popup.lookupAll(".list-cell")) {
+			if (node instanceof IndexedCell<?> cell) {
+				cell.pseudoClassStateChanged(autocompleteHighlighted,
+						isAutocompleteCellHighlighted(cell.getIndex(), index, cell.isEmpty()));
+			}
+		}
+	}
+
+	static boolean isAutocompleteCellHighlighted(int cellIndex, int highlightIndex, boolean empty) {
+		return !empty && cellIndex == highlightIndex;
+	}
+
+	static boolean shouldClearExplicitCatalog(boolean explicitCatalog, boolean showing, String editorText) {
+		return explicitCatalog && !showing && (editorText == null || editorText.isBlank());
+	}
+
+	static void clearEmptyExplicitCatalog(ComboBox<?> comboBox) {
+		String editorText = comboBox.getEditor() == null ? null : comboBox.getEditor().getText();
+		if (!shouldClearExplicitCatalog(true, comboBox.isShowing(), editorText)) {
+			return;
+		}
+		comboBox.getItems().clear();
+		comboBox.getSelectionModel().clearSelection();
+		comboBox.setValue(null);
+	}
+
+	private static void clearPopupSuggestionHighlight(ComboBox<?> comboBox) {
+		if (comboBox.getSkin() instanceof ComboBoxListViewSkin<?> skin
+				&& skin.getPopupContent() instanceof ListView<?> popup) {
+			applyPopupSuggestionHighlight(popup, -1);
+		}
+	}
+
+	static void installAutocompletePopupKeyFilter(ComboBox<?> comboBox, EventHandler<KeyEvent> handler) {
+		comboBox.skinProperty().addListener((observable, oldSkin, newSkin) ->
+				installAutocompletePopupKeyFilter(newSkin, handler));
+		installAutocompletePopupKeyFilter(comboBox.getSkin(), handler);
+	}
+
+	static void configureBuilderComboBox(ComboBox<?> comboBox) {
+		comboBox.skinProperty().addListener((observable, oldSkin, newSkin) -> configureBuilderComboBox(newSkin));
+		configureBuilderComboBox(comboBox.getSkin());
+	}
+
+	private static void configureBuilderComboBox(Skin<?> skin) {
+		if (skin instanceof ComboBoxListViewSkin<?> comboBoxSkin
+				&& comboBoxSkin.getPopupContent() instanceof ListView<?> popup
+				&& !popup.getStyleClass().contains("replace-blocks-builder-dropdown")) {
+			popup.getStyleClass().add("replace-blocks-builder-dropdown");
+		}
+	}
+
+	private static void installAutocompletePopupKeyFilter(Skin<?> skin, EventHandler<KeyEvent> handler) {
+		if (skin instanceof ComboBoxListViewSkin<?> comboBoxSkin
+				&& comboBoxSkin.getPopupContent() instanceof ListView<?> popup) {
+			popup.sceneProperty().addListener((observable, oldScene, newScene) -> {
+				if (oldScene != null) {
+					oldScene.removeEventFilter(KeyEvent.KEY_PRESSED, handler);
+				}
+				if (newScene != null) {
+					newScene.addEventFilter(KeyEvent.KEY_PRESSED, handler);
+				}
+			});
+			Scene scene = popup.getScene();
+			if (scene != null) {
+				scene.addEventFilter(KeyEvent.KEY_PRESSED, handler);
+			}
+		}
+	}
+
 	static List<Integer> intersectingRuleIndices(Rectangle2D marquee, List<VisibleRuleBounds> rows) {
 		if (marquee.getWidth() <= 0 || marquee.getHeight() <= 0) {
 			return List.of();
@@ -1086,6 +1266,10 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		private boolean suppressBiomeSuggestions;
 		private int blockSuggestionRevision;
 		private int biomeSuggestionRevision;
+		private int blockSuggestionHighlight = -1;
+		private int biomeSuggestionHighlight = -1;
+		private boolean blockExplicitCatalog;
+		private boolean biomeExplicitCatalog;
 
 		private BlockInput(boolean source) {
 			this.source = source;
@@ -1104,7 +1288,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			block.setMaxWidth(Double.MAX_VALUE);
 			block.setVisibleRowCount(12);
 			block.setItems(blockSuggestions);
+			configureBuilderComboBox(block);
 			block.setCellFactory(v -> new HighlightedBlockCell());
+			installAutocompletePopupKeyFilter(block, this::handleKeyPressed);
+			block.addEventFilter(MouseEvent.MOUSE_PRESSED, this::handleBlockMousePressed);
+			block.setOnHidden(event -> scheduleBlockExplicitCatalogCleanup());
 			block.getEditor().setAlignment(Pos.CENTER);
 			block.getEditor().setOnAction(ReplaceBlocksRuleBuilderDialog.this::addRule);
 			block.getEditor().textProperty().addListener((a, o, n) -> {
@@ -1128,6 +1316,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			VBox.setVgrow(properties, Priority.NEVER);
 			if (source) {
 				tileEntityMode.setItems(FXCollections.observableArrayList(SourceTileMode.values()));
+				configureBuilderComboBox(tileEntityMode);
 				tileEntityMode.setValue(SourceTileMode.ANY);
 				tileEntityMode.setMinWidth(0);
 				tileEntityMode.setMaxWidth(Double.MAX_VALUE);
@@ -1170,7 +1359,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				biomeNames.setMaxWidth(Double.MAX_VALUE);
 				biomeNames.setVisibleRowCount(12);
 				biomeNames.setItems(biomeSuggestions);
+				configureBuilderComboBox(biomeNames);
 				biomeNames.setCellFactory(v -> new HighlightedBiomeCell());
+				installAutocompletePopupKeyFilter(biomeNames, this::handleBiomeKeyPressed);
+				biomeNames.addEventFilter(MouseEvent.MOUSE_PRESSED, this::handleBiomeMousePressed);
+				biomeNames.setOnHidden(event -> scheduleBiomeExplicitCatalogCleanup());
 				biomeNames.getEditor().promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_BIOME_PROMPT.getProperty());
 				biomeNames.getEditor().textProperty().addListener((a, o, n) -> {
 					if (suppressBiomeSuggestions) {
@@ -1481,16 +1674,21 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 
 		private void updateBlockSuggestions(String query) {
+			blockExplicitCatalog = false;
+			updateBlockSuggestions(query, false);
+		}
+
+		private void updateBlockSuggestions(String query, boolean allowEmpty) {
 			String text = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+			blockSuggestionHighlight = -1;
+			clearPopupSuggestionHighlight(block);
 			updatingItems = true;
 			try {
 				block.hide();
-				if (text.isEmpty() || text.startsWith("{") || source && isSourceModeExpression(text)) {
+				if (text.startsWith("{") || source && isSourceModeExpression(text)) {
 					blockSuggestions.clear();
 				} else {
-					blockSuggestions.setAll(blockNames.stream()
-							.filter(name -> matchesBlockSearch(name, text))
-							.collect(Collectors.toList()));
+					blockSuggestions.setAll(suggestionsForQuery(blockNames, text, allowEmpty));
 				}
 				block.setVisibleRowCount(Math.max(1, Math.min(12, blockSuggestions.size())));
 			} finally {
@@ -1521,17 +1719,18 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 
 		private void updateBiomeSuggestions() {
+			biomeExplicitCatalog = false;
+			updateBiomeSuggestions(false);
+		}
+
+		private void updateBiomeSuggestions(boolean allowEmpty) {
 			String query = currentBiomeQuery().toLowerCase(Locale.ROOT);
+			biomeSuggestionHighlight = -1;
+			clearPopupSuggestionHighlight(biomeNames);
 			updatingBiomeItems = true;
 			try {
 				biomeNames.hide();
-				if (query.isEmpty()) {
-					biomeSuggestions.clear();
-				} else {
-					biomeSuggestions.setAll(biomeCatalogNames.stream()
-							.filter(name -> matchesBlockSearch(name, query))
-							.collect(Collectors.toList()));
-				}
+				biomeSuggestions.setAll(suggestionsForQuery(biomeCatalogNames, query, allowEmpty));
 				biomeNames.setVisibleRowCount(Math.max(1, Math.min(12, biomeSuggestions.size())));
 			} finally {
 				updatingBiomeItems = false;
@@ -1570,6 +1769,59 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			}
 		}
 
+		private void handleBlockMousePressed(MouseEvent event) {
+			if (event.getButton() == MouseButton.PRIMARY && !block.isShowing()
+					&& currentText().isEmpty() && isComboBoxArrowTarget(event.getTarget())) {
+				blockExplicitCatalog = true;
+				updateBlockSuggestions("", true);
+			}
+		}
+
+		private void handleBiomeMousePressed(MouseEvent event) {
+			String text = biomeNames.getEditor().getText();
+			if (event.getButton() == MouseButton.PRIMARY && !biomeNames.isShowing()
+					&& (text == null || text.isBlank()) && isComboBoxArrowTarget(event.getTarget())) {
+				biomeExplicitCatalog = true;
+				updateBiomeSuggestions(true);
+			}
+		}
+
+		private void scheduleBlockExplicitCatalogCleanup() {
+			if (!blockExplicitCatalog) {
+				return;
+			}
+			Platform.runLater(() -> {
+				String text = block.getEditor().getText();
+				if (shouldClearExplicitCatalog(blockExplicitCatalog, block.isShowing(), text)) {
+					blockExplicitCatalog = false;
+					blockSuggestionHighlight = -1;
+					clearPopupSuggestionHighlight(block);
+					clearEmptyExplicitCatalog(block);
+					block.setVisibleRowCount(1);
+				} else if (!block.isShowing() && text != null && !text.isBlank()) {
+					blockExplicitCatalog = false;
+				}
+			});
+		}
+
+		private void scheduleBiomeExplicitCatalogCleanup() {
+			if (!biomeExplicitCatalog) {
+				return;
+			}
+			Platform.runLater(() -> {
+				String text = biomeNames.getEditor().getText();
+				if (shouldClearExplicitCatalog(biomeExplicitCatalog, biomeNames.isShowing(), text)) {
+					biomeExplicitCatalog = false;
+					biomeSuggestionHighlight = -1;
+					clearPopupSuggestionHighlight(biomeNames);
+					clearEmptyExplicitCatalog(biomeNames);
+					biomeNames.setVisibleRowCount(1);
+				} else if (!biomeNames.isShowing() && text != null && !text.isBlank()) {
+					biomeExplicitCatalog = false;
+				}
+			});
+		}
+
 		private void handleBiomeKeyPressed(KeyEvent event) {
 			if (biomeNames.isShowing()) {
 				if (event.getCode() == KeyCode.ENTER) {
@@ -1594,6 +1846,9 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 
 		private String selectedBiomeSuggestion() {
+			if (biomeSuggestionHighlight >= 0 && biomeSuggestionHighlight < biomeNames.getItems().size()) {
+				return biomeNames.getItems().get(biomeSuggestionHighlight);
+			}
 			String selected = biomeNames.getSelectionModel().getSelectedItem();
 			if (selected != null && biomeNames.getItems().contains(selected)) {
 				return selected;
@@ -1602,23 +1857,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 
 		private boolean moveBiomeSuggestionHighlight(KeyEvent event) {
-			int target = popupSelectionTarget(event.getCode(), biomeNames.getSelectionModel().getSelectedIndex(),
-					biomeNames.getItems().size(), biomeNames.getVisibleRowCount());
+			int visibleRows = popupVisibleRowCount(biomeNames, biomeNames.getVisibleRowCount());
+			int target = popupSelectionTarget(event.getCode(), biomeSuggestionHighlight,
+					biomeNames.getItems().size(), visibleRows);
 			if (target < 0) {
 				return false;
 			}
-			TextField editor = biomeNames.getEditor();
-			String query = editor.getText() == null ? "" : editor.getText();
-			int anchor = editor.getAnchor();
-			int caret = editor.getCaretPosition();
-			suppressBiomeSuggestions = true;
-			try {
-				biomeNames.getSelectionModel().select(target);
-				editor.setText(query);
-				editor.selectRange(anchor, caret);
-			} finally {
-				suppressBiomeSuggestions = false;
-			}
+			biomeSuggestionHighlight = target;
+			focusPopupSuggestion(biomeNames, target);
 			event.consume();
 			return true;
 		}
@@ -1706,6 +1952,9 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 
 		private String selectedSuggestion() {
+			if (blockSuggestionHighlight >= 0 && blockSuggestionHighlight < block.getItems().size()) {
+				return block.getItems().get(blockSuggestionHighlight);
+			}
 			String selected = block.getSelectionModel().getSelectedItem();
 			if (selected != null && block.getItems().contains(selected)) {
 				return selected;
@@ -1714,23 +1963,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 
 		private boolean moveBlockSuggestionHighlight(KeyEvent event) {
-			int target = popupSelectionTarget(event.getCode(), block.getSelectionModel().getSelectedIndex(),
-					block.getItems().size(), block.getVisibleRowCount());
+			int visibleRows = popupVisibleRowCount(block, block.getVisibleRowCount());
+			int target = popupSelectionTarget(event.getCode(), blockSuggestionHighlight,
+					block.getItems().size(), visibleRows);
 			if (target < 0) {
 				return false;
 			}
-			TextField editor = block.getEditor();
-			String query = editor.getText() == null ? "" : editor.getText();
-			int anchor = editor.getAnchor();
-			int caret = editor.getCaretPosition();
-			suppressSuggestions = true;
-			try {
-				block.getSelectionModel().select(target);
-				editor.setText(query);
-				editor.selectRange(anchor, caret);
-			} finally {
-				suppressSuggestions = false;
-			}
+			blockSuggestionHighlight = target;
+			focusPopupSuggestion(block, target);
 			event.consume();
 			return true;
 		}
@@ -1762,14 +2002,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			}
 		}
 
-		private boolean matchesBlockSearch(String name, String query) {
-			if (name.contains(query)) {
-				return true;
-			}
-			int namespace = name.indexOf(':');
-			return namespace >= 0 && name.substring(namespace + 1).contains(query);
-		}
-
 		private void rebuildProperties(String rawBlockName) {
 			propertyEditors.clear();
 			properties.getChildren().clear();
@@ -1793,6 +2025,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				choices.add(PropertyChoice.allChoice());
 				choices.addAll(property.getValue().stream().map(PropertyChoice::value).collect(Collectors.toList()));
 				ComboBox<PropertyChoice> value = new ComboBox<>(choices);
+				configureBuilderComboBox(value);
 				value.setMinWidth(0);
 				value.setMaxWidth(Double.MAX_VALUE);
 				value.setCellFactory(v -> new PropertyChoiceCell());
@@ -1832,6 +2065,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			@Override
 			protected void updateItem(String item, boolean empty) {
 				super.updateItem(item, empty);
+				pseudoClassStateChanged(autocompleteHighlighted,
+						isAutocompleteCellHighlighted(getIndex(), blockSuggestionHighlight, empty));
 				if (empty || item == null) {
 					setText(null);
 					setGraphic(null);
@@ -1891,6 +2126,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			@Override
 			protected void updateItem(String item, boolean empty) {
 				super.updateItem(item, empty);
+				pseudoClassStateChanged(autocompleteHighlighted,
+						isAutocompleteCellHighlighted(getIndex(), biomeSuggestionHighlight, empty));
 				if (empty || item == null) {
 					setText(null);
 					setGraphic(null);
@@ -1944,6 +2181,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	record ParsedRule(ChunkFilter.BlockReplaceSource source, ChunkFilter.BlockReplaceData target) {}
 
 	record Rule(String from, String to) {}
+
+	private record PopupVisibleRange(int first, int last) {}
 
 	record VisibleRuleBounds(int index, Rectangle2D bounds) {}
 

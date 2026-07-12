@@ -1,7 +1,7 @@
 # UI Reference For ReplaceBlocks Builder
 
 Date: 2026-06-04
-Last updated: 2026-07-07
+Last updated: 2026-07-13
 
 Scope: targeted JavaFX UI reference and current ReplaceBlocks UI behavior.
 
@@ -132,7 +132,7 @@ Recommended use:
 Implemented controls:
 
 - Existing advanced ReplaceBlocks text input remains available.
-- `Builder` dialog has searchable, editable `from` and `to` block selectors with auto-opening A-Z filtered suggestions, Tab/click completion, and no empty-query full-list popup.
+- `Builder` dialog has searchable, editable `from` and `to` block selectors with auto-opening A-Z filtered suggestions, Tab/click completion, boundary-only keyboard scrolling, and complete A-Z catalogs on explicit empty-arrow expansion.
 - Builder helper text below the generated value is shown before manual From/To input and hidden after the user types non-empty text into either field.
 - `Builder` dialog has add/load-for-edit/delete controls and a rule table.
 - The generated ReplaceBlocks string is shown and returned to the existing field row.
@@ -144,7 +144,7 @@ Implemented controls:
 - Java 1.21.9 catalog data is wired into the builder for property dropdowns.
 - The source tile/block entity selector is presented as `Extra NBT: any/present/absent`, and the Builder has a Help button that opens a separate explanation dialog.
 - The source side has optional Min Y / Max Y inputs. Empty fields mean no Y restriction; filling either field wraps the generated source with `y(...)`.
-- The source side has an optional searchable Biome input. Empty means no biome restriction; one or more biome IDs separated by semicolons wrap the generated source with `biome(...)`. The dropdown suggests known vanilla biome IDs, completes the current semicolon-separated token with Tab or mouse click, and keeps the empty-query list empty. Help text states that matching is block-position aware at the modern 4x4x4 biome-cell granularity.
+- The source side has an optional searchable Biome input. Empty means no biome restriction; one or more biome IDs separated by semicolons wrap the generated source with `biome(...)`. The dropdown suggests known vanilla biome IDs, completes the current semicolon-separated token with Tab or mouse click, and shows the full catalog only after an explicit empty-arrow click. Help text states that matching is block-position aware at the modern 4x4x4 biome-cell granularity.
 - The Builder has a Preset row. Built-in presets fill visible editable From/To and source condition controls for common starting points instead of adding hidden behavior; air and container/data-block presets show warning text.
 - The Builder saves a selected rule first, otherwise a valid draft, otherwise all table rules as a custom global preset. Loading appends non-duplicate parsed rules and preserves current work; presets can be overwritten or deleted.
 
@@ -236,7 +236,7 @@ Current 4B usage:
 - Preserve per-rule preview counts before layering on more conditions.
 - Source tile entity eligibility is implemented and documented in the Builder Help dialog; keep future Builder help content in that dialog instead of adding more permanent helper text to the main form.
 - Rich target tile NBT editing is still pending.
-- Biome restrictions and presets are implemented. Phase 6 model regressions cover multi-rule parsing, current-token biome completion, and semantic preset normalization. The main dual-locale interaction pass and screenshots are complete; only the latest duplicate-feedback, blank-area deselection, and discard-confirmation fixes need a short rerun.
+- Biome restrictions and presets are implemented. Phase 6 model regressions cover multi-rule parsing, current-token biome completion, semantic preset normalization, popup key routing, boundary scrolling, and transient empty-catalog cleanup. The main dual-locale interaction pass and screenshots are complete; only the focused dropdown UX rerun remains.
 
 ## Builder UI implementation notes
 
@@ -245,5 +245,6 @@ Current 4B usage:
 - Built-in presets should continue to fill the existing visible controls and use the normal Add rule path. Do not let future built-ins bypass generated text validation or hide source mode, Extra NBT, Y range, or biome conditions.
 - Custom presets should remain parser-compatible ReplaceBlocks text in global config, not serialized widget state. Preserve selected-rule/draft/all-rules save precedence and non-destructive append-on-load behavior.
 - Avoid changing the ComboBox value, selection, or item list synchronously while JavaFX is handling popup mouse selection. This previously caused `ListViewBehavior` index errors when users clicked a suggestion.
-- Keep the empty-query suggestion list empty. Showing the whole block catalog before the user typed made the first popup visually noisy and could place it above the input.
-- Keep hover/focus/selected styling on suggestion and property dropdown cells; otherwise the dark popup looks inert even when it is interactive.
+- Keep empty-query suggestions closed during initial focus and text-change filtering, but populate the full sorted catalog immediately before an explicit empty-arrow expansion.
+- Keep Builder popup styling scoped through `replace-blocks-builder-dropdown`: light-blue hover and solid-blue focus/selected/autocomplete states must cover presets, From/To, properties, Extra NBT, and biome without leaking into unrelated dialogs.
+- Keep autocomplete highlight state separate from JavaFX ComboBox selection/value/focus. Reveal a target only after it crosses the popup's current visible first/last row; otherwise the list must remain stationary.

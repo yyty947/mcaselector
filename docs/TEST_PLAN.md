@@ -1,7 +1,7 @@
 # ReplaceBlocks Test Plan
 
 Date: 2026-06-04
-Last updated: 2026-07-12
+Last updated: 2026-07-13
 
 Safety rule: never test on a real world save. Always copy a small test world and keep an untouched backup.
 
@@ -49,16 +49,16 @@ Phase 6 execution record:
 | Gate | Status | Commit / environment | Evidence or remaining action |
 |---|---|---|---|
 | Focused parser, Builder model, legacy safety, modern preview, light, and heightmap tests | Passed | Windows, Java 21, 2026-07-12 | Added semantic preset normalization, Change/Force parity, and one-chunk relight-ring regressions |
-| `AUTO-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-12 | 63 tests passed; clean `compileJava`, full `test`, `build`, and `shadowJar` succeeded |
+| `AUTO-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-13 | 82 tests passed; clean `compileJava`, full `test`, `build`, and `shadowJar` succeeded |
 | `AUTO-02` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | `run --args="--mode printMissingTranslations"` succeeded with no missing-key output |
-| `PKG-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-12 | Clean `build shadowJar` succeeded and reran all 63 tests |
-| `PKG-02` | Passed on prior candidate; final rerun pending | Windows 11, Azul Zulu 21.0.11 JDK FX, 2026-07-11 | Prior `jpackage` and standalone startup passed. The 2026-07-12 Adoptium rerun fails at `jlink` because that JDK has no JavaFX jmods; rerun with JDK FX on the final candidate |
+| `PKG-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-13 | Clean `build shadowJar` succeeded and reran all 82 tests |
+| `PKG-02` | Passed | Windows 11, Azul Zulu 21.0.11 JDK FX | JDK FX `jpackage` and standalone startup passed; the Adoptium-only `jlink` limitation is environmental and does not apply to the configured JDK FX path |
 | JavaFX startup smoke | Passed | Chinese locale, Java 21, 2026-07-10 | Main window rendered with menu, chunk grid, status bar, and no startup exception |
-| `UI-01` / `UI-02` | Main regression passed; final focused rerun pending | User report, clean console, and `builder_zh.png` / `builder_en.png`, 2026-07-12 | Completion, preset/state restoration, locale, and popup checks passed. Rerun semantic duplicate feedback, blank-area deselection, and nonempty-X confirmation after the latest fixes |
+| `UI-01` / `UI-02` | Main regression passed; dropdown UX rerun pending | User report, clean console, and `builder_zh.png` / `builder_en.png`, 2026-07-12 | Existing completion and popup checks passed. Rerun boundary-only scrolling, blue hover/focus/selected states, and explicit empty-arrow catalogs after the latest changes |
 | `WORLD-18` / `WORLD-21` file-level checks | Passed | Commit `35261278`, DataVersions 2860 and 4671, 2026-07-11 | Preview hashes, preview/execution counts, selection-only execution, bounded air, state round-trip, tile effects, duplicate coordinates, light invalidation, and heightmap shape passed on disposable copies |
 | Real biome boundary | Passed | Disposable copies of user-provided 1.18 and 1.21 normal terrain, 2026-07-11 | Preview hashes unchanged; execution removed all selected-biome source matches while the control-biome counts stayed unchanged |
-| `WORLD-18` / `WORLD-21` game checks | 1.18 passed; 1.21 boundary-ring rerun pending | User game pass and log review, 2026-07-12 | Selected chunks relight correctly, but their adjacent ring stayed stale. Execution now saves existing chunks in a one-chunk square ring with the version-specific relight flag cleared |
-| `WORLD-LATEST` | File-level passed; game load pending | 26.3 snapshot 3 disposable copies, 2026-07-12 | River + Y marker matched; preview NBT stayed unchanged; Change and Force produced equal selected-chunk NBT; the unselected control chunk's block matches stayed unchanged. Source world remained read-only |
+| `WORLD-18` / `WORLD-21` game checks | Passed | User game pass and log review, 2026-07-12/13 | Selected chunks and the adjacent one-chunk ring relit correctly after execution saved existing ring chunks with the version-specific relight flag cleared |
+| `WORLD-LATEST` | Passed | 26.3 snapshot 3 disposable copies, 2026-07-12/13 | File checks passed and the user completed the copied-world game load/reload; source world remained read-only |
 
 ### Phase 6 copied-world evidence
 
@@ -75,7 +75,7 @@ All writes below used fresh copies under `%LOCALAPPDATA%\Temp\mca-phase6-worlds-
 | Light / heightmap integrity | Touched sections lost their light arrays; all four heightmaps existed with 37 longs and no malformed arrays | Same; bounded Y only invalidated the Y=80 section while ordinary/state rules invalidated their touched sections |
 | Real biome boundary follow-up | `snowy_plains` source 50,332; `forest` control 895,747 unchanged | `cold_ocean` source 1,408; `beach` control 59,954 unchanged |
 
-The stateful fixtures in this pass were deliberately generated in copied `.mca` files and then round-tripped through exact-state and `props(...)` rules. The later normal-terrain boundary pass used copies under `%LOCALAPPDATA%\Temp\mca-phase6-biome-final`; the original worlds were read-only. Game rendering remains the authority for the final 1.21 relight rerun.
+The stateful fixtures in this pass were deliberately generated in copied `.mca` files and then round-tripped through exact-state and `props(...)` rules. The later normal-terrain boundary pass used copies under `%LOCALAPPDATA%\Temp\mca-phase6-biome-final`; the original worlds were read-only. The user completed the final 1.21 adjacent-ring rendering rerun on a disposable copy.
 
 The 2026-07-12 latest-snapshot pass used two copies under `%LOCALAPPDATA%\Temp\mca-phase6-26_3`. It exercised `biome(minecraft:river, y(90..105, literal(minecraft:stone)))`, compared Change with Force, and checked an adjacent unselected chunk. The 26.3 game log had no chunk, palette, lighting, or heightmap errors; its only ERROR was an unrelated missing Rockstar Vulkan-layer JSON file.
 
@@ -180,12 +180,12 @@ Manual checks:
 - In the NBT Changer field row, type `minecraft:stone=minecraft:dirt` directly into ReplaceBlocks. The field should stay visually neutral while typing and only show valid/invalid feedback after a short pause.
 - With the default NBT Changer dialog size, the ReplaceBlocks `Builder` button should be visible without dragging the horizontal scrollbar.
 - Open an empty builder and confirm the From/To fields are blank, the generated value is empty, and no `Add at least one rule` error is shown before user action.
-- Before typing in an empty builder From/To field, click the dropdown arrow. The builder should not show the full block catalog and should not position a popup above the input on first open.
+- Before typing in an empty Builder From/To field, click the dropdown arrow. The complete A-Z block catalog should open; it must not open automatically when the Builder first appears.
 - In the builder From/To fields, type `oak` or `sto`. The candidate list should open automatically, show every matching block ID in A-Z order, highlight the typed substring in blue, allow mouse scrolling, and collapse after Tab completion.
 - Narrow the suggestion list from many matches to two or three and drag its scrollbar repeatedly. The popup must shrink to the actual result count, show no empty rows, and log no `VirtualFlow index exceeds maxCellCount` warning.
 - With a Chinese IME active, select part of a completed block ID, enter two Latin letters, and confirm neither letter is swallowed and no `TextInputControl.replaceText` exception is logged.
 - Repeat the same suggestion test with mouse-click completion. The chosen block ID should fill the editor, the matching property rows should appear when applicable, and the JavaFX console should not log `ListViewBehavior` or index errors.
-- Moving the mouse over block suggestions, Extra NBT choices, and property dropdown choices should show a visible hover highlight consistent with the main menu hover color.
+- Moving the mouse over preset, block, Extra NBT, biome, and property choices should show a clearly visible light-blue hover. Keyboard focus/current selection should use a solid blue background with readable white text.
 - The builder helper text below the generated value should be visible before manual From/To input, then hide once the user types non-empty text into either From/To field.
 - For stateful From/To blocks with matching properties such as stairs, property dropdown rows should appear directly below both block inputs, align vertically across the two columns, and use equal left/right column widths. Source-only Extra NBT, Y range, and Biome controls should appear below the source property rows.
 - In the builder From block area, leaving Min Y and Max Y empty should generate the same rule as before.
@@ -194,7 +194,7 @@ Manual checks:
 - Leaving the Builder Biome field empty should generate the same rule as before. Filling `plains` should generate `biome(minecraft:plains, source)`, filling `plains;minecraft:forest` should generate a semicolon-separated multi-biome wrapper, an unknown `minecraft:` biome ID should prevent adding the rule and show validation feedback, and a syntactically valid non-`minecraft:` biome ID should remain manually typeable.
 - In the Builder Biome field, typing `pla` or `for` should open a filtered biome list, highlight the typed substring, and support Tab completion and mouse-click completion without console errors.
 - In the Builder Biome field, typing after a semicolon such as `minecraft:plains;for` should complete only the current biome token, preserving the earlier token.
-- Clicking the empty Builder Biome dropdown before typing should not show the full biome list.
+- Clicking the empty Builder Biome dropdown arrow should show the complete A-Z biome list; leaving the field empty without clicking must not open it automatically.
 - Choose each built-in Builder preset and click `Fill preset` / `填入预设`. The From/To inputs should be filled visibly, remain editable, and require the normal `Add rule` action before the generated ReplaceBlocks value changes.
 - The Air preset should fill `minecraft:air` -> `minecraft:stone` and show a warning about sparse/missing sections.
 - The Fluids, Logs/leaves, and Ores presets should fill visible source-mode regex text and ordinary target blocks, then generate valid ReplaceBlocks text after `Add rule`.
@@ -204,7 +204,7 @@ Manual checks:
 - In the rules table, Ctrl/Shift-click should keep JavaFX's native multiple-row selection. Drag from empty table space over two of three rules: the translucent rectangle should select exactly the two intersected rows. Ctrl-drag from empty space should add intersected rows to the existing selection.
 - With two rules selected, `Save preset` / `存为预设` should store exactly those two rules in table order, leaving the unselected rule out. `Edit rule` / `载入编辑` should be disabled for that multi-selection; `Delete rule` / `删除规则` and the table's Delete key should remove every selected row.
 - When the rules table has a selection, Esc should clear only the rule selection. In From/To, biome, and property controls, Ctrl+Enter should follow the same valid/invalid outcome as `Add rule` / `添加规则`; Delete must continue to edit text normally while an input owns focus.
-- In every open From/To, biome, property, and preset list, verify Up/Down, PageUp/PageDown, Enter, and Esc. Repeat the middle-of-text caret and selection test with the popup closed to confirm that ordinary editing remains native. Check the JavaFX console for exceptions after both keyboard and marquee interaction.
+- In every open From/To, biome, property, Extra NBT, and preset list, verify Up/Down, PageUp/PageDown, Enter, and Esc. For From/To and biome autocomplete, moving within the currently fully visible rows must leave the list stationary; crossing a boundary should reveal only the next row, while PageUp/PageDown should move by one actual visible page. Type and then clear a query, close an explicit empty catalog with Esc, and confirm the next closed Up/Down key does not write a block or biome; reopening without another explicit empty-arrow click must not retain the full catalog. Repeat the middle-of-text caret and selection test with the popup closed to confirm that ordinary editing remains native. Check the JavaFX console for exceptions after both keyboard and marquee interaction.
 - Applying a custom preset should append all non-duplicate preset rules to the current rule table without clearing the existing rules or draft. The save success message should appear in the Builder validation/status area, not as a separate modal dialog.
 - With no rules added yet, entering a valid From/To draft, including selected source/target properties, should enable `Save preset` / `存为预设`. Saving should validate that draft, store it as one ReplaceBlocks rule, and not require pressing `Add rule` first.
 - With no rules added yet, incomplete or invalid From/To draft input should keep `Save preset` / `存为预设` disabled or produce the existing Builder validation message rather than saving.

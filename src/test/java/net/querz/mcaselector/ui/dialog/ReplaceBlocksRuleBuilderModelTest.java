@@ -1,15 +1,32 @@
 package net.querz.mcaselector.ui.dialog;
 
+import javafx.application.Platform;
+import javafx.collections.FXCollections;
+import javafx.geometry.BoundingBox;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.Scene;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.ListView;
+import javafx.scene.control.skin.ComboBoxListViewSkin;
 import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.nbt.CompoundTag;
 import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 class ReplaceBlocksRuleBuilderModelTest {
+
+	private static final Object javaFxStartupLock = new Object();
+	private static boolean javaFxStarted;
 
 	@Test
 	void restoresLiteralSourceAndNamedTarget() {
@@ -154,6 +171,162 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
+	void revealsAutocompleteHighlightOnlyOutsideTheVisibleRange() {
+		assertFalse(ReplaceBlocksRuleBuilderDialog.popupNeedsReveal(0, 0, 4));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.popupNeedsReveal(3, 0, 4));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.popupNeedsReveal(4, 0, 4));
+		assertTrue(ReplaceBlocksRuleBuilderDialog.popupNeedsReveal(5, 0, 4));
+		assertTrue(ReplaceBlocksRuleBuilderDialog.popupNeedsReveal(4, 5, 9));
+	}
+
+	@Test
+	void pageNavigationUsesTheActuallyVisiblePopupRows() {
+		assertEquals(5, ReplaceBlocksRuleBuilderDialog.popupPageSize(3, 7, 12));
+		assertEquals(12, ReplaceBlocksRuleBuilderDialog.popupPageSize(3, 2, 12));
+		assertEquals(1, ReplaceBlocksRuleBuilderDialog.popupPageSize(3, 2, 0));
+	}
+
+	@Test
+	void treatsPartiallyClippedPopupRowsAsOutsideTheVisibleRange() {
+		BoundingBox viewport = new BoundingBox(0, 0, 320, 120);
+
+		assertTrue(ReplaceBlocksRuleBuilderDialog.isPopupCellFullyVisible(
+				new BoundingBox(0, 0, 300, 24), viewport));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.isPopupCellFullyVisible(
+				new BoundingBox(0, -1, 300, 24), viewport));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.isPopupCellFullyVisible(
+				new BoundingBox(0, 100, 300, 24), viewport));
+	}
+
+	@Test
+	void clearedAutocompleteIndexDoesNotLeaveAHighlightedCell() {
+		assertTrue(ReplaceBlocksRuleBuilderDialog.isAutocompleteCellHighlighted(2, 2, false));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.isAutocompleteCellHighlighted(2, -1, false));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.isAutocompleteCellHighlighted(2, 2, true));
+	}
+
+	@Test
+	void emptySuggestionsRequireExplicitExpansion() {
+		List<String> names = List.of("minecraft:acacia", "minecraft:stone");
+
+		assertEquals(List.of(), ReplaceBlocksRuleBuilderDialog.suggestionsForQuery(names, "", false));
+		assertEquals(names, ReplaceBlocksRuleBuilderDialog.suggestionsForQuery(names, "", true));
+		assertEquals(List.of("minecraft:acacia"),
+				ReplaceBlocksRuleBuilderDialog.suggestionsForQuery(names, "aca", false));
+	}
+
+	@Test
+	void clearsAnExplicitEmptyCatalogAfterItsPopupCloses() throws Throwable {
+		runOnJavaFxThread(() -> {
+			ComboBox<String> comboBox = new ComboBox<>(FXCollections.observableArrayList(
+					"minecraft:acacia", "minecraft:stone"));
+			comboBox.setEditable(true);
+			comboBox.getSelectionModel().select(0);
+			comboBox.getEditor().clear();
+
+			ReplaceBlocksRuleBuilderDialog.clearEmptyExplicitCatalog(comboBox);
+
+			assertTrue(comboBox.getItems().isEmpty());
+			assertEquals(-1, comboBox.getSelectionModel().getSelectedIndex());
+			assertNull(comboBox.getValue());
+			assertEquals("", comboBox.getEditor().getText());
+			comboBox.getSelectionModel().selectNext();
+			assertEquals(-1, comboBox.getSelectionModel().getSelectedIndex());
+		});
+	}
+
+	@Test
+	void clearsOnlyTheCatalogFromTheMatchingExplicitClose() {
+		assertTrue(ReplaceBlocksRuleBuilderDialog.shouldClearExplicitCatalog(true, false, ""));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.shouldClearExplicitCatalog(false, false, ""));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.shouldClearExplicitCatalog(true, true, ""));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.shouldClearExplicitCatalog(true, false, "minecraft:stone"));
+	}
+
+	@Test
+	void recognizesOnlyTheComboBoxArrowAsExplicitExpansion() {
+		HBox arrowButton = new HBox();
+		arrowButton.getStyleClass().add("arrow-button");
+		StackPane arrow = new StackPane();
+		arrowButton.getChildren().add(arrow);
+
+		assertTrue(ReplaceBlocksRuleBuilderDialog.isComboBoxArrowTarget(arrow));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.isComboBoxArrowTarget(new StackPane()));
+	}
+
+	@Test
+	void popupHighlightDoesNotUseEditableComboBoxFocusOrSelection() throws Throwable {
+		runOnJavaFxThread(() -> {
+			ComboBox<String> comboBox = new ComboBox<>(FXCollections.observableArrayList(
+					"minecraft:acacia_button",
+					"minecraft:acacia_door",
+					"minecraft:acacia_fence"));
+			comboBox.setEditable(true);
+			comboBox.setSkin(new ComboBoxListViewSkin<>(comboBox));
+			StackPane root = new StackPane(comboBox);
+			new Scene(root);
+			root.applyCss();
+			comboBox.getEditor().setText("aca");
+
+			assertTrue(ReplaceBlocksRuleBuilderDialog.focusPopupSuggestion(comboBox, 1));
+			assertEquals("aca", comboBox.getEditor().getText());
+			assertNull(comboBox.getValue());
+			assertEquals(-1, comboBox.getSelectionModel().getSelectedIndex());
+			ListView<?> popup = (ListView<?>) ((ComboBoxListViewSkin<?>) comboBox.getSkin()).getPopupContent();
+			assertEquals(-1, popup.getFocusModel().getFocusedIndex());
+		});
+	}
+
+	@Test
+	void builderComboBoxAddsBuilderOnlyPopupStyle() throws Throwable {
+		runOnJavaFxThread(() -> {
+			ComboBox<String> comboBox = new ComboBox<>(FXCollections.observableArrayList("one", "two"));
+			ReplaceBlocksRuleBuilderDialog.configureBuilderComboBox(comboBox);
+			comboBox.setSkin(new ComboBoxListViewSkin<>(comboBox));
+
+			ListView<?> popup = (ListView<?>) ((ComboBoxListViewSkin<?>) comboBox.getSkin()).getPopupContent();
+			assertTrue(popup.getStyleClass().contains("replace-blocks-builder-dropdown"));
+
+			comboBox.setSkin(new ComboBoxListViewSkin<>(comboBox));
+			ListView<?> replacementPopup = (ListView<?>) ((ComboBoxListViewSkin<?>) comboBox.getSkin()).getPopupContent();
+			assertTrue(replacementPopup.getStyleClass().contains("replace-blocks-builder-dropdown"));
+		});
+	}
+
+	@Test
+	void popupNavigationFilterReceivesKeysFromPopupScene() throws Throwable {
+		runOnJavaFxThread(() -> {
+			ComboBox<String> comboBox = new ComboBox<>(FXCollections.observableArrayList(
+					"minecraft:acacia_button",
+					"minecraft:acacia_door",
+					"minecraft:acacia_fence"));
+			comboBox.setEditable(true);
+			comboBox.setSkin(new ComboBoxListViewSkin<>(comboBox));
+			StackPane root = new StackPane(comboBox);
+			new Scene(root);
+			root.applyCss();
+			comboBox.getEditor().setText("aca");
+			int[] highlightedIndex = {-1};
+			ReplaceBlocksRuleBuilderDialog.installAutocompletePopupKeyFilter(comboBox, event -> {
+				highlightedIndex[0] = ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(
+						event.getCode(), highlightedIndex[0], comboBox.getItems().size(), 3);
+				ReplaceBlocksRuleBuilderDialog.focusPopupSuggestion(comboBox, highlightedIndex[0]);
+				event.consume();
+			});
+
+			ListView<?> popup = (ListView<?>) ((ComboBoxListViewSkin<?>) comboBox.getSkin()).getPopupContent();
+			popup.fireEvent(new KeyEvent(KeyEvent.KEY_PRESSED, "", "", KeyCode.DOWN,
+					false, false, false, false));
+
+			assertEquals(0, highlightedIndex[0]);
+			assertEquals("aca", comboBox.getEditor().getText());
+			assertNull(comboBox.getValue());
+			assertEquals(-1, comboBox.getSelectionModel().getSelectedIndex());
+			assertEquals(-1, popup.getFocusModel().getFocusedIndex());
+		});
+	}
+
+	@Test
 	void routesAutocompleteKeysBeforeComboBoxBehavior() {
 		assertTrue(ReplaceBlocksRuleBuilderDialog.isAutocompletePopupKey(KeyCode.UP));
 		assertTrue(ReplaceBlocksRuleBuilderDialog.isAutocompletePopupKey(KeyCode.DOWN));
@@ -171,5 +344,62 @@ class ReplaceBlocksRuleBuilderModelTest {
 		assertFalse(ReplaceBlocksRuleBuilderDialog.isRuleMarqueeDrag(2, 1));
 		assertTrue(ReplaceBlocksRuleBuilderDialog.isRuleMarqueeDrag(3, 0));
 		assertTrue(ReplaceBlocksRuleBuilderDialog.isRuleMarqueeDrag(0, 3));
+	}
+
+	@Test
+	void recognizesWhenLinuxJavaFxControlTestsHaveNoDisplay() {
+		assertFalse(supportsJavaFxControlTests("Linux", null, null));
+		assertFalse(supportsJavaFxControlTests("Linux", "", ""));
+		assertTrue(supportsJavaFxControlTests("Linux", ":99", null));
+		assertTrue(supportsJavaFxControlTests("Windows 11", null, null));
+	}
+
+	private static void runOnJavaFxThread(ThrowingRunnable action) throws Throwable {
+		assumeTrue(supportsJavaFxControlTests(System.getProperty("os.name"),
+				System.getenv("DISPLAY"), System.getenv("WAYLAND_DISPLAY")),
+				"JavaFX controls need a display on Linux");
+		initializeJavaFx();
+		CountDownLatch completed = new CountDownLatch(1);
+		AtomicReference<Throwable> failure = new AtomicReference<>();
+		Platform.runLater(() -> {
+			try {
+				action.run();
+			} catch (Throwable ex) {
+				failure.set(ex);
+			} finally {
+				completed.countDown();
+			}
+		});
+		assertTrue(completed.await(10, TimeUnit.SECONDS));
+		if (failure.get() != null) {
+			throw failure.get();
+		}
+	}
+
+	private static boolean supportsJavaFxControlTests(String osName, String display, String waylandDisplay) {
+		return osName == null || !osName.toLowerCase().contains("linux")
+				|| display != null && !display.isBlank()
+				|| waylandDisplay != null && !waylandDisplay.isBlank();
+	}
+
+	private static void initializeJavaFx() throws InterruptedException {
+		synchronized (javaFxStartupLock) {
+			if (javaFxStarted) {
+				return;
+			}
+			CountDownLatch initialized = new CountDownLatch(1);
+			try {
+				Platform.startup(initialized::countDown);
+				assertTrue(initialized.await(10, TimeUnit.SECONDS));
+			} catch (IllegalStateException ex) {
+				// Another test class may already have initialized the toolkit.
+			}
+			javaFxStarted = true;
+		}
+	}
+
+	@FunctionalInterface
+	private interface ThrowingRunnable {
+		void run() throws Throwable;
 	}
 }

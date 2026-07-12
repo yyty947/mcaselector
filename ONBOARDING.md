@@ -40,15 +40,15 @@ Implemented:
 - Phase 4F-1: Y range restrictions using `y(min..max, source)`, with Builder min/max Y inputs, parser/diagnostic coverage, preview filtering, and modern 1.18+ execution filtering.
 - Phase 4F-2: biome restrictions using `biome(<biome>[;<biome>...], source)`, with Builder source biome input, parser/diagnostic coverage, preview filtering, and modern 1.18+ execution filtering. Matching is block-position aware using the candidate block's biome value; in modern chunks one stored biome value covers a 4x4x4 block cell.
 - Phase 4G: Builder presets for Air to stone, Fluids to air, Logs/leaves to air, Ores to stone, and Containers with Extra NBT to air. Built-ins fill visible inputs and warnings. Custom save precedence is selected rule, valid draft, then all table rules; loading appends non-duplicate rules without replacing current work.
-- UI polish: ReplaceBlocks field-row validation waits for a short typing pause, the default NBT Changer width shows the Builder button, empty Builder From/To inputs start blank, Builder validation stays quiet until user action creates a real diagnostic, and Builder From/To inputs have auto-opening A-Z filtered suggestions with blue match highlights, Tab/click completion, no empty-query full-list popup, pre-input helper text that hides after manual typing or selection, Builder-local Preview beside Help, and a Help dialog for Builder-specific explanations.
+- UI polish: ReplaceBlocks field-row validation waits for a short typing pause, the default NBT Changer width shows the Builder button, empty Builder From/To inputs start blank, Builder validation stays quiet until user action creates a real diagnostic, and Builder From/To inputs have auto-opening A-Z filtered suggestions with blue match highlights, Tab/click completion, boundary-only keyboard scrolling, explicit empty-arrow full-catalog expansion, stronger Builder-only dropdown highlights, pre-input helper text that hides after manual typing or selection, Builder-local Preview beside Help, and a Help dialog for Builder-specific explanations.
 
 Not implemented yet:
 
-- Phase 6 remains in progress. All 63 tests, translation completeness, `build shadowJar`, prior Zulu JDK FX `jpackage`, DataVersion 2860/4671 and 26.3 snapshot file checks, real biome boundaries, game load/save/reload, and game-log review have evidence. The final focused UI rerun, 1.21 adjacent-ring relight check, 26.3 game load, and final JDK FX package rerun remain.
+- Phase 6 remains in progress. Automated tests, translation completeness, `build shadowJar`, Zulu JDK FX packaging, DataVersion 2860/4671 and 26.3 snapshot checks, real biome boundaries, game load/save/reload, game-log review, the 1.21 adjacent-ring relight rerun, and the 26.3 copied-world game load have evidence. The latest Builder dropdown UX changes still need the final focused UI rerun before Phase 6 can close.
 
 ## Next Recommended Task
 
-Next best target: run the short Builder regression, 1.21 adjacent-ring relight check, 26.3 copied-world game load, and final JDK FX package rerun; then mark Phase 6 complete and refresh the local PR/Wiki branches.
+Next best target: run the focused Builder dropdown regression for boundary scrolling, blue popup states, and explicit empty-arrow catalogs; then mark Phase 6 complete and refresh the local PR/Wiki branches.
 
 Goal:
 
@@ -65,13 +65,13 @@ Current builder/UI manual validation checklist:
 - Unknown or modded IDs can still be entered manually.
 - Existing advanced text workflows still work.
 - Typing `oak` or `sto` in Builder From/To opens a scrollable A-Z filtered candidate list, highlights the typed substring in blue, and collapses after Tab or mouse-click completion without JavaFX selection errors.
-- Opening an empty Builder From/To dropdown before typing should not show a full block list or position the popup above the input.
+- Clicking an empty Builder From/To dropdown arrow should show the complete A-Z block list without causing an automatic popup when the Builder first opens.
 - The Builder helper text below the generated value is visible before manual From/To input and hides once the user types non-empty text into either field.
 - The Builder source tile selector can generate `tile(literal(minecraft:chest))=...` and `no_tile(literal(minecraft:chest))=...`, and the generated values parse through the existing `ReplaceBlocksField`.
 - The Builder source tile selector is labeled as `Extra NBT` in the UI, and its Help button explains the any/present/absent choices without closing the Builder.
 - Builder property dropdowns default to `all`/`全部`; source-side `all` omits that property from `props(...)`, and all properties set to `all` generates `literal(...)`.
 - Builder source min/max Y fields default to empty; filling either field wraps the source as `y(min..max, source)`, for example `y(-64..64, literal(minecraft:stone))=minecraft:dirt`.
-- Builder source Biome input is searchable like the From/To block selectors. It suggests known vanilla biome IDs, completes the current semicolon-separated biome token with Tab or mouse click, and keeps empty-query dropdowns empty.
+- Builder source Biome input is searchable like the From/To block selectors. It suggests known vanilla biome IDs, completes the current semicolon-separated biome token with Tab or mouse click, and shows the complete A-Z biome catalog only when the user explicitly clicks the empty dropdown arrow.
 - Builder presets fill visible, editable From/To and source condition controls instead of adding hidden behavior. Air and container presets show warning text before the user adds a rule.
 - Builder custom presets save one selected rule first, otherwise a valid draft, otherwise all table rules. Loading appends non-duplicate rules and preserves current table rules and draft input.
 - Builder Preview is next to Help in the Builder button bar. It uses the generated Builder value, respects the selection-only state captured when the Builder was opened, and must remain non-mutating.

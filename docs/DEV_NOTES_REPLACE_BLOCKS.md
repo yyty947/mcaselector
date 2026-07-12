@@ -152,7 +152,7 @@ Implemented:
 - `ReplaceBlocksRuleBuilderDialog` exposes an additive source tile selector that generates `tile(...)` or `no_tile(...)`.
 - `ReplaceBlocksRuleBuilderDialog` exposes source min/max Y inputs that generate `y(min..max, source)` when either field is filled.
 - Builder inputs accept block IDs, unknown/modded resource locations, and block state SNBT.
-- Empty builders start with blank From/To inputs and no empty-query full-list popup. Property dropdowns default to `all`/`全部`; selecting specific source properties generates `props(...)`, while leaving every property at `all` generates a simple `literal(...)` source.
+- Empty builders start with blank From/To inputs and no automatic empty-query popup. An explicit click on an empty From/To or Biome arrow fills and opens the complete sorted catalog; ordinary empty focus/text changes keep suggestions closed. Property dropdowns default to `all`/`全部`; selecting specific source properties generates `props(...)`, while leaving every property at `all` generates a simple `literal(...)` source.
 - `ReplaceBlocksRuleBuilderDialog` has a `Preview` button for ReplaceBlocks dry-run counts, per-rule matched block rows, and overlap warnings.
 - `ReplaceBlocksDiagnostics` surfaces common validation errors and regex warnings.
 - `BlockStateCatalog` provides the UI data source for vanilla block IDs and properties.
@@ -163,7 +163,7 @@ The current From/To block inputs use editable JavaFX `ComboBox` controls backed 
 
 - Do not prefill or prompt the From/To fields with example block IDs. It makes the editor feel like it already contains user text and made selection/typing behavior harder to reason about.
 - Keep initial validation quiet. An empty new builder should not show `Add at least one rule` until the user tries to add/confirm an invalid rule.
-- Empty block queries should not expose the full block catalog. The full-list popup was visually noisy and could be positioned above the input the first time the dialog opened.
+- Empty block queries should not expose the full block catalog automatically. An explicit empty-arrow click may show it for that popup only; closing without completion must clear the transient candidates so closed-key navigation cannot write a value.
 - Use a filtered backing list/predicate rather than replacing the ComboBox items list on every keystroke.
 - Do not synchronously clear selection, clear value, or refilter items from inside the ComboBox popup mouse-selection event path. That produced JavaFX `ListViewBehavior` `IndexOutOfBoundsException` errors when users clicked suggestions, while Tab completion could still appear fine.
 - Mouse-click completion and Tab completion both need explicit manual tests. They can travel different JavaFX event paths even though they look like the same feature to the user.

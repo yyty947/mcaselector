@@ -229,14 +229,14 @@ This is a release gate, not a place to begin testing. Each implementation phase 
 
 Release gates:
 
-- Passed after the 2026-07-12 findings follow-up: compile and 63 automated tests covering parser/source modes, semantic preset normalization, rule restoration, Change/Force parity, selection relight-ring expansion, legacy fail-closed behavior, modern preview/execution parity, and heightmaps.
+- Passed on the 2026-07-13 dropdown UX candidate: compile and 82 automated tests covering parser/source modes, semantic preset normalization, rule restoration, Builder popup routing, boundary scrolling decisions, explicit catalog expansion and cleanup, Change/Force parity, selection relight-ring expansion, legacy fail-closed behavior, modern preview/execution parity, and heightmaps.
 - Passed again on 2026-07-11: translation completeness and `build shadowJar`.
 - Passed on 2026-07-11: Windows `jpackage` with Azul Zulu 21.0.11 JDK FX; the packaged MCA Selector 2.8 image opened independently of Gradle.
-- Passed by user on the main Chinese/English regression with clean console and final screenshots. A focused rerun remains for the latest preset duplicate feedback, blank-area rule deselection, and nonempty-X confirmation fixes.
+- Passed by user on the main Chinese/English regression with clean console and final screenshots. The latest Builder dropdown boundary-scrolling, visual-state, and empty-arrow changes need one focused rerun.
 - Passed at file level on 2026-07-11 using disposable DataVersion 2860 and 4671 copies: preview hashes, ordinary/multiple rules, selection-only execution, state/waterlogged round-trip, tile add/remove/update, bounded air, Y + biome + tile composition, overlap counts, light invalidation, and heightmap shape.
 - Passed: real 1.18/1.21 stored-biome boundary checks on disposable normal-terrain copies; preview hashes stayed unchanged, selected-biome matches reached zero after execution, and control-biome counts were unchanged.
-- User game pass completed load/save/reload, state, container, heightmap, and log checks. Selected 1.21 chunks relit after `isLightOn=0`, but the adjacent ring did not; execution now also loads and saves the existing one-chunk square ring solely for relight invalidation. A focused in-game boundary rerun remains.
-- Passed at file level on disposable Minecraft 26.3 snapshot 3 copies: biome + Y preview, preview non-mutation, Change/Force parity, and selection-only block boundaries. Snapshot game load/reload remains manual.
+- User game pass completed load/save/reload, state, container, heightmap, log checks, and the focused 1.21 adjacent-ring relight rerun after execution began saving the existing one-chunk square ring solely for relight invalidation.
+- Passed at file level and by user game load on disposable Minecraft 26.3 snapshot 3 copies: biome + Y preview, preview non-mutation, Change/Force parity, selection-only block boundaries, and game load/reload.
 - Pending: final post-rerun documentation status and refresh of the already prepared local code/Wiki PR branches.
 
 Any failed gate is fixed on the feature branch, receives the narrowest practical automated regression, and reruns both its focused checks and the final full gate. Phase 6 must not be marked complete while a required UI or copied-world gate remains blocked.
@@ -258,7 +258,7 @@ When a future phase lands, update these docs in the same turn:
 
 - Current UI already has a builder, advanced text preservation, validation messages, preview, and property dropdowns.
 - Current builder generates `literal(...)` for simple source IDs and `props(...)` for catalog-backed source property rules.
-- Current empty-builder From/To inputs start blank to avoid misleading placeholder behavior; empty dropdown clicks do not show the full catalog list.
+- Current empty-builder From/To inputs start blank without an automatic popup; explicit empty-arrow clicks show the complete sorted block or biome catalog.
 - Current property dropdowns default to `all`/`全部`; source-side all properties generate `literal(...)`, and selected source properties generate `props(...)` with only the non-all properties.
 - Current block suggestion completion has separate keyboard and mouse paths because editable JavaFX ComboBox selection is fragile when items or selection are changed synchronously during popup mouse handling.
 - Current ReplaceBlocks field-row diagnostics wait for a short typing pause before showing valid/invalid feedback.

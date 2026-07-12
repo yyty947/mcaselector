@@ -14,7 +14,7 @@ Implemented behavior:
 - Builder-generated target property rules produce block-state SNBT containing the properties not left at `all`.
 - Builder-generated simple source block IDs produce `literal(...)`.
 - Builder-generated source property rules produce `props(...)` when at least one property is not left at `all`; all-source-properties `all` produces `literal(...)`.
-- Empty builder From/To inputs start blank, do not immediately show validation errors, and do not show the full block catalog before the user types.
+- Empty builder From/To inputs start blank, do not immediately show validation errors, and do not open the full block catalog automatically; an explicit empty-arrow click opens the sorted catalog for that popup only.
 - Advanced text input remains available.
 - Source name strings still use Java regex matching through `String.matches(...)`.
 - Source SNBT uses exact `CompoundTag` equality against palette block states.
@@ -248,4 +248,4 @@ Minimum command checks after Java changes:
 
 Use narrower tests during development when possible, then broaden before release hardening.
 
-Phase 6 automated hardening began on 2026-07-10. It now includes 63 tests for semantic preset normalization, rule restoration, Change/Force parity, relight-ring expansion, legacy fail-closed behavior, preview parity, and heightmaps. Translation, `build shadowJar`, prior JDK FX packaging, DataVersion 2860/4671 and 26.3 snapshot checks, real biome boundaries, game reload, logs, and final locale screenshots have evidence. A short Builder rerun, 1.21 adjacent-ring relight check, 26.3 game load, and final JDK FX package rerun remain.
+Phase 6 automated hardening began on 2026-07-10. It now covers semantic preset normalization, rule restoration, popup navigation, Change/Force parity, relight-ring expansion, legacy fail-closed behavior, preview parity, and heightmaps. Translation, `build shadowJar`, JDK FX packaging, DataVersion 2860/4671 and 26.3 snapshot checks, real biome boundaries, game reload, logs, the 1.21 adjacent-ring relight rerun, and the 26.3 copied-world game load have evidence. Only the focused Builder dropdown UX rerun remains before Phase 6 can close.

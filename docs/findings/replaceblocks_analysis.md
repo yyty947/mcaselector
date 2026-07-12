@@ -363,6 +363,6 @@ Current catalog and UI behavior impact:
 - Builder-generated source Y fields serialize as `y(min..max, source)` when either boundary is set.
 - Builder-generated source biome fields serialize as `biome(<biome>[;<biome>...], source)` when one or more biome IDs are entered.
 - Empty builders start with blank From/To inputs and stay visually quiet until user action produces a real diagnostic.
-- Empty block selector queries do not show the full catalog; suggestion completion should be verified through both Tab and mouse-click paths because JavaFX handles those paths differently.
+- Empty block selector queries do not show the full catalog automatically; an explicit empty-arrow click opens it for that popup only. Suggestion completion should be verified through both Tab and mouse-click paths because JavaFX handles those paths differently.
 - Property dropdowns default to `all`/`全部`; source properties left at `all` are omitted from `props(...)`, and a source with every property at `all` serializes as `literal(...)`.
 - Existing source SNBT remains exact matching; selected-property subset matching is explicit through `props(...)`.
