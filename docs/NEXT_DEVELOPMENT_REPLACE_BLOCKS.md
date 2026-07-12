@@ -248,4 +248,4 @@ Minimum command checks after Java changes:
 
 Use narrower tests during development when possible, then broaden before release hardening.
 
-Phase 6 automated hardening began on 2026-07-10. It now includes 58 tests for rule/preset restoration, legacy fail-closed behavior, early-flat/modern preview parity, relight flags, and heightmaps. Translation, `build shadowJar`, prior JDK FX packaging, DataVersion 2860/4671 checks, real biome boundaries, game reload, and log review have evidence. A focused dual-locale Builder rerun, 1.21 relight check, final screenshots, and final package rerun remain.
+Phase 6 automated hardening began on 2026-07-10. It now includes 63 tests for semantic preset normalization, rule restoration, Change/Force parity, relight-ring expansion, legacy fail-closed behavior, preview parity, and heightmaps. Translation, `build shadowJar`, prior JDK FX packaging, DataVersion 2860/4671 and 26.3 snapshot checks, real biome boundaries, game reload, logs, and final locale screenshots have evidence. A short Builder rerun, 1.21 adjacent-ring relight check, 26.3 game load, and final JDK FX package rerun remain.

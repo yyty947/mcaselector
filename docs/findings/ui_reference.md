@@ -236,7 +236,7 @@ Current 4B usage:
 - Preserve per-rule preview counts before layering on more conditions.
 - Source tile entity eligibility is implemented and documented in the Builder Help dialog; keep future Builder help content in that dialog instead of adding more permanent helper text to the main form.
 - Rich target tile NBT editing is still pending.
-- Biome restrictions and presets are implemented. Phase 6 model regressions cover multi-rule preset parsing and current-token biome completion; focused dual-locale interaction and final screenshots remain pending after the `d17f0247` findings.
+- Biome restrictions and presets are implemented. Phase 6 model regressions cover multi-rule parsing, current-token biome completion, and semantic preset normalization. The main dual-locale interaction pass and screenshots are complete; only the latest duplicate-feedback, blank-area deselection, and discard-confirmation fixes need a short rerun.
 
 ## Builder UI implementation notes
 

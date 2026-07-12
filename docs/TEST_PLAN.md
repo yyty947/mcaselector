@@ -1,7 +1,7 @@
 # ReplaceBlocks Test Plan
 
 Date: 2026-06-04
-Last updated: 2026-07-11
+Last updated: 2026-07-12
 
 Safety rule: never test on a real world save. Always copy a small test world and keep an untouched backup.
 
@@ -30,6 +30,7 @@ Required gates:
 | `UI-02` | English Builder regression pass | Completed checklist, screenshot, and clean console |
 | `WORLD-18` | Disposable Java 1.18.x world | Preview/execution comparison, world reload, and log check |
 | `WORLD-21` | Disposable Java 1.21.x world | Preview/execution comparison, world reload, and log check |
+| `WORLD-LATEST` | Disposable latest snapshot world | Preview non-mutation, conditional execution, Change/Force parity, and selection boundary |
 | `DOC-01` | Internal docs alignment | No stale phase status or compatibility claims |
 
 Release blockers:
@@ -47,16 +48,17 @@ Phase 6 execution record:
 
 | Gate | Status | Commit / environment | Evidence or remaining action |
 |---|---|---|---|
-| Focused parser, Builder model, legacy safety, modern preview, light, and heightmap tests | Passed | Windows, Java 21, 2026-07-11 | Focused and final full Gradle gates passed after the UI/game findings follow-up |
-| `AUTO-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | 58 tests passed; `compileJava` and full `test` succeeded |
+| Focused parser, Builder model, legacy safety, modern preview, light, and heightmap tests | Passed | Windows, Java 21, 2026-07-12 | Added semantic preset normalization, Change/Force parity, and one-chunk relight-ring regressions |
+| `AUTO-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-12 | 63 tests passed; clean `compileJava`, full `test`, `build`, and `shadowJar` succeeded |
 | `AUTO-02` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | `run --args="--mode printMissingTranslations"` succeeded with no missing-key output |
-| `PKG-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | Clean `build shadowJar` succeeded and reran all 58 tests |
-| `PKG-02` | Passed on prior candidate; final rerun pending | Windows 11, Azul Zulu 21.0.11 JDK FX, 2026-07-11 | `jpackage` and standalone image startup passed before this UI/light-only follow-up; the currently installed JDKs do not contain JavaFX jmods, so rerun on the final clean PR candidate with a JDK FX distribution |
+| `PKG-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-12 | Clean `build shadowJar` succeeded and reran all 63 tests |
+| `PKG-02` | Passed on prior candidate; final rerun pending | Windows 11, Azul Zulu 21.0.11 JDK FX, 2026-07-11 | Prior `jpackage` and standalone startup passed. The 2026-07-12 Adoptium rerun fails at `jlink` because that JDK has no JavaFX jmods; rerun with JDK FX on the final candidate |
 | JavaFX startup smoke | Passed | Chinese locale, Java 21, 2026-07-10 | Main window rendered with menu, chunk grid, status bar, and no startup exception |
-| `UI-01` / `UI-02` | Failed on `d17f0247`; focused rerun pending | User report and console log, 2026-07-11 | Completion/preset/state restoration defects were fixed; rerun the focused cases below in both locales and retain final Builder screenshots |
+| `UI-01` / `UI-02` | Main regression passed; final focused rerun pending | User report, clean console, and `builder_zh.png` / `builder_en.png`, 2026-07-12 | Completion, preset/state restoration, locale, and popup checks passed. Rerun semantic duplicate feedback, blank-area deselection, and nonempty-X confirmation after the latest fixes |
 | `WORLD-18` / `WORLD-21` file-level checks | Passed | Commit `35261278`, DataVersions 2860 and 4671, 2026-07-11 | Preview hashes, preview/execution counts, selection-only execution, bounded air, state round-trip, tile effects, duplicate coordinates, light invalidation, and heightmap shape passed on disposable copies |
 | Real biome boundary | Passed | Disposable copies of user-provided 1.18 and 1.21 normal terrain, 2026-07-11 | Preview hashes unchanged; execution removed all selected-biome source matches while the control-biome counts stayed unchanged |
-| `WORLD-18` / `WORLD-21` game checks | 1.18 passed; 1.21 relight rerun pending | User game pass and log review, 2026-07-11 | Load/save/reload, state, containers, heightmaps, and logs passed; 1.21 exposed stale lighting, now fixed by writing `isLightOn=0` after replacement |
+| `WORLD-18` / `WORLD-21` game checks | 1.18 passed; 1.21 boundary-ring rerun pending | User game pass and log review, 2026-07-12 | Selected chunks relight correctly, but their adjacent ring stayed stale. Execution now saves existing chunks in a one-chunk square ring with the version-specific relight flag cleared |
+| `WORLD-LATEST` | File-level passed; game load pending | 26.3 snapshot 3 disposable copies, 2026-07-12 | River + Y marker matched; preview NBT stayed unchanged; Change and Force produced equal selected-chunk NBT; the unselected control chunk's block matches stayed unchanged. Source world remained read-only |
 
 ### Phase 6 copied-world evidence
 
@@ -74,6 +76,8 @@ All writes below used fresh copies under `%LOCALAPPDATA%\Temp\mca-phase6-worlds-
 | Real biome boundary follow-up | `snowy_plains` source 50,332; `forest` control 895,747 unchanged | `cold_ocean` source 1,408; `beach` control 59,954 unchanged |
 
 The stateful fixtures in this pass were deliberately generated in copied `.mca` files and then round-tripped through exact-state and `props(...)` rules. The later normal-terrain boundary pass used copies under `%LOCALAPPDATA%\Temp\mca-phase6-biome-final`; the original worlds were read-only. Game rendering remains the authority for the final 1.21 relight rerun.
+
+The 2026-07-12 latest-snapshot pass used two copies under `%LOCALAPPDATA%\Temp\mca-phase6-26_3`. It exercised `biome(minecraft:river, y(90..105, literal(minecraft:stone)))`, compared Change with Force, and checked an adjacent unselected chunk. The 26.3 game log had no chunk, palette, lighting, or heightmap errors; its only ERROR was an unrelated missing Rockstar Vulkan-layer JSON file.
 
 ## Catalog data tests
 

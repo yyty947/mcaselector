@@ -44,11 +44,11 @@ Implemented:
 
 Not implemented yet:
 
-- Phase 6 remains in progress. All 58 tests, translation completeness, `build shadowJar`, prior Zulu JDK FX `jpackage`, DataVersion 2860/4671 file checks, real biome boundaries, game load/save/reload, and game-log review pass. The `d17f0247` UI pass exposed completion/preset/state issues and 1.21 stale lighting; fixes are implemented, with a focused dual-locale UI rerun and 1.21 relight check still required.
+- Phase 6 remains in progress. All 63 tests, translation completeness, `build shadowJar`, prior Zulu JDK FX `jpackage`, DataVersion 2860/4671 and 26.3 snapshot file checks, real biome boundaries, game load/save/reload, and game-log review have evidence. The final focused UI rerun, 1.21 adjacent-ring relight check, 26.3 game load, and final JDK FX package rerun remain.
 
 ## Next Recommended Task
 
-Next best target: run the focused Builder regression and 1.21 relight checks, then finalize docs and refresh the local PR/Wiki branches.
+Next best target: run the short Builder regression, 1.21 adjacent-ring relight check, 26.3 copied-world game load, and final JDK FX package rerun; then mark Phase 6 complete and refresh the local PR/Wiki branches.
 
 Goal:
 

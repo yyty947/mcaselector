@@ -139,7 +139,7 @@ CLI path:
 - Preview exists for modern 1.18+ paths, but unsupported older preview chunks are reported instead of estimated.
 - Replacing air can expand sparse sections across the existing section range, which is powerful but high risk.
 - Y-restricted air replacement reduces this risk by not completing sections outside the requested Y range. DataVersion 2860 and 4671 copied-world files matched and wrote exactly 20,736 and 20,479 Y=80 air blocks, with no remaining source matches; Minecraft rendering/reload validation is still required.
-- Replacing blocks removes section light data and marks the chunk lighting incomplete. A user game pass on the earlier candidate exposed stale light in a 1.21 selection because root `isLightOn` stayed set; the follow-up now clears that flag. Final in-game relight confirmation remains required.
+- Replacing blocks removes section light data and marks the chunk lighting incomplete. Clearing `isLightOn` fixed selected 1.21 chunks, but the user found stale light in the immediately adjacent ring. Selection-only execution now expands only the processing/save scope by one square chunk ring and clears the relight flag there; block replacement still uses the original selection. Final in-game boundary confirmation remains required.
 - Automated Phase 6 tests verify early-flat and post-21w43a heightmap scan, packing, and writeback shape. File-level copied-world checks found all four heightmaps present at 37 longs with no malformed arrays after ordinary, state, and bounded-air execution. Minecraft surface behavior and logs remain manual gates.
 
 ## UI status and improvement recommendation
@@ -170,6 +170,8 @@ The current From/To block inputs use editable JavaFX `ComboBox` controls backed 
 - Candidate hover/focus/selected styles should stay visible in dark theme and should match the main menu hover tone closely enough that dropdowns feel interactive.
 - Property dropdown cells use graphic `Text` nodes; set both CSS `-fx-text-fill` on list cells and explicit `Text#setFill`/`.text {-fx-fill: ...}` styles, otherwise hover/focus can leave some options rendered black on the dark popup.
 - Keep custom presets as serialized ReplaceBlocks text, not hidden builder state. This preserves advanced text round-tripping and keeps presets independent of future UI layout changes.
+- Normalize custom preset rules through `ReplaceBlocksField` before storing or comparing them. Raw SNBT ordering and whitespace are not rule identity, and equivalent rules must not be appended twice.
+- Clicking empty space in the rule table clears its selection so the documented all-rules preset fallback remains reachable. Closing a nonempty Builder through the window close control requires discard confirmation.
 
 Recommended next work:
 

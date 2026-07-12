@@ -79,6 +79,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private Button savePreset;
 	private Button deletePreset;
 	private boolean applyingPreset;
+	private boolean dialogButtonClose;
 
 	public ReplaceBlocksRuleBuilderDialog(Stage primaryStage, String initialValue) {
 		this(primaryStage, null, true, initialValue);
@@ -115,9 +116,17 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 		Node ok = getDialogPane().lookupButton(ButtonType.OK);
 		ok.setDisable(true);
+		ok.addEventFilter(ActionEvent.ACTION, event -> dialogButtonClose = true);
+		getDialogPane().lookupButton(ButtonType.CANCEL)
+				.addEventFilter(ActionEvent.ACTION, event -> dialogButtonClose = true);
 		setPreviewDisabled(true);
 
 		setResultConverter(p -> p == ButtonType.OK ? result.getText() : null);
+		setOnCloseRequest(event -> {
+			if (!dialogButtonClose && hasBuilderContent() && !confirmDiscardBuilder()) {
+				event.consume();
+			}
+		});
 
 		Button add = UIFactory.button(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_ADD_RULE);
 		add.setOnAction(this::addRule);
@@ -183,6 +192,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		rules.getColumns().add(fromColumn);
 		rules.getColumns().add(toColumn);
 		rules.getSelectionModel().selectedItemProperty().addListener((a, o, n) -> updatePresetButtons());
+		rules.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
+			if (!isFilledRuleRow(event.getTarget())) {
+				rules.getSelectionModel().clearSelection();
+			}
+		});
 		rules.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 		rules.setMinHeight(150);
 		rules.setPrefHeight(220);
@@ -261,12 +275,19 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					showDiagnostic(ReplaceBlocksDiagnostics.builderInvalid());
 					return;
 				}
+				int added = 0;
 				for (Rule rule : loaded) {
 					if (!hasRule(rule.from(), rule.to())) {
 						ruleItems.add(rule);
+						added++;
 					}
 				}
 				updateResult();
+				if (added == 0) {
+					showDiagnostic(new ReplaceBlocksDiagnostics.Diagnostic(
+							ReplaceBlocksDiagnostics.Severity.ERROR,
+							Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_ALREADY_FILLED.toString()));
+				}
 				return;
 			}
 			from.applyPreset(preset.source(), preset.tileMode());
@@ -392,9 +413,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		Rule selected = rules.getSelectionModel().getSelectedItem();
 		if (selected != null) {
 			String value = formatFrom(selected.from()) + "=" + formatTo(selected.to());
-			boolean valid = ReplaceBlocksDiagnostics.parseReplaceBlocksValue(new ReplaceBlocksField(), value);
-			return new PresetValue(valid ? value : null,
-					valid ? ReplaceBlocksDiagnostics.none() : ReplaceBlocksDiagnostics.builderInvalid());
+			return validatedPresetValue(value);
 		}
 
 		String value;
@@ -414,8 +433,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		if (value == null || value.isBlank()) {
 			return new PresetValue(null, ReplaceBlocksDiagnostics.builderInvalid());
 		}
-		boolean valid = ReplaceBlocksDiagnostics.parseReplaceBlocksValue(new ReplaceBlocksField(), value);
-		return new PresetValue(valid ? value : null, valid ? ReplaceBlocksDiagnostics.none() : ReplaceBlocksDiagnostics.builderInvalid());
+		return validatedPresetValue(value);
+	}
+
+	private PresetValue validatedPresetValue(String value) {
+		String normalized = normalizeRulesValue(value);
+		return normalized == null
+				? new PresetValue(null, ReplaceBlocksDiagnostics.builderInvalid())
+				: new PresetValue(normalized, ReplaceBlocksDiagnostics.none());
 	}
 
 	private String suggestPresetName() {
@@ -451,6 +476,17 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		return confirmPresetAction(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_DELETE_CONFIRM.format(name));
 	}
 
+	private boolean confirmDiscardBuilder() {
+		Alert alert = new Alert(Alert.AlertType.CONFIRMATION,
+				Translation.DIALOG_REPLACE_BLOCKS_BUILDER_DISCARD_HEADER.toString(),
+				ButtonType.OK, ButtonType.CANCEL);
+		alert.initOwner(getDialogPane().getScene().getWindow());
+		alert.titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_DISCARD_TITLE.getProperty());
+		alert.setHeaderText(null);
+		alert.getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
+		return alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
+	}
+
 	private boolean confirmPresetAction(String message) {
 		Alert alert = new Alert(Alert.AlertType.CONFIRMATION, message, ButtonType.OK, ButtonType.CANCEL);
 		alert.initOwner(getDialogPane().getScene().getWindow());
@@ -482,6 +518,21 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			presets.getSelectionModel().clearSelection();
 		}
 		updatePresetButtons();
+	}
+
+	private boolean hasBuilderContent() {
+		return !ruleItems.isEmpty() || from.userInputPresentProperty().get() || to.userInputPresentProperty().get();
+	}
+
+	private boolean isFilledRuleRow(Object target) {
+		Node node = target instanceof Node n ? n : null;
+		while (node != null && node != rules) {
+			if (node instanceof TableRow<?> row) {
+				return !row.isEmpty();
+			}
+			node = node.getParent();
+		}
+		return false;
 	}
 
 	private void previewReplaceBlocks() {
@@ -604,8 +655,19 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private boolean hasRule(String from, String to) {
-		return ruleItems.stream()
-				.anyMatch(rule -> rule.from().equals(from) && rule.to().equals(to));
+		String candidate = normalizeRule(from, to);
+		return candidate != null && ruleItems.stream()
+				.map(rule -> normalizeRule(rule.from(), rule.to()))
+				.anyMatch(candidate::equals);
+	}
+
+	static String normalizeRule(String from, String to) {
+		return normalizeRulesValue(formatFrom(from) + "=" + formatTo(to));
+	}
+
+	static String normalizeRulesValue(String value) {
+		ReplaceBlocksField field = new ReplaceBlocksField();
+		return ReplaceBlocksDiagnostics.parseReplaceBlocksValue(field, value) ? field.valueToString() : null;
 	}
 
 	static ParsedRule parseEditableRule(String from, String to) {

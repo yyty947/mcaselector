@@ -94,4 +94,16 @@ class ReplaceBlocksRuleBuilderModelTest {
 		assertEquals("minecraft:birch_forest", ReplaceBlocksRuleBuilderDialog.biomeToken(value, 8));
 		assertEquals("", ReplaceBlocksRuleBuilderDialog.biomeToken("minecraft:plains;", 17));
 	}
+
+	@Test
+	void normalizesEquivalentStateRulesForDuplicateDetection() {
+		String first = ReplaceBlocksRuleBuilderDialog.normalizeRule(
+				"tile(props({Name:\"minecraft:acacia_log\",Properties:{axis:\"y\"}}))",
+				"{Name:\"minecraft:acacia_leaves\",Properties:{waterlogged:\"true\",distance:\"2\",persistent:\"false\"}}");
+		String reordered = ReplaceBlocksRuleBuilderDialog.normalizeRule(
+				"tile( props( { Properties: { axis: \"y\" }, Name: \"minecraft:acacia_log\" } ) )",
+				"{ Properties: { persistent: \"false\", distance: \"2\", waterlogged: \"true\" }, Name: \"minecraft:acacia_leaves\" }");
+
+		assertEquals(first, reordered);
+	}
 }

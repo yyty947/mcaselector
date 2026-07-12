@@ -9,6 +9,8 @@ import net.querz.mcaselector.util.progress.Timer;
 import net.querz.mcaselector.util.range.Range;
 import net.querz.mcaselector.selection.ChunkSet;
 import net.querz.mcaselector.selection.Selection;
+import net.querz.mcaselector.version.ChunkFilter;
+import net.querz.mcaselector.version.VersionHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import java.io.File;
@@ -366,6 +368,10 @@ public class Region {
 	}
 
 	public void applyFieldChanges(List<Field<?>> fields, boolean force, Selection selection) {
+		applyFieldChanges(fields, force, selection, null);
+	}
+
+	public void applyFieldChanges(List<Field<?>> fields, boolean force, Selection selection, Selection relightSelection) {
 		Timer t = new Timer();
 		boolean selected = false;
 		for (int x = 0; x < 32; x++) {
@@ -379,6 +385,17 @@ public class Region {
 						LOGGER.warn("failed to apply field changes to chunk {}: {}", absoluteLocation, ex.getMessage());
 					}
 				}
+			}
+		}
+		if (relightSelection != null && region != null) {
+			for (int index = 0; index < 1024; index++) {
+				Point2i absoluteLocation = location.regionToChunk().add(new Point2i(index));
+				RegionChunk regionChunk = region.getChunk(index);
+				if (!relightSelection.isChunkSelected(absoluteLocation) || regionChunk == null || regionChunk.isEmpty()) {
+					continue;
+				}
+				ChunkData chunkData = new ChunkData(absoluteLocation, regionChunk, null, null, selection != null && selection.isChunkSelected(absoluteLocation));
+				VersionHandler.getImpl(chunkData, ChunkFilter.LightPopulated.class).setLightPopulated(chunkData, (byte) 0);
 			}
 		}
 		LOGGER.debug("took {} to apply field changes to region {}", t, location);

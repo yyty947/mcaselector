@@ -1,6 +1,7 @@
 package net.querz.mcaselector.io.job;
 
 import net.querz.mcaselector.changer.Field;
+import net.querz.mcaselector.changer.FieldType;
 import net.querz.mcaselector.config.ConfigProvider;
 import net.querz.mcaselector.io.JobHandler;
 import net.querz.mcaselector.io.RegionDirectories;
@@ -24,7 +25,10 @@ public final class FieldChanger {
 
 	public static void changeNBTFields(List<Field<?>> fields, boolean force, Selection selection, Progress progressChannel, boolean headless) {
 		WorldDirectories wd = ConfigProvider.WORLD.getWorldDirs();
-		RegionDirectories[] rd = wd.listRegions(selection);
+		Selection relightSelection = fields.stream().anyMatch(field -> field.getType() == FieldType.REPLACE_BLOCKS) && selection != null
+				? expandSelectionByOne(selection.getTrueSelection(wd))
+				: null;
+		RegionDirectories[] rd = wd.listRegions(relightSelection == null ? selection : relightSelection);
 		if (rd == null || rd.length == 0) {
 			if (headless) {
 				progressChannel.done("no files");
@@ -42,9 +46,34 @@ public final class FieldChanger {
 		Consumer<Throwable> errorHandler = t -> progressChannel.incrementProgress("error");
 
 		for (RegionDirectories r : rd) {
-			MCAFieldChangeProcessJob job = new MCAFieldChangeProcessJob(r, fields, force, selection, progressChannel);
+			MCAFieldChangeProcessJob job = new MCAFieldChangeProcessJob(r, fields, force, selection, relightSelection, progressChannel);
 			job.errorHandler = errorHandler;
 			JobHandler.addJob(job);
+		}
+	}
+
+	static Selection expandSelectionByOne(Selection selection) {
+		Selection expanded = new Selection();
+		for (var entry : selection) {
+			Point2i region = new Point2i(entry.getLongKey());
+			if (entry.getValue() == null) {
+				for (int index = 0; index < 1024; index++) {
+					addSquare(expanded, new Point2i(index).add(region.regionToChunk()));
+				}
+			} else {
+				for (int index : entry.getValue()) {
+					addSquare(expanded, new Point2i(index).add(region.regionToChunk()));
+				}
+			}
+		}
+		return expanded;
+	}
+
+	private static void addSquare(Selection selection, Point2i center) {
+		for (int x = -1; x <= 1; x++) {
+			for (int z = -1; z <= 1; z++) {
+				selection.addChunk(center.add(x, z));
+			}
 		}
 	}
 
@@ -54,20 +83,24 @@ public final class FieldChanger {
 		private final List<Field<?>> fields;
 		private final boolean force;
 		private final Selection selection;
+		private final Selection relightSelection;
 
-		private MCAFieldChangeProcessJob(RegionDirectories dirs, List<Field<?>> fields, boolean force, Selection selection, Progress progressChannel) {
+		private MCAFieldChangeProcessJob(RegionDirectories dirs, List<Field<?>> fields, boolean force, Selection selection,
+				Selection relightSelection, Progress progressChannel) {
 			super(dirs, PRIORITY_LOW);
 			this.fields = fields;
 			this.force = force;
 			this.selection = selection;
+			this.relightSelection = relightSelection;
 			this.progressChannel = progressChannel;
 		}
 
 		@Override
 		public boolean execute() {
-			if (selection != null) {
+			Selection processingSelection = relightSelection == null ? selection : relightSelection;
+			if (processingSelection != null) {
 				Point2i location = getRegionDirectories().getLocation();
-				if (!selection.isAnyChunkInRegionSelected(location)) {
+				if (!processingSelection.isAnyChunkInRegionSelected(location)) {
 					LOGGER.debug("will not apply nbt changes to {}", getRegionDirectories().getLocationAsFileName());
 					progressChannel.incrementProgress(getRegionDirectories().getLocationAsFileName());
 					return true;
@@ -78,7 +111,7 @@ public final class FieldChanger {
 			try {
 				Region region = Region.loadRegion(getRegionDirectories());
 
-				region.applyFieldChanges(fields, force, selection);
+				region.applyFieldChanges(fields, force, selection, relightSelection);
 
 				MCAFieldChangeSaveJob job = new MCAFieldChangeSaveJob(getRegionDirectories(), region, progressChannel);
 				job.errorHandler = errorHandler;

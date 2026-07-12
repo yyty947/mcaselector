@@ -282,7 +282,7 @@ For each changed section, the implementation removes:
 - `BlockLight`
 - `SkyLight`
 
-The first Phase 6 game pass confirmed that removing section light arrays while leaving root `isLightOn` set can preserve stale lighting in 1.21 chunks. ReplaceBlocks now writes the version-appropriate `isLightOn=0` / `LightPopulated=0` ByteTag after replacement; automated modern and legacy-format checks pass, with one final 1.21 visual relight rerun required.
+The first Phase 6 game pass confirmed that removing section light arrays while leaving root `isLightOn` set can preserve stale lighting in 1.21 chunks. Clearing the flag fixed selected chunks, but a follow-up exposed stale light in the immediately adjacent ring. Selection-only execution now retains the original replacement selection while loading and saving an expanded one-chunk square ring whose existing chunks receive the version-appropriate `isLightOn=0` / `LightPopulated=0` ByteTag. Expansion and cross-region behavior have automated tests; final visual confirmation remains required.
 
 ## Replacing air
 

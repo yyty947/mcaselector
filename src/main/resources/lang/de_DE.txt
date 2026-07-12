@@ -240,6 +240,9 @@ dialog.replace_blocks.builder.preset.overwrite_confirm;A preset named "%s" alrea
 dialog.replace_blocks.builder.preset.delete_confirm;Delete preset "%s"?
 dialog.replace_blocks.builder.preset.replace_confirm;Loading this preset will replace the current Builder rules and draft inputs.
 dialog.replace_blocks.builder.preset.saved;Preset "%s" saved.
+dialog.replace_blocks.builder.preset.already_filled;This preset is already present in the rule list.
+dialog.replace_blocks.builder.discard.title;Discard Builder changes?
+dialog.replace_blocks.builder.discard.header;All rules and draft input in this Builder will be lost.
 dialog.replace_blocks.builder.preset.air_to_stone;Air -> stone
 dialog.replace_blocks.builder.preset.fluids_to_air;Fluids -> air
 dialog.replace_blocks.builder.preset.logs_leaves_to_air;Logs/leaves -> air

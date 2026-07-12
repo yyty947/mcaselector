@@ -303,16 +303,23 @@ class ReplaceBlocksFieldTest {
 
 	@Test
 	void marksModernChunksForRelightingAfterReplacement() {
-		CompoundTag root = new CompoundTag();
-		root.putInt("DataVersion", 4671);
-		root.putInt("xPos", 0);
-		root.putInt("zPos", 0);
-		root.putByte("isLightOn", (byte) 1);
-		root.put("sections", modernSections());
+		CompoundTag root = modernRoot();
 
 		changeStoneToDirt(root);
 
 		assertEquals(0, root.getByte("isLightOn"));
+	}
+
+	@Test
+	void forceProducesTheSameReplacementAsChange() {
+		CompoundTag changed = modernRoot();
+		CompoundTag forced = modernRoot();
+		ReplaceBlocksField field = parse("literal(minecraft:stone)=minecraft:dirt");
+
+		field.change(chunkData(changed));
+		field.force(chunkData(forced));
+
+		assertEquals(changed, forced);
 	}
 
 	@Test
@@ -349,10 +356,23 @@ class ReplaceBlocksFieldTest {
 	}
 
 	private void changeStoneToDirt(CompoundTag root) {
+		parse("literal(minecraft:stone)=minecraft:dirt").change(chunkData(root));
+	}
+
+	private ChunkData chunkData(CompoundTag root) {
 		RegionChunk region = new RegionChunk(new Point2i(0, 0));
 		region.setData(root);
-		parse("literal(minecraft:stone)=minecraft:dirt").change(
-				new ChunkData(new Point2i(0, 0), region, null, null, true));
+		return new ChunkData(new Point2i(0, 0), region, null, null, true);
+	}
+
+	private CompoundTag modernRoot() {
+		CompoundTag root = new CompoundTag();
+		root.putInt("DataVersion", 4671);
+		root.putInt("xPos", 0);
+		root.putInt("zPos", 0);
+		root.putByte("isLightOn", (byte) 1);
+		root.put("sections", modernSections());
+		return root;
 	}
 
 	private ListTag modernSections() {
