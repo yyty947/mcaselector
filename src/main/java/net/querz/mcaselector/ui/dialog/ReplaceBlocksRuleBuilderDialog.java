@@ -821,6 +821,15 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		return Math.hypot(deltaX, deltaY) >= 3;
 	}
 
+	static boolean isAutocompletePopupKey(KeyCode code) {
+		return code == KeyCode.UP
+				|| code == KeyCode.DOWN
+				|| code == KeyCode.PAGE_UP
+				|| code == KeyCode.PAGE_DOWN
+				|| code == KeyCode.ENTER
+				|| code == KeyCode.TAB;
+	}
+
 	static int popupSelectionTarget(KeyCode code, int selectedIndex, int itemCount, int visibleRows) {
 		if (itemCount <= 0) {
 			return -1;
@@ -1081,6 +1090,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		private BlockInput(boolean source) {
 			this.source = source;
 			getStyleClass().add("replace-blocks-builder-block");
+			addEventFilter(KeyEvent.KEY_PRESSED, this::handleAutocompleteKeyPressed);
 			setMaxWidth(Double.MAX_VALUE);
 			setPrefWidth(0);
 			setSpacing(4);
@@ -1097,7 +1107,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			block.setCellFactory(v -> new HighlightedBlockCell());
 			block.getEditor().setAlignment(Pos.CENTER);
 			block.getEditor().setOnAction(ReplaceBlocksRuleBuilderDialog.this::addRule);
-			block.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPressed);
 			block.getEditor().textProperty().addListener((a, o, n) -> {
 				if (suppressSuggestions) {
 					return;
@@ -1163,7 +1172,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				biomeNames.setItems(biomeSuggestions);
 				biomeNames.setCellFactory(v -> new HighlightedBiomeCell());
 				biomeNames.getEditor().promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_BIOME_PROMPT.getProperty());
-				biomeNames.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, this::handleBiomeKeyPressed);
 				biomeNames.getEditor().textProperty().addListener((a, o, n) -> {
 					if (suppressBiomeSuggestions) {
 						return;
@@ -1549,6 +1557,17 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				return;
 			}
 			biomeNames.show();
+		}
+
+		private void handleAutocompleteKeyPressed(KeyEvent event) {
+			if (!isAutocompletePopupKey(event.getCode())) {
+				return;
+			}
+			if (block.isShowing()) {
+				handleKeyPressed(event);
+			} else if (source && biomeNames.isShowing()) {
+				handleBiomeKeyPressed(event);
+			}
 		}
 
 		private void handleBiomeKeyPressed(KeyEvent event) {

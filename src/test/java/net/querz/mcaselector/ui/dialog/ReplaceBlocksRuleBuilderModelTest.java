@@ -154,6 +154,18 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
+	void routesAutocompleteKeysBeforeComboBoxBehavior() {
+		assertTrue(ReplaceBlocksRuleBuilderDialog.isAutocompletePopupKey(KeyCode.UP));
+		assertTrue(ReplaceBlocksRuleBuilderDialog.isAutocompletePopupKey(KeyCode.DOWN));
+		assertTrue(ReplaceBlocksRuleBuilderDialog.isAutocompletePopupKey(KeyCode.PAGE_UP));
+		assertTrue(ReplaceBlocksRuleBuilderDialog.isAutocompletePopupKey(KeyCode.PAGE_DOWN));
+		assertTrue(ReplaceBlocksRuleBuilderDialog.isAutocompletePopupKey(KeyCode.ENTER));
+		assertTrue(ReplaceBlocksRuleBuilderDialog.isAutocompletePopupKey(KeyCode.TAB));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.isAutocompletePopupKey(KeyCode.LEFT));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.isAutocompletePopupKey(KeyCode.A));
+	}
+
+	@Test
 	void startsMarqueeOnlyAfterARealDrag() {
 		assertFalse(ReplaceBlocksRuleBuilderDialog.isRuleMarqueeDrag(0, 0));
 		assertFalse(ReplaceBlocksRuleBuilderDialog.isRuleMarqueeDrag(2, 1));
