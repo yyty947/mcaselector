@@ -131,10 +131,18 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
-	void movesAnOpenPopupSelectionByRowsOrPages() {
-		assertEquals(0, ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(KeyCode.DOWN, -1, 20, 12));
-		assertEquals(11, ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(KeyCode.PAGE_DOWN, 0, 20, 12));
-		assertEquals(0, ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(KeyCode.PAGE_UP, 11, 20, 12));
-		assertEquals(-1, ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(KeyCode.ENTER, 0, 20, 12));
+	void recognizesControlEnterForAddingRules() {
+		assertTrue(ReplaceBlocksRuleBuilderDialog.isBuilderAddShortcut(KeyCode.ENTER, true));
+		assertTrue(ReplaceBlocksRuleBuilderDialog.isBuilderAddShortcut(KeyCode.SEPARATOR, true));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.isBuilderAddShortcut(KeyCode.ENTER, false));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.isBuilderAddShortcut(KeyCode.DOWN, true));
+	}
+
+	@Test
+	void permitsMarqueeFromEveryBlankRuleTableArea() {
+		assertTrue(ReplaceBlocksRuleBuilderDialog.canStartRuleMarquee(true, false, false));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.canStartRuleMarquee(true, true, false));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.canStartRuleMarquee(true, false, true));
+		assertFalse(ReplaceBlocksRuleBuilderDialog.canStartRuleMarquee(false, false, false));
 	}
 }

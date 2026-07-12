@@ -155,6 +155,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		input.add(from, 0, 0);
 		input.add(to, 1, 0);
 		input.add(addActions, 2, 0);
+		input.addEventFilter(KeyEvent.KEY_PRESSED, this::handleBuilderShortcut);
 		GridPane.setHgrow(from, Priority.ALWAYS);
 		GridPane.setHgrow(to, Priority.ALWAYS);
 		GridPane.setValignment(addActions, VPos.TOP);
@@ -163,7 +164,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		presets.getStyleClass().add("replace-blocks-builder-preset-combo");
 		presets.setCellFactory(v -> new PresetItemCell());
 		presets.setButtonCell(new PresetItemCell());
-		presets.addEventFilter(KeyEvent.KEY_PRESSED, event -> handlePopupKeyPressed(presets, event));
 		presets.setPrefWidth(360);
 		presets.setMaxWidth(420);
 		presets.promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_PROMPT.getProperty());
@@ -553,19 +553,25 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		return false;
 	}
 
-	private boolean isEmptyRuleRow(Object target) {
+	private boolean isRuleTableBackground(Object target) {
 		Node node = target instanceof Node n ? n : null;
-		while (node != null && node != rules) {
-			if (node instanceof TableRow<?> row) {
-				return row.isEmpty();
+		boolean excluded = false;
+		while (node != null) {
+			if (node == rules) {
+				return canStartRuleMarquee(true, isFilledRuleRow(target), excluded);
+			}
+			if (node.getStyleClass().contains("column-header")
+					|| node.getStyleClass().contains("column-header-background")
+					|| node.getStyleClass().contains("scroll-bar")) {
+				excluded = true;
 			}
 			node = node.getParent();
 		}
-		return false;
+		return canStartRuleMarquee(false, false, excluded);
 	}
 
 	private void handleBuilderShortcut(KeyEvent event) {
-		if (event.isControlDown() && event.getCode() == KeyCode.ENTER) {
+		if (isBuilderAddShortcut(event.getCode(), event.isControlDown())) {
 			addRule(null);
 			event.consume();
 		}
@@ -582,7 +588,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private void handleRulesMousePressed(MouseEvent event) {
-		if (event.getButton() != MouseButton.PRIMARY || isFilledRuleRow(event.getTarget()) || !isEmptyRuleRow(event.getTarget())) {
+		if (event.getButton() != MouseButton.PRIMARY || !isRuleTableBackground(event.getTarget())) {
 			return;
 		}
 		rules.requestFocus();
@@ -644,36 +650,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					return new VisibleRuleBounds(row.getIndex(), new Rectangle2D(min.getX(), min.getY(), max.getX() - min.getX(), max.getY() - min.getY()));
 				})
 				.toList();
-	}
-
-	private void handlePopupKeyPressed(ComboBox<?> combo, KeyEvent event) {
-		if (!combo.isShowing()) {
-			return;
-		}
-		if (event.getCode() == KeyCode.ENTER) {
-			combo.hide();
-			event.consume();
-			return;
-		}
-		moveOpenPopupSelection(combo, event);
-	}
-
-	private boolean moveOpenPopupSelection(ComboBox<?> combo, KeyEvent event) {
-		if (!combo.isShowing()) {
-			return false;
-		}
-		if (event.getCode() == KeyCode.ESCAPE) {
-			combo.hide();
-			event.consume();
-			return true;
-		}
-		int target = popupSelectionTarget(event.getCode(), combo.getSelectionModel().getSelectedIndex(), combo.getItems().size(), combo.getVisibleRowCount());
-		if (target < 0) {
-			return false;
-		}
-		combo.getSelectionModel().select(target);
-		event.consume();
-		return true;
 	}
 
 	private void previewReplaceBlocks() {
@@ -818,18 +794,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				.collect(Collectors.joining(", "));
 	}
 
-	static int popupSelectionTarget(KeyCode code, int selectedIndex, int itemCount, int visibleRows) {
-		if (itemCount <= 0) {
-			return -1;
-		}
-		int current = selectedIndex < 0 ? 0 : selectedIndex;
-		return switch (code) {
-			case UP -> Math.max(0, selectedIndex < 0 ? itemCount - 1 : current - 1);
-			case DOWN -> Math.min(itemCount - 1, selectedIndex < 0 ? 0 : current + 1);
-			case PAGE_UP -> Math.max(0, current - Math.max(1, visibleRows - 1));
-			case PAGE_DOWN -> Math.min(itemCount - 1, current + Math.max(1, visibleRows - 1));
-			default -> -1;
-		};
+	static boolean isBuilderAddShortcut(KeyCode code, boolean controlDown) {
+		return controlDown && (code == KeyCode.ENTER || code == KeyCode.SEPARATOR);
+	}
+
+	static boolean canStartRuleMarquee(boolean insideRulesTable, boolean filledRuleRow, boolean excludedControl) {
+		return insideRulesTable && !filledRuleRow && !excludedControl;
 	}
 
 	static List<Integer> intersectingRuleIndices(Rectangle2D marquee, List<VisibleRuleBounds> rows) {
@@ -1094,7 +1064,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			block.setCellFactory(v -> new HighlightedBlockCell());
 			block.getEditor().setAlignment(Pos.CENTER);
 			block.getEditor().setOnAction(ReplaceBlocksRuleBuilderDialog.this::addRule);
-			block.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, ReplaceBlocksRuleBuilderDialog.this::handleBuilderShortcut);
 			block.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, this::handleKeyPressed);
 			block.getEditor().textProperty().addListener((a, o, n) -> {
 				if (suppressSuggestions) {
@@ -1120,8 +1089,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				tileEntityMode.setValue(SourceTileMode.ANY);
 				tileEntityMode.setMinWidth(0);
 				tileEntityMode.setMaxWidth(Double.MAX_VALUE);
-				tileEntityMode.addEventFilter(KeyEvent.KEY_PRESSED, ReplaceBlocksRuleBuilderDialog.this::handleBuilderShortcut);
-				tileEntityMode.addEventFilter(KeyEvent.KEY_PRESSED, event -> handlePopupKeyPressed(tileEntityMode, event));
 				tileEntityMode.valueProperty().addListener((a, o, n) -> clearPresetSelectionAfterEdit());
 				getChildren().add(tileEntityMode);
 
@@ -1136,8 +1103,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				minY.setMaxWidth(Double.MAX_VALUE);
 				maxY.setMinWidth(0);
 				maxY.setMaxWidth(Double.MAX_VALUE);
-				minY.addEventFilter(KeyEvent.KEY_PRESSED, ReplaceBlocksRuleBuilderDialog.this::handleBuilderShortcut);
-				maxY.addEventFilter(KeyEvent.KEY_PRESSED, ReplaceBlocksRuleBuilderDialog.this::handleBuilderShortcut);
 				minY.textProperty().addListener((a, o, n) -> {
 					updateUserInputPresent();
 					clearPresetSelectionAfterEdit();
@@ -1165,7 +1130,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				biomeNames.setItems(biomeSuggestions);
 				biomeNames.setCellFactory(v -> new HighlightedBiomeCell());
 				biomeNames.getEditor().promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_BIOME_PROMPT.getProperty());
-				biomeNames.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, ReplaceBlocksRuleBuilderDialog.this::handleBuilderShortcut);
 				biomeNames.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, this::handleBiomeKeyPressed);
 				biomeNames.getEditor().textProperty().addListener((a, o, n) -> {
 					if (suppressBiomeSuggestions) {
@@ -1564,9 +1528,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					}
 					return;
 				}
-				if (moveOpenPopupSelection(biomeNames, event)) {
-					return;
-				}
 			}
 			if (event.getCode() == KeyCode.TAB && biomeNames.isShowing()) {
 				String suggestion = selectedBiomeSuggestion();
@@ -1654,9 +1615,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					}
 					return;
 				}
-				if (moveOpenPopupSelection(block, event)) {
-					return;
-				}
 			}
 			if (event.getCode() == KeyCode.TAB && block.isShowing()) {
 				String suggestion = selectedSuggestion();
@@ -1738,8 +1696,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				value.setCellFactory(v -> new PropertyChoiceCell());
 				value.setButtonCell(new PropertyChoiceCell());
 				value.setValue(PropertyChoice.allChoice());
-				value.addEventFilter(KeyEvent.KEY_PRESSED, ReplaceBlocksRuleBuilderDialog.this::handleBuilderShortcut);
-				value.addEventFilter(KeyEvent.KEY_PRESSED, event -> handlePopupKeyPressed(value, event));
 				value.valueProperty().addListener((a, o, n) -> clearPresetSelectionAfterEdit());
 				value.addEventFilter(MouseEvent.MOUSE_PRESSED, event -> {
 					if (!value.isShowing()) {
