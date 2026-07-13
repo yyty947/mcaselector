@@ -860,6 +860,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 		PopupVisibleRange range = popupVisibleRange(popup);
 		boolean reveal = range == null || popupNeedsReveal(index, range.first(), range.last());
+		popup.getSelectionModel().clearSelection();
+		popup.getFocusModel().focus(-1);
 		applyPopupSuggestionHighlight(popup, index);
 		if (reveal) {
 			popup.scrollTo(index);

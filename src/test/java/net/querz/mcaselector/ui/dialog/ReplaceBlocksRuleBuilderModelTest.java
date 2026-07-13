@@ -278,6 +278,29 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
+	void movingAutocompleteHighlightClearsNativePopupSelection() throws Throwable {
+		runOnJavaFxThread(() -> {
+			ComboBox<String> comboBox = new ComboBox<>(FXCollections.observableArrayList(
+					"minecraft:acacia_button",
+					"minecraft:acacia_door",
+					"minecraft:acacia_fence"));
+			comboBox.setEditable(true);
+			comboBox.setSkin(new ComboBoxListViewSkin<>(comboBox));
+			StackPane root = new StackPane(comboBox);
+			new Scene(root);
+			root.applyCss();
+
+			ListView<?> popup = (ListView<?>) ((ComboBoxListViewSkin<?>) comboBox.getSkin()).getPopupContent();
+			popup.getSelectionModel().select(0);
+			popup.getFocusModel().focus(0);
+
+			assertTrue(ReplaceBlocksRuleBuilderDialog.focusPopupSuggestion(comboBox, 2));
+			assertEquals(-1, popup.getSelectionModel().getSelectedIndex());
+			assertEquals(-1, popup.getFocusModel().getFocusedIndex());
+		});
+	}
+
+	@Test
 	void builderComboBoxAddsBuilderOnlyPopupStyle() throws Throwable {
 		runOnJavaFxThread(() -> {
 			ComboBox<String> comboBox = new ComboBox<>(FXCollections.observableArrayList("one", "two"));
