@@ -206,6 +206,64 @@ class ReplaceBlocksPreviewCountsTest {
 	}
 
 	@Test
+	void earlyFlatBiomePaletteUsesThreeBitPackedIndices() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
+		replace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:stone")
+						.withYRange(4, 7)
+						.withBiomes(List.of("minecraft:forest")),
+				new ChunkFilter.BlockReplaceData("minecraft:dirt"));
+
+		CompoundTag level = new CompoundTag();
+		level.putInt("xPos", 0);
+		level.putInt("zPos", 0);
+		ListTag sections = sections();
+		sections.getCompound(0).put("biomes", packedBiomes(5, 20, 4));
+		level.put("Sections", sections);
+		level.put("TileEntities", new ListTag());
+		CompoundTag root = new CompoundTag();
+		root.putInt("DataVersion", 2834);
+		root.put("Level", level);
+		EarlyPreviewBlocks blocks = new EarlyPreviewBlocks();
+
+		ChunkFilter.BlockReplacePreviewData preview = blocks.preview(level, sections, replace);
+		assertEquals(64, preview.getBlocks());
+
+		RegionChunk region = new RegionChunk(new Point2i(0, 0));
+		region.setData(root);
+		blocks.replaceBlocks(new ChunkData(new Point2i(0, 0), region, null, null, true), replace);
+
+		assertEquals("minecraft:dirt", blocks.blockAt(level, blockIndexForBiomeCell(20)));
+		assertEquals("minecraft:stone", blocks.blockAt(level, blockIndexForBiomeCell(16)));
+	}
+
+	@Test
+	void modernBiomePaletteUsesFiveBitPackedIndices() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
+		replace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:stone")
+						.withBiomes(List.of("minecraft:forest")),
+				new ChunkFilter.BlockReplaceData("minecraft:dirt"));
+
+		CompoundTag root = root();
+		root.putInt("DataVersion", 2844);
+		ListTag sections = sections();
+		sections.getCompound(0).put("biomes", packedBiomes(17, 10, 16));
+		root.put("sections", sections);
+		RegionChunk region = new RegionChunk(new Point2i(0, 0));
+		region.setData(root);
+		PreviewBlocks blocks = new PreviewBlocks();
+
+		ChunkFilter.BlockReplacePreviewData preview = blocks.preview(root, sections, replace);
+		assertEquals(64, preview.getBlocks());
+
+		blocks.replaceBlocks(new ChunkData(new Point2i(0, 0), region, null, null, true), replace);
+
+		assertEquals("minecraft:dirt", blocks.blockAt(root, blockIndexForBiomeCell(10)));
+		assertEquals("minecraft:stone", blocks.blockAt(root, blockIndexForBiomeCell(0)));
+	}
+
+	@Test
 	void previewCountsOnlyBlocksInsideBiomeCell() {
 		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
 		replace.put(
@@ -302,6 +360,31 @@ class ReplaceBlocksPreviewCountsTest {
 		biomes.put("palette", palette);
 		biomes.putLongArray("data", new long[] { data });
 		return biomes;
+	}
+
+	private CompoundTag packedBiomes(int paletteSize, int selectedCell, int selectedPaletteIndex) {
+		CompoundTag biomes = new CompoundTag();
+		ListTag palette = new ListTag();
+		for (int i = 0; i < paletteSize; i++) {
+			palette.addString(i == selectedPaletteIndex ? "minecraft:forest" : "example:biome_" + i);
+		}
+		biomes.put("palette", palette);
+
+		int bits = 32 - Integer.numberOfLeadingZeros(paletteSize - 1);
+		int valuesPerLong = 64 / bits;
+		long[] data = new long[Math.ceilDiv(64, valuesPerLong)];
+		int longIndex = selectedCell / valuesPerLong;
+		int bitOffset = selectedCell % valuesPerLong * bits;
+		data[longIndex] |= (long) selectedPaletteIndex << bitOffset;
+		biomes.putLongArray("data", data);
+		return biomes;
+	}
+
+	private int blockIndexForBiomeCell(int biomeCell) {
+		int x = biomeCell % 4 * 4;
+		int z = biomeCell / 4 % 4 * 4;
+		int y = biomeCell / 16 * 4;
+		return y * 256 + z * 16 + x;
 	}
 
 	private CompoundTag incompleteSection(int y) {

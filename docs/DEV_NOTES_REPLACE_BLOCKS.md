@@ -119,6 +119,7 @@ CLI path:
 - When the target includes tile entity SNBT, modern 1.18+ paths remove existing block entities at the replacement coordinates before adding the new tile.
 - Preview estimates tile entity additions, removals, and updates.
 - Preview and modern 1.18+ execution apply Y filtering through the same `BlockReplaceSource` predicate.
+- Modern biome palette indices derive their packed bit width from the palette size and use the non-crossing 64-value storage shape. Multi-entry palettes with missing or malformed packed data fail closed instead of guessing a biome.
 - Context-free pre-1.18 execution paths fail closed for tile, Y, and biome-restricted sources instead of silently dropping those conditions. Classic 1.9 execution also skips source modes that cannot be represented by its block-ID lookup.
 - Section light arrays are removed after section mutation, and ReplaceBlocks writes the version-appropriate `isLightOn=0` / `LightPopulated=0` byte so Minecraft schedules relighting.
 - Heightmaps are recomputed after replacement. Phase 6 fixed 1.17+ packed heightmap entry counts, early-flat nested `block_states` reads, single-palette section scans, and 21w43a+ root-level `Heightmaps` writeback.

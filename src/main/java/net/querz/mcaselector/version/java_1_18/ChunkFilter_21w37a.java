@@ -408,22 +408,28 @@ public class ChunkFilter_21w37a {
 			if (palette == null || palette.isEmpty()) {
 				return null;
 			}
+			if (palette.size() == 1) {
+				return palette.getString(0);
+			}
 			long[] data = Helper.longArrayFromCompound(biomes, "data");
 			if (data == null || data.length == 0) {
-				return palette.getString(0);
+				return null;
 			}
 
 			Point3i location = indexToLocation(blockIndex);
 			int index = (location.getY() >> 2) * 16 + (location.getZ() >> 2) * 4 + (location.getX() >> 2);
-			int bits = data.length;
+			int bits = 32 - Integer.numberOfLeadingZeros(palette.size() - 1);
 			int indexesPerLong = 64 / bits;
+			if (data.length != Math.ceilDiv(64, indexesPerLong)) {
+				return null;
+			}
 			int biomeDataIndex = index / indexesPerLong;
 			if (biomeDataIndex >= data.length) {
 				return null;
 			}
-			int clean = (2 << (bits - 1)) - 1;
+			long clean = (1L << bits) - 1L;
 			int startBit = (index % indexesPerLong) * bits;
-			int paletteIndex = (int) (data[biomeDataIndex] >> startBit) & clean;
+			int paletteIndex = (int) (data[biomeDataIndex] >>> startBit & clean);
 			if (paletteIndex >= palette.size()) {
 				return null;
 			}
