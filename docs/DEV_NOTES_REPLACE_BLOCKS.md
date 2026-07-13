@@ -1,7 +1,7 @@
 # ReplaceBlocks Development Notes
 
 Date: 2026-06-04
-Last updated: 2026-07-07
+Last updated: 2026-07-13
 
 Scope: ReplaceBlocks reconnaissance plus implemented phases 1-5A, Phase 4E, Phase 4F-1, and Phase 4F-2. Java source now includes a rule builder, validation diagnostics, modern preview/dry-run with per-rule counts, exact source block-state matching, a Java 1.21.9 block-state catalog foundation, a property-aware catalog-backed builder UI, explicit source modes, tile/block entity source safety controls, source-side Y range restrictions, and source-side biome restrictions. Gradle build logic and Minecraft world data were not modified by these development notes.
 
@@ -121,8 +121,9 @@ CLI path:
 - Preview and modern 1.18+ execution apply Y filtering through the same `BlockReplaceSource` predicate.
 - Modern biome palette indices derive their packed bit width from the palette size and use the non-crossing 64-value storage shape. Multi-entry palettes with missing or malformed packed data fail closed instead of guessing a biome.
 - Context-free pre-1.18 execution paths fail closed for tile, Y, and biome-restricted sources instead of silently dropping those conditions. Classic 1.9 execution also skips source modes that cannot be represented by its block-ID lookup.
+- Version-specific `replaceBlocks(...)` implementations report whether at least one source position matched. Section light arrays, chunk relight flags, palette writeback, tile/block-entity list writeback, and heightmap recomputation now occur only after an actual match; a valid rule with no matches leaves the chunk NBT unchanged.
 - Section light arrays are removed after section mutation, and ReplaceBlocks writes the version-appropriate `isLightOn=0` / `LightPopulated=0` byte so Minecraft schedules relighting.
-- Heightmaps are recomputed after replacement. Phase 6 fixed 1.17+ packed heightmap entry counts, early-flat nested `block_states` reads, single-palette section scans, and 21w43a+ root-level `Heightmaps` writeback.
+- Heightmaps are recomputed after a matching replacement. Phase 6 fixed 1.17+ packed heightmap entry counts, early-flat nested `block_states` reads, single-palette section scans, and 21w43a+ root-level `Heightmaps` writeback.
 - Air replacement has special handling that creates missing sections in the existing section range; Y-restricted air replacement now only completes sections whose section Y range intersects an air-matching Y-restricted source.
 - Missing or incomplete air sections do not have a trustworthy source biome. Biome-restricted air rules therefore fail closed there; an unrestricted rule may still complete the section, but the generated default biome is never reused as source data during the same operation.
 

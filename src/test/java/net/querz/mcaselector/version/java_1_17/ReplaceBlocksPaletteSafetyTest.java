@@ -28,13 +28,14 @@ class ReplaceBlocksPaletteSafetyTest {
 	@Test
 	void contextualSourceFailsClosedInPalettePath() {
 		CompoundTag root = paletteRoot();
+		CompoundTag before = (CompoundTag) root.copy();
 		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
 		replace.put(ChunkFilter.BlockReplaceSource.literalName("minecraft:stone").withYRange(0, 0),
 				new ChunkFilter.BlockReplaceData("minecraft:dirt"));
 
 		replace(root, replace);
 
-		assertEquals("minecraft:stone", firstPaletteName(root));
+		assertEquals(before, root);
 	}
 
 	private void replace(CompoundTag root, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {

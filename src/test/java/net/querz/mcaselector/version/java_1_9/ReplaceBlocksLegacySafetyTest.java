@@ -28,20 +28,22 @@ class ReplaceBlocksLegacySafetyTest {
 	@Test
 	void contextualAndUnsupportedSourcesFailClosed() {
 		CompoundTag contextualRoot = classicRoot(true);
+		CompoundTag contextualBefore = (CompoundTag) contextualRoot.copy();
 		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> contextual = new LinkedHashMap<>();
 		contextual.put(ChunkFilter.BlockReplaceSource.literalName("minecraft:stone").withYRange(0, 0),
 				new ChunkFilter.BlockReplaceData("minecraft:dirt"));
 
 		replace(contextualRoot, contextual);
-		assertEquals(1, firstBlockId(contextualRoot));
+		assertEquals(contextualBefore, contextualRoot);
 
 		CompoundTag regexRoot = classicRoot(true);
+		CompoundTag regexBefore = (CompoundTag) regexRoot.copy();
 		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> regex = new LinkedHashMap<>();
 		regex.put(ChunkFilter.BlockReplaceSource.regexName("minecraft:.*"),
 				new ChunkFilter.BlockReplaceData("minecraft:dirt"));
 
 		replace(regexRoot, regex);
-		assertEquals(1, firstBlockId(regexRoot));
+		assertEquals(regexBefore, regexRoot);
 	}
 
 	@Test

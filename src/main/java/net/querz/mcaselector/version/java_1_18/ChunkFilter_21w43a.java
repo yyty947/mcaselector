@@ -72,17 +72,18 @@ public class ChunkFilter_21w43a {
 		}
 
 		@Override
-		public void replaceBlocks(ChunkData data, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
+		public boolean replaceBlocks(ChunkData data, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
 			ListTag sections = Helper.tagFromCompound(Helper.getRegion(data), "sections");
 			if (sections == null) {
-				return;
+				return false;
 			}
 
 			Point2i pos = Helper.point2iFromCompound(Helper.getRegion(data), "xPos", "zPos");
 			if (pos == null) {
-				return;
+				return false;
 			}
 			pos = pos.chunkToBlock();
+			boolean changed = false;
 
 			Range sectionRange = Helper.findSectionRange(Helper.getRegion(data), sections);
 			Set<CompoundTag> syntheticSectionsWithUnknownBiomes = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -91,6 +92,7 @@ public class ChunkFilter_21w43a {
 			if (replace.keySet().stream().anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
 				Map<Integer, CompoundTag> sectionMap = new HashMap<>();
 				List<Integer> heights = new ArrayList<>(sectionRange.num());
+				boolean completedSections = false;
 				for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
 					sectionMap.put(section.getInt("Y"), section);
 					heights.add(section.getInt("Y"));
@@ -109,6 +111,7 @@ public class ChunkFilter_21w43a {
 						sectionMap.put(y, completed);
 						syntheticSectionsWithUnknownBiomes.add(completed);
 						heights.add(y);
+						completedSections = true;
 					} else {
 						if (!section.containsKey("block_states")) {
 							if (!hasSyntheticAirReplacementInSection(section, y, replace)) {
@@ -116,6 +119,7 @@ public class ChunkFilter_21w43a {
 							}
 							boolean biomeUnknown = getBiomeAt(section, 0) == null;
 							completeSection(sectionMap.get(y), y);
+							completedSections = true;
 							if (biomeUnknown) {
 								syntheticSectionsWithUnknownBiomes.add(section);
 							}
@@ -123,11 +127,13 @@ public class ChunkFilter_21w43a {
 					}
 				}
 
-				heights.sort(Integer::compareTo);
-				sections.clear();
+				if (completedSections) {
+					heights.sort(Integer::compareTo);
+					sections.clear();
 
-				for (int height : heights) {
-					sections.add(sectionMap.get(height));
+					for (int height : heights) {
+						sections.add(sectionMap.get(height));
+					}
 				}
 			}
 
@@ -138,6 +144,7 @@ public class ChunkFilter_21w43a {
 			Set<String> sourceTileEntityLocations = getTileEntityLocations(tileEntities);
 
 			for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
+				boolean sectionChanged = false;
 				CompoundTag blockStatesTag = section.getCompoundTag("block_states");
 				if(blockStatesTag == null) continue;
 
@@ -159,9 +166,6 @@ public class ChunkFilter_21w43a {
 					continue;
 				}
 
-				section.remove("BlockLight");
-				section.remove("SkyLight");
-
 				for (int i = 0; i < 4096; i++) {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
 					Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
@@ -173,6 +177,12 @@ public class ChunkFilter_21w43a {
 							continue;
 						}
 						ChunkFilter.BlockReplaceData replacement = entry.getValue();
+						if (!sectionChanged) {
+							section.remove("BlockLight");
+							section.remove("SkyLight");
+							sectionChanged = true;
+							changed = true;
+						}
 
 						try {
 							blockStates = setBlockAt(i, replacement.getState(), blockStates, palette);
@@ -194,6 +204,9 @@ public class ChunkFilter_21w43a {
 					}
 				}
 
+				if (!sectionChanged) {
+					continue;
+				}
 				try {
 					blockStates = cleanupPalette(blockStates, palette);
 				} catch (Exception ex) {
@@ -207,7 +220,10 @@ public class ChunkFilter_21w43a {
 				}
 			}
 
-			Helper.getRegion(data).put("block_entities", tileEntities);
+			if (changed) {
+				Helper.getRegion(data).put("block_entities", tileEntities);
+			}
+			return changed;
 		}
 
 		@Override

@@ -22,7 +22,7 @@ public interface ChunkFilter {
 	interface Blocks {
 		boolean matchBlockNames(ChunkData data, Collection<String> names);
 		boolean matchAnyBlockName(ChunkData data, Collection<String> names);
-		void replaceBlocks(ChunkData data, Map<BlockReplaceSource, BlockReplaceData> replace);
+		boolean replaceBlocks(ChunkData data, Map<BlockReplaceSource, BlockReplaceData> replace);
 		default BlockReplacePreviewData previewReplaceBlocks(ChunkData data, Map<BlockReplaceSource, BlockReplaceData> replace) {
 			return BlockReplacePreviewData.unsupported();
 		}

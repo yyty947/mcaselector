@@ -10,10 +10,13 @@ import net.querz.nbt.CompoundTag;
 import net.querz.nbt.ListTag;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -369,6 +372,51 @@ class ReplaceBlocksFieldTest {
 		changeStoneToDirt(root);
 
 		assertEquals(0, root.getByte("isLightOn"));
+	}
+
+	@Test
+	void noMatchLeavesModernChunkMetadataUnchanged() {
+		CompoundTag root = modernRoot();
+		CompoundTag section = root.getListTag("sections").getCompound(0);
+		section.putByteArray("BlockLight", new byte[] { 1 });
+		section.putByteArray("SkyLight", new byte[] { 1 });
+		CompoundTag heightmaps = new CompoundTag();
+		heightmaps.putLongArray("WORLD_SURFACE", new long[] { 7 });
+		root.put("Heightmaps", heightmaps);
+		CompoundTag before = (CompoundTag) root.copy();
+
+		parse("literal(minecraft:diamond_block)=minecraft:dirt").change(chunkData(root));
+
+		assertEquals(before, root);
+	}
+
+	@Test
+	void noMatchLeavesEarlyFlatChunkMetadataUnchanged() {
+		CompoundTag root = new CompoundTag();
+		root.putInt("DataVersion", 2834);
+		CompoundTag level = new CompoundTag();
+		level.putInt("xPos", 0);
+		level.putInt("zPos", 0);
+		level.putByte("isLightOn", (byte) 1);
+		ListTag sections = modernSections();
+		sections.getCompound(0).putByteArray("BlockLight", new byte[] { 1 });
+		sections.getCompound(0).putByteArray("SkyLight", new byte[] { 1 });
+		level.put("Sections", sections);
+		CompoundTag heightmaps = new CompoundTag();
+		heightmaps.putLongArray("WORLD_SURFACE", new long[] { 7 });
+		level.put("Heightmaps", heightmaps);
+		root.put("Level", level);
+		CompoundTag before = (CompoundTag) root.copy();
+
+		parse("literal(minecraft:diamond_block)=minecraft:dirt").change(chunkData(root));
+
+		assertEquals(before, root);
+	}
+
+	@Test
+	void blocksReplacementContractReportsWhetherAnythingChanged() throws NoSuchMethodException {
+		Method replaceBlocks = ChunkFilter.Blocks.class.getDeclaredMethod("replaceBlocks", ChunkData.class, Map.class);
+		assertEquals(boolean.class, replaceBlocks.getReturnType());
 	}
 
 	@Test
