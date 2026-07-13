@@ -52,7 +52,7 @@ public final class ReplaceBlocksPreviewer {
 			result.scannedRegions++;
 			try {
 				Region region = Region.loadRegion(dirs);
-				scanRegion(region, dirs.getLocation(), field, selection, result);
+				scanRegion(region, dirs.getLocation(), field, selection, result, progressChannel);
 			} catch (Exception ex) {
 				result.errorRegions++;
 				result.addError(dirs.getLocationAsFileName() + ": " + ex.getMessage());
@@ -63,10 +63,14 @@ public final class ReplaceBlocksPreviewer {
 		return result;
 	}
 
-	private static void scanRegion(Region region, Point2i regionLocation, ReplaceBlocksField field, Selection selection, Result result) {
+	private static void scanRegion(Region region, Point2i regionLocation, ReplaceBlocksField field, Selection selection,
+			Result result, Progress progressChannel) {
 		Point2i firstChunk = regionLocation.regionToChunk();
 		for (int x = 0; x < 32; x++) {
 			for (int z = 0; z < 32; z++) {
+				if (progressChannel.taskCancelled()) {
+					return;
+				}
 				Point2i chunkLocation = firstChunk.add(x, z);
 				if (selection != null && !selection.isChunkSelected(chunkLocation)) {
 					continue;

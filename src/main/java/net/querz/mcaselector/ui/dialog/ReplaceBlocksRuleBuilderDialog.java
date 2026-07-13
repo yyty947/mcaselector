@@ -685,7 +685,10 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			return;
 		}
 		AtomicReference<ReplaceBlocksPreviewer.Result> previewResult = new AtomicReference<>();
-		CancellableProgressDialog progress = new CancellableProgressDialog(Translation.DIALOG_PROGRESS_TITLE_PREVIEW_REPLACE_BLOCKS, primaryStage);
+		CancellableProgressDialog progress = new CancellableProgressDialog(
+				Translation.DIALOG_PROGRESS_TITLE_PREVIEW_REPLACE_BLOCKS,
+				primaryStage,
+				CancellableProgressDialog.CancellationScope.CURRENT_TASK);
 		progress.showProgressBar(t -> previewResult.set(ReplaceBlocksPreviewer.preview(
 				field,
 				selectionOnly ? tileMap.getSelection() : null,

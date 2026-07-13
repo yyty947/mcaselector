@@ -228,11 +228,13 @@ Checks:
 - Per-rule counts count each rule match separately, so the per-rule sum may be higher than the aggregate when source rules overlap.
 - Overlapping source rules are visible through an overlap warning.
 - Preview remains non-mutating and does not change region modified times.
+- Builder Preview cancellation uses a task-local token, checks it at chunk boundaries, waits for the preview worker to stop, and must not clear unrelated `JobHandler` queues or show a partial result.
 - Unsupported older preview chunks are still reported instead of silently counted.
 
 Automated coverage:
 
 - `ReplaceBlocksPreviewCountsTest` builds in-memory modern sections and verifies aggregate matched blocks, per-rule counts, overlap count, Y range preview counts, synthetic air-section Y filtering, and Y range execution filtering without touching world files.
+- `ReplaceBlocksPreviewerCancellationTest` verifies cancellation stops the scan before the next chunk; `CancellableProgressDialogCancellationTest` verifies the task-local scope does not select global cancellation and the token is cross-thread visible.
 
 ## Test world preparation
 
