@@ -85,6 +85,7 @@ public class ChunkFilter_21w43a {
 			pos = pos.chunkToBlock();
 
 			Range sectionRange = Helper.findSectionRange(Helper.getRegion(data), sections);
+			Set<CompoundTag> syntheticSectionsWithUnknownBiomes = Collections.newSetFromMap(new IdentityHashMap<>());
 
 			// handle the special case when someone wants to replace air with something else
 			if (replace.keySet().stream().anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
@@ -104,14 +105,20 @@ public class ChunkFilter_21w43a {
 						if (!hasSyntheticAirReplacementInSection(null, y, replace)) {
 							continue;
 						}
-						sectionMap.put(y, completeSection(new CompoundTag(), y));
+						CompoundTag completed = completeSection(new CompoundTag(), y);
+						sectionMap.put(y, completed);
+						syntheticSectionsWithUnknownBiomes.add(completed);
 						heights.add(y);
 					} else {
 						if (!section.containsKey("block_states")) {
 							if (!hasSyntheticAirReplacementInSection(section, y, replace)) {
 								continue;
 							}
+							boolean biomeUnknown = getBiomeAt(section, 0) == null;
 							completeSection(sectionMap.get(y), y);
+							if (biomeUnknown) {
+								syntheticSectionsWithUnknownBiomes.add(section);
+							}
 						}
 					}
 				}
@@ -159,7 +166,7 @@ public class ChunkFilter_21w43a {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
 					Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
 					boolean sourceHasTileEntity = sourceTileEntityLocations.contains(locationKey(location));
-					String biome = getBiomeAt(section, i);
+					String biome = syntheticSectionsWithUnknownBiomes.contains(section) ? null : getBiomeAt(section, i);
 
 					for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
 						if (!entry.getKey().matches(blockState, sourceHasTileEntity, location.getY(), biome)) {

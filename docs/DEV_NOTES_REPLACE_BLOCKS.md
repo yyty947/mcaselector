@@ -124,6 +124,7 @@ CLI path:
 - Section light arrays are removed after section mutation, and ReplaceBlocks writes the version-appropriate `isLightOn=0` / `LightPopulated=0` byte so Minecraft schedules relighting.
 - Heightmaps are recomputed after replacement. Phase 6 fixed 1.17+ packed heightmap entry counts, early-flat nested `block_states` reads, single-palette section scans, and 21w43a+ root-level `Heightmaps` writeback.
 - Air replacement has special handling that creates missing sections in the existing section range; Y-restricted air replacement now only completes sections whose section Y range intersects an air-matching Y-restricted source.
+- Missing or incomplete air sections do not have a trustworthy source biome. Biome-restricted air rules therefore fail closed there; an unrestricted rule may still complete the section, but the generated default biome is never reused as source data during the same operation.
 
 ## Current pain points
 

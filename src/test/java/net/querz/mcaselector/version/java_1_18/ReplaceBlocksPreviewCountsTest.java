@@ -298,7 +298,7 @@ class ReplaceBlocksPreviewCountsTest {
 	}
 
 	@Test
-	void biomeFilteredSyntheticAirSectionsOnlyCompleteWhenDefaultBiomeMatches() {
+	void biomeFilteredSyntheticAirSectionsFailClosedWhenBiomeIsUnknown() {
 		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> forestReplace = new LinkedHashMap<>();
 		forestReplace.put(
 				ChunkFilter.BlockReplaceSource.literalName("minecraft:air").withYRange(16, 16).withBiomes(List.of("minecraft:forest")),
@@ -318,8 +318,109 @@ class ReplaceBlocksPreviewCountsTest {
 
 		ChunkFilter.BlockReplacePreviewData plainsPreview = new PreviewBlocks().preview(root(), sections, plainsReplace);
 
-		assertEquals(256, plainsPreview.getBlocks());
-		assertEquals(1, plainsPreview.getCompletedAirSections());
+		assertEquals(0, plainsPreview.getBlocks());
+		assertEquals(0, plainsPreview.getCompletedAirSections());
+
+		CompoundTag root = root();
+		root.putInt("DataVersion", 2844);
+		root.put("sections", sections);
+		RegionChunk region = new RegionChunk(new Point2i(0, 0));
+		region.setData(root);
+		new PreviewBlocks().replaceBlocks(new ChunkData(new Point2i(0, 0), region, null, null, true), plainsReplace);
+
+		assertFalse(sections.getCompound(1).containsKey("block_states"));
+	}
+
+	@Test
+	void syntheticAirDoesNotExposeInjectedPlainsToLaterRules() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
+		replace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:air").withYRange(16, 16),
+				new ChunkFilter.BlockReplaceData("minecraft:glass"));
+		replace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:air")
+						.withYRange(16, 16)
+						.withBiomes(List.of("minecraft:plains")),
+				new ChunkFilter.BlockReplaceData("minecraft:gold_block"));
+
+		ListTag sections = sections();
+		sections.add(incompleteSection(1));
+		PreviewBlocks blocks = new PreviewBlocks();
+		ChunkFilter.BlockReplacePreviewData preview = blocks.preview(root(), sections, replace);
+
+		assertEquals(256, preview.getBlocks());
+		assertEquals(256, preview.getRules().get(0).getBlocks());
+		assertEquals(0, preview.getRules().get(1).getBlocks());
+		assertEquals(0, preview.getOverlappingBlocks());
+
+		CompoundTag root = root();
+		root.putInt("DataVersion", 2844);
+		root.put("sections", sections);
+		RegionChunk region = new RegionChunk(new Point2i(0, 0));
+		region.setData(root);
+		blocks.replaceBlocks(new ChunkData(new Point2i(0, 0), region, null, null, true), replace);
+
+		assertEquals("minecraft:glass", blocks.blockAt(root, 1, 0));
+	}
+
+	@Test
+	void trustedBiomePaletteStillAllowsSyntheticAirCompletion() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
+		replace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:air")
+						.withYRange(16, 16)
+						.withBiomes(List.of("minecraft:forest")),
+				new ChunkFilter.BlockReplaceData("minecraft:glass"));
+
+		ListTag sections = sections();
+		CompoundTag incomplete = new CompoundTag();
+		incomplete.putByte("Y", (byte) 1);
+		incomplete.put("biomes", singletonBiomes("minecraft:forest"));
+		sections.add(incomplete);
+		PreviewBlocks blocks = new PreviewBlocks();
+
+		ChunkFilter.BlockReplacePreviewData preview = blocks.preview(root(), sections, replace);
+		assertEquals(256, preview.getBlocks());
+
+		CompoundTag root = root();
+		root.putInt("DataVersion", 2844);
+		root.put("sections", sections);
+		RegionChunk region = new RegionChunk(new Point2i(0, 0));
+		region.setData(root);
+		blocks.replaceBlocks(new ChunkData(new Point2i(0, 0), region, null, null, true), replace);
+
+		assertEquals("minecraft:glass", blocks.blockAt(root, 1, 0));
+	}
+
+	@Test
+	void earlyFlatSyntheticAirDoesNotMatchUnknownPlainsBiome() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
+		replace.put(
+				ChunkFilter.BlockReplaceSource.literalName("minecraft:air")
+						.withYRange(16, 16)
+						.withBiomes(List.of("minecraft:plains")),
+				new ChunkFilter.BlockReplaceData("minecraft:glass"));
+
+		CompoundTag level = new CompoundTag();
+		level.putInt("xPos", 0);
+		level.putInt("zPos", 0);
+		ListTag sections = sections();
+		sections.add(incompleteSection(1));
+		level.put("Sections", sections);
+		level.put("TileEntities", new ListTag());
+		CompoundTag root = new CompoundTag();
+		root.putInt("DataVersion", 2834);
+		root.put("Level", level);
+		EarlyPreviewBlocks blocks = new EarlyPreviewBlocks();
+
+		ChunkFilter.BlockReplacePreviewData preview = blocks.preview(level, sections, replace);
+		assertEquals(0, preview.getBlocks());
+
+		RegionChunk region = new RegionChunk(new Point2i(0, 0));
+		region.setData(root);
+		blocks.replaceBlocks(new ChunkData(new Point2i(0, 0), region, null, null, true), replace);
+
+		assertFalse(sections.getCompound(1).containsKey("block_states"));
 	}
 
 	private CompoundTag root() {
@@ -394,6 +495,14 @@ class ReplaceBlocksPreviewCountsTest {
 		return section;
 	}
 
+	private CompoundTag singletonBiomes(String biome) {
+		CompoundTag biomes = new CompoundTag();
+		ListTag palette = new ListTag();
+		palette.addString(biome);
+		biomes.put("palette", palette);
+		return biomes;
+	}
+
 	private ListTag tileEntities(CompoundTag... tiles) {
 		ListTag tileEntities = new ListTag();
 		for (CompoundTag tile : tiles) {
@@ -418,7 +527,11 @@ class ReplaceBlocksPreviewCountsTest {
 		}
 
 		private String blockAt(CompoundTag root, int index) {
-			CompoundTag section = ((ListTag) root.get("sections")).getCompound(0);
+			return blockAt(root, 0, index);
+		}
+
+		private String blockAt(CompoundTag root, int sectionIndex, int index) {
+			CompoundTag section = ((ListTag) root.get("sections")).getCompound(sectionIndex);
 			CompoundTag blockStates = section.getCompound("block_states");
 			return getBlockAt(index, blockStates.getLongArray("data"), blockStates.getListTag("palette")).getString("Name");
 		}

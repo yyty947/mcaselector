@@ -465,6 +465,8 @@ Granularity:
 - In modern chunk data, one biome value covers a 4x4x4 block cell. Automated tests verify a synthetic boundary where only one 4x4x4 cell matches.
 - Automated fixtures cover 3-bit and 5-bit non-crossing packed biome palettes; the bit width comes from palette size, not the number of longs.
 - Multi-entry biome palettes with missing, incorrectly sized, or out-of-range packed data must fail closed for biome-restricted rules. Singleton palettes remain valid without packed data.
+- Missing or incomplete sections with no trustworthy biome must not satisfy `biome(plains, air)` merely because section completion serializes a plains default. If an unrestricted air rule completes the section, later biome-restricted rules in the same operation must still see the original biome as unknown.
+- An incomplete section with an existing trustworthy singleton biome palette remains eligible for a matching biome-restricted air rule.
 
 Phase 4F-2 manual copied-world checks:
 
