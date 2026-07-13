@@ -236,8 +236,8 @@ public interface ChunkFilter {
 		public BlockReplaceSource(CompoundTag state) {
 			this.type = BlockReplaceSourceType.EXACT_STATE;
 			this.tileEntityMode = BlockReplaceTileEntityMode.ANY;
-			this.state = state;
-			name = state.getString("Name");
+			this.state = (CompoundTag) state.copy();
+			name = this.state.getString("Name");
 			minY = null;
 			maxY = null;
 			biomes = Collections.emptySet();
@@ -247,7 +247,7 @@ public interface ChunkFilter {
 			this.type = type;
 			this.tileEntityMode = tileEntityMode;
 			this.name = name;
-			this.state = state;
+			this.state = state == null ? null : (CompoundTag) state.copy();
 			this.minY = minY;
 			this.maxY = maxY;
 			this.biomes = biomes == null || biomes.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(new LinkedHashSet<>(biomes));
@@ -379,7 +379,7 @@ public interface ChunkFilter {
 		}
 
 		public CompoundTag getState() {
-			return state;
+			return state == null ? null : (CompoundTag) state.copy();
 		}
 
 		public boolean hasYRange() {
@@ -463,6 +463,28 @@ public interface ChunkFilter {
 				joiner.add(biome);
 			}
 			return joiner.toString();
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (this == o) {
+				return true;
+			}
+			if (!(o instanceof BlockReplaceSource that)) {
+				return false;
+			}
+			return type == that.type
+					&& tileEntityMode == that.tileEntityMode
+					&& Objects.equals(name, that.name)
+					&& Objects.equals(state, that.state)
+					&& Objects.equals(minY, that.minY)
+					&& Objects.equals(maxY, that.maxY)
+					&& Objects.equals(biomes, that.biomes);
+		}
+
+		@Override
+		public int hashCode() {
+			return Objects.hash(type, tileEntityMode, name, state, minY, maxY, biomes);
 		}
 	}
 

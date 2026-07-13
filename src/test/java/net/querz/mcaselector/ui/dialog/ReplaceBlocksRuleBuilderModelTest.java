@@ -106,6 +106,18 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
+	void duplicatePresetSourcesKeepOnlyTheLastTarget() {
+		String value = "literal(stone)=minecraft:dirt, literal(minecraft:stone)=minecraft:gold_block";
+
+		assertEquals("literal(minecraft:stone)=minecraft:gold_block",
+				ReplaceBlocksRuleBuilderDialog.normalizeRulesValue(value));
+		List<ReplaceBlocksRuleBuilderDialog.Rule> rules = ReplaceBlocksRuleBuilderDialog.parseSimpleRules(value);
+		assertEquals(1, rules.size());
+		assertEquals("literal(minecraft:stone)", rules.get(0).from());
+		assertEquals("minecraft:gold_block", rules.get(0).to());
+	}
+
+	@Test
 	void biomeCompletionUsesTokenAtCaret() {
 		String value = "minecraft:birch_forest;minecraft:pla";
 

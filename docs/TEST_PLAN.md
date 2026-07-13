@@ -143,6 +143,9 @@ Automated checks:
 - Empty `props(...)` property selections are rejected with a targeted diagnostic.
 - Invalid new-mode syntax produces a targeted diagnostic.
 - Valid Y range wrappers are accepted and invalid Y ranges are rejected with a targeted diagnostic.
+- Repeating the same normalized source selector keeps only the last target, matching the legacy `Map<String, ...>` behavior. Source type, tile mode, Y range, biome set, and source state all participate in source identity.
+- Different selectors that can match the same block, such as a literal and a regex, remain separate ordered rules and continue to appear as overlap in Preview.
+- Builder and custom-preset loading treat the same source with a different target as a duplicate instead of adding a second row.
 
 Current focused commands:
 

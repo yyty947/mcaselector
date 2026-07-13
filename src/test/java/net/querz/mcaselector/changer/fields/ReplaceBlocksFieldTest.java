@@ -10,10 +10,13 @@ import net.querz.nbt.CompoundTag;
 import net.querz.nbt.ListTag;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -279,6 +282,64 @@ class ReplaceBlocksFieldTest {
 		assertTrue(tile.matches(chest, false));
 		assertTrue(yRange.matches(chest, false, 8));
 		assertTrue(biome.matches(chest, false, 8, "minecraft:plains"));
+	}
+
+	@Test
+	void duplicateSourcesKeepTheLastTarget() {
+		ReplaceBlocksField field = parse(
+				"literal(stone)=minecraft:dirt, literal(minecraft:stone)=minecraft:gold_block");
+
+		assertEquals(1, field.getNewValue().size());
+		assertEquals("minecraft:gold_block", field.getNewValue().values().iterator().next().getName());
+		assertEquals("literal(minecraft:stone)=minecraft:gold_block", field.valueToString());
+	}
+
+	@Test
+	void blockReplaceSourcesUseAllMatchingConditionsAsStableValueIdentity() {
+		CompoundTag firstState = state("minecraft:oak_stairs");
+		CompoundTag firstProperties = new CompoundTag();
+		firstProperties.putString("facing", "north");
+		firstProperties.putString("half", "top");
+		firstState.put("Properties", firstProperties);
+		CompoundTag reorderedState = state("minecraft:oak_stairs");
+		CompoundTag reorderedProperties = new CompoundTag();
+		reorderedProperties.putString("half", "top");
+		reorderedProperties.putString("facing", "north");
+		reorderedState.put("Properties", reorderedProperties);
+
+		ChunkFilter.BlockReplaceSource first = ChunkFilter.BlockReplaceSource.selectedProperties(firstState)
+				.withTileEntityMode(ChunkFilter.BlockReplaceTileEntityMode.REQUIRE_TILE_ENTITY)
+				.withYRange(-16, 31)
+				.withBiomes(List.of("minecraft:plains", "minecraft:forest"));
+		ChunkFilter.BlockReplaceSource reordered = ChunkFilter.BlockReplaceSource.selectedProperties(reorderedState)
+				.withTileEntityMode(ChunkFilter.BlockReplaceTileEntityMode.REQUIRE_TILE_ENTITY)
+				.withYRange(-16, 31)
+				.withBiomes(List.of("minecraft:forest", "minecraft:plains"));
+
+		assertEquals(first, reordered);
+		assertEquals(first.hashCode(), reordered.hashCode());
+		assertNotEquals(first, reordered.withYRange(-15, 31));
+		assertNotEquals(first, ChunkFilter.BlockReplaceSource.literalName("minecraft:oak_stairs")
+				.withTileEntityMode(ChunkFilter.BlockReplaceTileEntityMode.REQUIRE_TILE_ENTITY)
+				.withYRange(-16, 31)
+				.withBiomes(List.of("minecraft:plains", "minecraft:forest")));
+	}
+
+	@Test
+	void blockReplaceSourceStateCannotMutateAfterMapInsertion() {
+		CompoundTag originalState = state("minecraft:stone", Map.of("variant", "smooth"));
+		ChunkFilter.BlockReplaceSource source = new ChunkFilter.BlockReplaceSource(originalState);
+		Map<ChunkFilter.BlockReplaceSource, String> sources = new HashMap<>();
+		sources.put(source, "target");
+
+		originalState.putString("Name", "minecraft:dirt");
+		source.getState().putString("Name", "minecraft:gold_block");
+
+		ChunkFilter.BlockReplaceSource equivalent = new ChunkFilter.BlockReplaceSource(
+				state("minecraft:stone", Map.of("variant", "smooth")));
+		assertEquals(source, equivalent);
+		assertEquals("target", sources.get(equivalent));
+		assertEquals("minecraft:stone", source.getState().getString("Name"));
 	}
 
 	@Test

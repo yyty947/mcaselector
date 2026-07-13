@@ -804,10 +804,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private boolean hasRule(String from, String to) {
-		String candidate = normalizeRule(from, to);
+		ParsedRule candidate = parseEditableRule(from, to);
 		return candidate != null && ruleItems.stream()
-				.map(rule -> normalizeRule(rule.from(), rule.to()))
-				.anyMatch(candidate::equals);
+				.map(rule -> parseEditableRule(rule.from(), rule.to()))
+				.filter(Objects::nonNull)
+				.anyMatch(existing -> candidate.source().equals(existing.source()));
 	}
 
 	static String formatRulesValue(List<Rule> rules) {

@@ -132,6 +132,7 @@ CLI path:
 - Advanced query values containing `=`, `,`, `;`, `:` or SNBT must be quoted at the `ChangeParser` level.
 - UI validation now shows ReplaceBlocks-specific messages for common failures, but parser diagnostics are still UI-side and do not provide a structured parser API.
 - Legacy source block handling is intentionally asymmetric: bare/quoted compatibility sources remain regexes, while explicit `literal(...)`, `regex(...)`, `props(...)`, and exact-state sources carry their own source modes.
+- A complete source selector is the unique rule key. Repeating the same source in advanced text keeps the last target without moving the source's first insertion position; different selectors that overlap semantically remain separate ordered rules. Builder and preset loading reject or skip duplicate sources even when their targets differ.
 - Source state matching is exact, not subset matching. A partial properties compound will not match a full palette state.
 - Selected-property matching is explicit through `props(...)`; existing source SNBT remains exact matching.
 - The builder now emits `props(...)` for catalog-backed source property rules, but it does not yet offer per-property enable/disable checkboxes or a dedicated source-mode selector.
