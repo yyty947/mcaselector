@@ -40,6 +40,19 @@ class ReplaceBlocksPreviewCountsTest {
 	}
 
 	@Test
+	void countsLightInvalidationOnlyForSectionsWithMatches() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
+		replace.put(ChunkFilter.BlockReplaceSource.literalName("minecraft:diamond_block"),
+				new ChunkFilter.BlockReplaceData("minecraft:dirt"));
+
+		ChunkFilter.BlockReplacePreviewData preview = new PreviewBlocks().preview(root(), sections(), replace);
+
+		assertEquals(0, preview.getBlocks());
+		assertEquals(0, preview.getSections());
+		assertEquals(0, preview.getLightSections());
+	}
+
+	@Test
 	void sourceTileFiltersUseOriginalBlockEntityPresence() {
 		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
 		replace.put(

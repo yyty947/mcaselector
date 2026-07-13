@@ -738,8 +738,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		if (result.getLightSections() > 0) {
 			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_LIGHT.format(result.getLightSections()));
 		}
-		if (result.getScannedChunks() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_HEIGHTMAPS.format(result.getScannedChunks()));
+		if (result.getPotentialAdjacentRelightChunks() > 0) {
+			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_ADJACENT_RELIGHT.format(
+					result.getPotentialAdjacentRelightChunks()));
+		}
+		if (result.getAffectedChunks() > 0) {
+			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_HEIGHTMAPS.format(result.getAffectedChunks()));
 		}
 		if (result.getUnsupportedChunks() > 0) {
 			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_UNSUPPORTED.format(result.getUnsupportedChunks()));

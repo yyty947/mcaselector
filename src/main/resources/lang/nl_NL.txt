@@ -295,7 +295,8 @@ dialog.replace_blocks.preview.warning_air;Luchtvervanging kan vóór de vervangi
 dialog.replace_blocks.preview.warning_overlap;%d blokposities voldeden aan meer dan één regel. De tellingen per regel bevatten elke overeenkomst, dus de som kan hoger zijn dan het aantal overeenkomende blokken.
 dialog.replace_blocks.preview.warning_tile;Het vervangen van blokentiteiten kan blokentiteiten toevoegen, verwijderen of bijwerken. Test op gekopieerde werelden voordat je toepast.
 dialog.replace_blocks.preview.warning_light;De huidige ReplaceBlocks-implementatie kan lichtarrays uit %d verwerkte secties verwijderen.
-dialog.replace_blocks.preview.warning_heightmaps;Hoogtekaarten worden tijdens de werkelijke wijziging opnieuw berekend voor verwerkte chunks. Het voorbeeld scande %d chunks.
+dialog.replace_blocks.preview.warning_adjacent_relight;De echte wijziging kan relight-markeringen bijwerken in maximaal %d aangrenzende chunks buiten de selectie; daar worden geen blokken vervangen.
+dialog.replace_blocks.preview.warning_heightmaps;Tijdens de echte wijziging worden de hoogtekaarten van %d getroffen chunks opnieuw berekend.
 dialog.replace_blocks.preview.warning_unsupported;Voorbeeld is niet geïmplementeerd voor %d gescande chunks van oudere of niet-ondersteunde versies.
 dialog.replace_blocks.preview.warning_errors;Het voorbeeld sloeg vanwege fouten %d chunks en %d regio's over:
 dialog.progress.title.preview_replace_blocks;ReplaceBlocks-voorbeeld

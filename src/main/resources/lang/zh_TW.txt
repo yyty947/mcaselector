@@ -294,8 +294,9 @@ dialog.replace_blocks.preview.rule;#%d [%s] %s -> %s：%d
 dialog.replace_blocks.preview.warning_air;替換空氣可能會先補全缺失區段。預覽已計入 %d 個缺失或不完整的空氣區段。
 dialog.replace_blocks.preview.warning_overlap;%d 個方塊位置同時命中多條規則。逐規則計數會分別計入每條命中規則，因此總和可能高於匹配方塊數。
 dialog.replace_blocks.preview.warning_tile;方塊實體替換可能新增、移除或更新方塊實體。正式套用前請先在複製世界中測試。
-dialog.replace_blocks.preview.warning_light;目前的 ReplaceBlocks 實作可能會移除 %d 個已處理區段的光照陣列。
-dialog.replace_blocks.preview.warning_heightmaps;實際修改時會重新計算已處理區塊的高度圖。預覽掃描了 %d 個區塊。
+dialog.replace_blocks.preview.warning_light;實際執行會移除 %d 個受影響區段的光照陣列。
+dialog.replace_blocks.preview.warning_adjacent_relight;實際執行可能會在選取範圍外最多 %d 個相鄰區塊中更新重新光照標記；這些區塊中的方塊不會被替換。
+dialog.replace_blocks.preview.warning_heightmaps;實際執行會重新計算 %d 個受影響區塊的高度圖。
 dialog.replace_blocks.preview.warning_unsupported;有 %d 個已掃描區塊屬於較舊或暫不支援的版本，未進行預覽。
 dialog.replace_blocks.preview.warning_errors;預覽因錯誤略過了 %d 個區塊和 %d 個區域：
 dialog.progress.title.preview_replace_blocks;預覽 ReplaceBlocks

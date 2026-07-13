@@ -295,7 +295,8 @@ dialog.replace_blocks.preview.warning_air;Air replacement may complete missing s
 dialog.replace_blocks.preview.warning_overlap;%d block positions matched more than one rule. Per-rule counts include each rule match, so their sum may be higher than matched blocks.
 dialog.replace_blocks.preview.warning_tile;Tile entity replacement can add, remove, or update block entities. Test on copied worlds before applying.
 dialog.replace_blocks.preview.warning_light;The current ReplaceBlocks implementation may remove light arrays from %d processed sections.
-dialog.replace_blocks.preview.warning_heightmaps;Heightmaps are recomputed for processed chunks during the real change. Preview scanned %d chunks.
+dialog.replace_blocks.preview.warning_adjacent_relight;A tényleges módosítás a kijelölésen kívül legfeljebb %d szomszédos chunk újrafényesítési jelzőjét frissítheti; ott blokkok nem cserélődnek.
+dialog.replace_blocks.preview.warning_heightmaps;A tényleges módosítás során %d érintett chunk magasságtérképe újraszámításra kerül.
 dialog.replace_blocks.preview.warning_unsupported;Preview is not implemented for %d scanned chunks in older or unsupported versions.
 dialog.replace_blocks.preview.warning_errors;Preview skipped %d chunks and %d regions because of errors:
 dialog.progress.title.preview_replace_blocks;Preview ReplaceBlocks

@@ -14,9 +14,11 @@ import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.mcaselector.version.VersionHandler;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public final class ReplaceBlocksPreviewer {
 
@@ -59,6 +61,7 @@ public final class ReplaceBlocksPreviewer {
 			}
 			progressChannel.incrementProgress(dirs.getLocationAsFileName());
 		}
+		result.finish(selection);
 		progressChannel.done("done");
 		return result;
 	}
@@ -89,7 +92,7 @@ public final class ReplaceBlocksPreviewer {
 						result.unsupportedChunks++;
 						continue;
 					}
-					result.addChunk(preview);
+					result.addChunk(chunkLocation, preview);
 				} catch (Exception ex) {
 					result.errorChunks++;
 					result.addError(chunkLocation + ": " + ex.getMessage());
@@ -114,10 +117,12 @@ public final class ReplaceBlocksPreviewer {
 		private long unsupportedChunks;
 		private long errorChunks;
 		private long errorRegions;
+		private int potentialAdjacentRelightChunks;
 		private boolean replaceAir;
 		private boolean replaceWithTileEntity;
 		private final List<String> errors = new ArrayList<>(5);
 		private final List<RulePreview> rules = new ArrayList<>();
+		private final Set<Point2i> affectedChunkLocations = new HashSet<>();
 
 		private void initializeRules(Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
 			int index = 1;
@@ -126,9 +131,10 @@ public final class ReplaceBlocksPreviewer {
 			}
 		}
 
-		private void addChunk(ChunkFilter.BlockReplacePreviewData preview) {
+		void addChunk(Point2i chunkLocation, ChunkFilter.BlockReplacePreviewData preview) {
 			if (preview.getBlocks() > 0) {
 				affectedChunks++;
+				affectedChunkLocations.add(chunkLocation);
 				affectedSections += preview.getSections();
 				matchedBlocks += preview.getBlocks();
 			}
@@ -144,6 +150,15 @@ public final class ReplaceBlocksPreviewer {
 			tileEntityAdditions += preview.getTileEntityAdditions();
 			tileEntityRemovals += preview.getTileEntityRemovals();
 			tileEntityUpdates += preview.getTileEntityUpdates();
+		}
+
+		void finish(Selection selection) {
+			if (selection == null || affectedChunkLocations.isEmpty()) {
+				return;
+			}
+			Set<Point2i> adjacent = FieldChanger.getAdjacentRelightChunks(affectedChunkLocations);
+			adjacent.removeIf(selection::isChunkSelected);
+			potentialAdjacentRelightChunks = adjacent.size();
 		}
 
 		private void addError(String message) {
@@ -206,6 +221,10 @@ public final class ReplaceBlocksPreviewer {
 
 		public long getErrorRegions() {
 			return errorRegions;
+		}
+
+		public int getPotentialAdjacentRelightChunks() {
+			return potentialAdjacentRelightChunks;
 		}
 
 		public boolean replacesAir() {

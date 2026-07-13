@@ -295,7 +295,8 @@ dialog.replace_blocks.preview.warning_air;Zastępowanie powietrza może przed za
 dialog.replace_blocks.preview.warning_overlap;%d pozycji bloków dopasowało się do więcej niż jednej reguły. Liczniki poszczególnych reguł uwzględniają każde dopasowanie, więc ich suma może być większa niż liczba dopasowanych bloków.
 dialog.replace_blocks.preview.warning_tile;Zastępowanie encji bloku może dodawać, usuwać lub aktualizować encje bloku. Przetestuj na skopiowanych światach przed zastosowaniem.
 dialog.replace_blocks.preview.warning_light;Bieżąca implementacja ReplaceBlocks może usunąć tablice światła z %d przetworzonych sekcji.
-dialog.replace_blocks.preview.warning_heightmaps;Mapy wysokości są przeliczane dla przetworzonych chunków podczas rzeczywistej zmiany. Podgląd przeskanował %d chunków.
+dialog.replace_blocks.preview.warning_adjacent_relight;Rzeczywista zmiana może zaktualizować znaczniki ponownego oświetlenia w maksymalnie %d sąsiednich chunkach poza zaznaczeniem; żadne bloki nie są tam zastępowane.
+dialog.replace_blocks.preview.warning_heightmaps;Podczas rzeczywistej zmiany mapy wysokości są przeliczane dla %d zmienionych chunków.
 dialog.replace_blocks.preview.warning_unsupported;Podgląd nie jest zaimplementowany dla %d przeskanowanych chunków ze starszych lub nieobsługiwanych wersji.
 dialog.replace_blocks.preview.warning_errors;Podgląd pominął %d chunków i %d regionów z powodu błędów:
 dialog.progress.title.preview_replace_blocks;Podgląd ReplaceBlocks

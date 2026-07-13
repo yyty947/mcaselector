@@ -300,7 +300,6 @@ public class ChunkFilter_21w37a {
 					continue;
 				}
 
-				result.incrementLightSections();
 				long sectionMatches = 0;
 				for (int i = 0; i < 4096; i++) {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
@@ -309,6 +308,9 @@ public class ChunkFilter_21w37a {
 					if (countMatchingBlock(blockState, replace, result, tileEntityLocations.contains(locationKey(location)), location.getY(), biome)) {
 						sectionMatches++;
 					}
+				}
+				if (sectionMatches > 0) {
+					result.incrementLightSections();
 				}
 				result.addSection(sectionMatches);
 			}

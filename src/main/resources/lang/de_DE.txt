@@ -295,7 +295,8 @@ dialog.replace_blocks.preview.warning_air;Das Ersetzen von Luft kann vorher fehl
 dialog.replace_blocks.preview.warning_overlap;%d Blockpositionen entsprachen mehr als einer Regel. Die Regelzählungen enthalten jeden Regeltreffer, daher kann ihre Summe höher sein als die Zahl passender Blöcke.
 dialog.replace_blocks.preview.warning_tile;Das Ersetzen von Blockentitäten kann Blockentitäten hinzufügen, entfernen oder aktualisieren. Teste vor dem Anwenden auf kopierten Welten.
 dialog.replace_blocks.preview.warning_light;Die aktuelle ReplaceBlocks-Implementierung kann Licht-Arrays aus %d verarbeiteten Sektionen entfernen.
-dialog.replace_blocks.preview.warning_heightmaps;Höhenkarten werden bei der tatsächlichen Änderung für verarbeitete Chunks neu berechnet. Die Vorschau durchsuchte %d Chunks.
+dialog.replace_blocks.preview.warning_adjacent_relight;Die tatsächliche Änderung kann Relight-Markierungen in bis zu %d benachbarten Chunks außerhalb der Auswahl aktualisieren; dort werden keine Blöcke ersetzt.
+dialog.replace_blocks.preview.warning_heightmaps;Bei der tatsächlichen Änderung werden die Höhenkarten für %d betroffene Chunks neu berechnet.
 dialog.replace_blocks.preview.warning_unsupported;Für %d durchsuchte Chunks älterer oder nicht unterstützter Versionen ist keine Vorschau implementiert.
 dialog.replace_blocks.preview.warning_errors;Die Vorschau übersprang wegen Fehlern %d Chunks und %d Regionen:
 dialog.progress.title.preview_replace_blocks;ReplaceBlocks-Vorschau

@@ -1,6 +1,8 @@
 package net.querz.mcaselector.io.job;
 
+import net.querz.mcaselector.selection.Selection;
 import net.querz.mcaselector.util.point.Point2i;
+import net.querz.mcaselector.version.ChunkFilter;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -87,5 +89,20 @@ class FieldChangerTest {
 		coordinator.primaryCompleted(Set.of(new Point2i(2, 2)), true);
 
 		assertTrue(completed.isEmpty());
+	}
+
+	@Test
+	void previewReportsPotentialAdjacentRelightChunksOutsideSelection() {
+		Point2i affected = new Point2i(10, 20);
+		Selection selection = new Selection();
+		selection.addChunk(affected);
+		ChunkFilter.BlockReplacePreviewData chunkPreview = ChunkFilter.BlockReplacePreviewData.supported();
+		chunkPreview.addSection(1);
+		ReplaceBlocksPreviewer.Result result = new ReplaceBlocksPreviewer.Result();
+
+		result.addChunk(affected, chunkPreview);
+		result.finish(selection);
+
+		assertEquals(8, result.getPotentialAdjacentRelightChunks());
 	}
 }

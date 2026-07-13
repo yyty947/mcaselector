@@ -295,7 +295,8 @@ dialog.replace_blocks.preview.warning_air;Замена воздуха может
 dialog.replace_blocks.preview.warning_overlap;%d позиций блоков соответствуют более чем одному правилу. Счётчики правил включают каждое совпадение, поэтому их сумма может быть больше числа совпавших блоков.
 dialog.replace_blocks.preview.warning_tile;Замена блоков-сущностей может добавлять, удалять или обновлять блоки-сущности. Перед применением протестируйте на скопированных мирах.
 dialog.replace_blocks.preview.warning_light;Текущая реализация ReplaceBlocks может удалить массивы освещения из %d обработанных секций.
-dialog.replace_blocks.preview.warning_heightmaps;Карты высот пересчитываются для обработанных чанков при фактическом изменении. Предпросмотр просканировал %d чанков.
+dialog.replace_blocks.preview.warning_adjacent_relight;При фактическом изменении флаги пересчёта освещения могут обновиться максимум в %d соседних чанках за пределами выделения; блоки в них не заменяются.
+dialog.replace_blocks.preview.warning_heightmaps;При фактическом изменении карты высот пересчитываются для %d затронутых чанков.
 dialog.replace_blocks.preview.warning_unsupported;Предпросмотр не реализован для %d просканированных чанков старых или неподдерживаемых версий.
 dialog.replace_blocks.preview.warning_errors;Из-за ошибок предпросмотр пропустил %d чанков и %d регионов:
 dialog.progress.title.preview_replace_blocks;Предпросмотр ReplaceBlocks

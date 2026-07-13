@@ -295,7 +295,8 @@ dialog.replace_blocks.preview.warning_air;A substituição de ar pode completar 
 dialog.replace_blocks.preview.warning_overlap;%d posições de bloco corresponderam a mais de uma regra. As contagens por regra incluem cada correspondência, portanto a soma pode ser maior que o número de blocos correspondentes.
 dialog.replace_blocks.preview.warning_tile;A substituição de entidades de bloco pode adicionar, remover ou atualizar entidades de bloco. Teste em mundos copiados antes de aplicar.
 dialog.replace_blocks.preview.warning_light;A implementação atual de ReplaceBlocks pode remover matrizes de luz de %d seções processadas.
-dialog.replace_blocks.preview.warning_heightmaps;Os mapas de altura são recalculados para chunks processados durante a alteração real. A prévia analisou %d chunks.
+dialog.replace_blocks.preview.warning_adjacent_relight;A alteração real pode atualizar os sinalizadores de recálculo de luz em até %d chunks adjacentes fora da seleção; nenhum bloco é substituído neles.
+dialog.replace_blocks.preview.warning_heightmaps;Durante a alteração real, os mapas de altura são recalculados para %d chunks afetados.
 dialog.replace_blocks.preview.warning_unsupported;A prévia não está implementada para %d chunks analisados de versões antigas ou sem suporte.
 dialog.replace_blocks.preview.warning_errors;A prévia ignorou %d chunks e %d regiões devido a erros:
 dialog.progress.title.preview_replace_blocks;Prévia do ReplaceBlocks

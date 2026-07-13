@@ -49,9 +49,9 @@ Phase 6 execution record:
 | Gate | Status | Commit / environment | Evidence or remaining action |
 |---|---|---|---|
 | Focused parser, Builder model, legacy safety, modern preview, light, and heightmap tests | Passed | Windows, Java 21, 2026-07-12 | Added semantic preset normalization, Change/Force parity, and one-chunk relight-ring regressions |
-| `AUTO-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-13 | 82 tests passed; clean `compileJava`, full `test`, `build`, and `shadowJar` succeeded |
+| `AUTO-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-13 | 111 tests passed; clean `compileJava`, full `test`, `build`, and `shadowJar` succeeded |
 | `AUTO-02` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | `run --args="--mode printMissingTranslations"` succeeded with no missing-key output |
-| `PKG-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-13 | Clean `build shadowJar` succeeded and reran all 82 tests |
+| `PKG-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-13 | Clean `build shadowJar` succeeded and reran all 111 tests |
 | `PKG-02` | Passed | Windows 11, Azul Zulu 21.0.11 JDK FX | JDK FX `jpackage` and standalone startup passed; the Adoptium-only `jlink` limitation is environmental and does not apply to the configured JDK FX path |
 | JavaFX startup smoke | Passed | Chinese locale, Java 21, 2026-07-10 | Main window rendered with menu, chunk grid, status bar, and no startup exception |
 | `UI-01` / `UI-02` | Main regression passed; dropdown UX rerun pending | User report, clean console, and `builder_zh.png` / `builder_en.png`, 2026-07-12 | Existing completion and popup checks passed. Rerun boundary-only scrolling, blue hover/focus/selected states, and explicit empty-arrow catalogs after the latest changes |
@@ -230,10 +230,11 @@ Checks:
 - Preview remains non-mutating and does not change region modified times.
 - Builder Preview cancellation uses a task-local token, checks it at chunk boundaries, waits for the preview worker to stop, and must not clear unrelated `JobHandler` queues or show a partial result.
 - Unsupported older preview chunks are still reported instead of silently counted.
+- Light-array and heightmap warnings use only actually affected sections/chunks. In selection-only mode, preview reports up to how many adjacent chunks outside the selection may receive relight-flag updates and states that block replacement remains inside the selection.
 
 Automated coverage:
 
-- `ReplaceBlocksPreviewCountsTest` builds in-memory modern sections and verifies aggregate matched blocks, per-rule counts, overlap count, Y range preview counts, synthetic air-section Y filtering, and Y range execution filtering without touching world files.
+- `ReplaceBlocksPreviewCountsTest` builds in-memory modern sections and verifies aggregate matched blocks, per-rule counts, overlap count, Y range preview counts, synthetic air-section Y filtering, actual-match-only light invalidation counts, and Y range execution filtering without touching world files.
 - `ReplaceBlocksPreviewerCancellationTest` verifies cancellation stops the scan before the next chunk; `CancellableProgressDialogCancellationTest` verifies the task-local scope does not select global cancellation and the token is cross-thread visible.
 - `ReplaceBlocksFieldTest` and the pre-1.18 palette safety tests verify that valid but unmatched or unsupported fail-closed rules leave the entire chunk NBT unchanged, including light tags, heightmaps, palette storage, and tile/block-entity lists.
 - `FieldChangerTest`, `RegionFieldChangeTest`, and `FieldChangerIntegrationTest` verify the primary-save barrier, failed/cancelled publication rules, exact eight-neighbor target generation, region-only loading/saving, cross-region `(31,31)` relighting, zero-match byte/mtime stability, and untouched POI/entities sentinels.

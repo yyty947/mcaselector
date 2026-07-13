@@ -243,6 +243,7 @@ public enum Translation {
 	DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_OVERLAP("dialog.replace_blocks.preview.warning_overlap"),
 	DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_TILE("dialog.replace_blocks.preview.warning_tile"),
 	DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_LIGHT("dialog.replace_blocks.preview.warning_light"),
+	DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_ADJACENT_RELIGHT("dialog.replace_blocks.preview.warning_adjacent_relight"),
 	DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_HEIGHTMAPS("dialog.replace_blocks.preview.warning_heightmaps"),
 	DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_UNSUPPORTED("dialog.replace_blocks.preview.warning_unsupported"),
 	DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_ERRORS("dialog.replace_blocks.preview.warning_errors"),

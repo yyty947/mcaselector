@@ -295,7 +295,8 @@ dialog.replace_blocks.preview.warning_air;La sostituzione dell'aria può complet
 dialog.replace_blocks.preview.warning_overlap;%d posizioni di blocchi hanno corrisposto a più di una regola. I conteggi per regola includono ogni corrispondenza, quindi la loro somma può superare i blocchi corrispondenti.
 dialog.replace_blocks.preview.warning_tile;La sostituzione di entità blocco può aggiungere, rimuovere o aggiornare entità blocco. Prova su mondi copiati prima di applicarla.
 dialog.replace_blocks.preview.warning_light;L'attuale implementazione ReplaceBlocks può rimuovere gli array di luce da %d sezioni elaborate.
-dialog.replace_blocks.preview.warning_heightmaps;Le heightmap vengono ricalcolate per i chunk elaborati durante la modifica reale. L'anteprima ha analizzato %d chunk.
+dialog.replace_blocks.preview.warning_adjacent_relight;La modifica reale può aggiornare i flag di ricalcolo della luce in un massimo di %d chunk adiacenti fuori dalla selezione; in tali chunk non viene sostituito alcun blocco.
+dialog.replace_blocks.preview.warning_heightmaps;Durante la modifica reale, le heightmap vengono ricalcolate per %d chunk interessati.
 dialog.replace_blocks.preview.warning_unsupported;L'anteprima non è implementata per %d chunk analizzati di versioni vecchie o non supportate.
 dialog.replace_blocks.preview.warning_errors;L'anteprima ha saltato %d chunk e %d regioni a causa di errori:
 dialog.progress.title.preview_replace_blocks;Anteprima ReplaceBlocks

@@ -111,7 +111,7 @@ CLI path:
 - The default NBT Changer dialog width keeps the ReplaceBlocks `Builder` button visible without horizontal scrolling.
 - When opened without an existing value, the builder starts with blank From/To inputs and does not immediately show an empty-rule validation error.
 - The builder helper text below the generated value is only a pre-input hint; it hides after the user manually types non-empty From/To text.
-- The Builder offers ReplaceBlocks preview/dry-run counts for modern 1.18+ formats, including per-rule rows and overlap warnings. The Preview button sits in the Builder button bar beside Help and uses the generated Builder value. Cancelling this preview stops only its worker at a chunk boundary and never flushes unrelated process/save/parse queues.
+- The Builder offers ReplaceBlocks preview/dry-run counts for modern 1.18+ formats, including per-rule rows and overlap warnings. Light-section and heightmap warnings now use actual affected sections/chunks rather than all scanned candidates. Selection-only preview also reports the geometric upper bound of adjacent chunks outside the selection whose relight flags may be updated, and explicitly states that no blocks are replaced there. The Preview button sits in the Builder button bar beside Help and uses the generated Builder value. Cancelling this preview stops only its worker at a chunk boundary and never flushes unrelated process/save/parse queues.
 - `BlockStateCatalog.latestJava()` loads the generated Java 1.21.9 block-state catalog used by the builder dropdown UI.
 - For modern versions, replacement iterates all 4096 blocks per section.
 - Palette entries are added as needed and unused palette entries are cleaned up.

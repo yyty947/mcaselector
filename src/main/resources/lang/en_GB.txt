@@ -294,8 +294,9 @@ dialog.replace_blocks.preview.rule;#%d [%s] %s -> %s: %d
 dialog.replace_blocks.preview.warning_air;Air replacement may complete missing sections before replacement. Preview counted %d missing or incomplete air sections.
 dialog.replace_blocks.preview.warning_overlap;%d block positions matched more than one rule. Per-rule counts include each rule match, so their sum may be higher than matched blocks.
 dialog.replace_blocks.preview.warning_tile;Tile entity replacement can add, remove, or update block entities. Test on copied worlds before applying.
-dialog.replace_blocks.preview.warning_light;The current ReplaceBlocks implementation may remove light arrays from %d processed sections.
-dialog.replace_blocks.preview.warning_heightmaps;Heightmaps are recomputed for processed chunks during the real change. Preview scanned %d chunks.
+dialog.replace_blocks.preview.warning_light;The real change removes light arrays from %d affected sections.
+dialog.replace_blocks.preview.warning_adjacent_relight;The real change may update relight flags in up to %d adjacent chunks outside the selection; no blocks are replaced there.
+dialog.replace_blocks.preview.warning_heightmaps;Heightmaps are recomputed for %d affected chunks during the real change.
 dialog.replace_blocks.preview.warning_unsupported;Preview is not implemented for %d scanned chunks in older or unsupported versions.
 dialog.replace_blocks.preview.warning_errors;Preview skipped %d chunks and %d regions because of errors:
 dialog.progress.title.preview_replace_blocks;Preview ReplaceBlocks
