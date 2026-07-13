@@ -420,6 +420,25 @@ class ReplaceBlocksFieldTest {
 	}
 
 	@Test
+	void reportsWhetherAReplaceBlocksFieldActuallyMatched() {
+		ReplaceBlocksField field = parse("literal(minecraft:diamond_block)=minecraft:dirt");
+		assertFalse(field.applyWithResult(chunkData(modernRoot()), false));
+
+		field = parse("literal(minecraft:stone)=minecraft:dirt");
+		assertTrue(field.applyWithResult(chunkData(modernRoot()), false));
+	}
+
+	@Test
+	void chunkDataTracksReplaceBlocksSeparatelyFromOtherFields() {
+		ReplaceBlocksField field = parse("literal(minecraft:stone)=minecraft:dirt");
+
+		ChunkData.FieldChangeResult result = chunkData(modernRoot()).applyFieldChangesTracked(List.of(field), false);
+
+		assertTrue(result.changed());
+		assertTrue(result.replaceBlocksChanged());
+	}
+
+	@Test
 	void forceProducesTheSameReplacementAsChange() {
 		CompoundTag changed = modernRoot();
 		CompoundTag forced = modernRoot();

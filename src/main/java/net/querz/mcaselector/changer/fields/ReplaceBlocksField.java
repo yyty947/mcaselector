@@ -448,8 +448,12 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 
 	@Override
 	public void change(ChunkData data) {
+		applyReplacement(data);
+	}
+
+	private boolean applyReplacement(ChunkData data) {
 		if (!VersionHandler.getImpl(data, ChunkFilter.Blocks.class).replaceBlocks(data, getNewValue())) {
-			return;
+			return false;
 		}
 		VersionHandler.getImpl(data, ChunkFilter.LightPopulated.class).setLightPopulated(data, (byte) 0);
 		ChunkFilter.Heightmap heightmap = VersionHandler.getImpl(data, ChunkFilter.Heightmap.class);
@@ -457,11 +461,17 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 		heightmap.oceanFloor(data);
 		heightmap.motionBlocking(data);
 		heightmap.motionBlockingNoLeaves(data);
+		return true;
 	}
 
 	@Override
 	public void force(ChunkData data) {
-		change(data);
+		applyReplacement(data);
+	}
+
+	@Override
+	public boolean applyWithResult(ChunkData data, boolean force) {
+		return applyReplacement(data);
 	}
 
 	@Override

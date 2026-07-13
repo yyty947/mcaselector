@@ -49,8 +49,8 @@ UI path:
 - dialog returns `ChangeNBTDialog.Result`
 - confirmation dialog is shown
 - `FieldChanger.changeNBTFields(...)`
-- loads regions and queues `MCAFieldChangeProcessJob`
-- each chunk receives `ChunkData.applyFieldChanges(fields, force)`
+- loads the original selection regions and queues `MCAFieldChangeProcessJob`
+- each chunk receives `ChunkData.applyFieldChangesTracked(fields, force)`; ordinary fields preserve their legacy dirty-save behavior, while ReplaceBlocks reports actual matches separately
 - for ReplaceBlocks, `ReplaceBlocksField.change(...)`
 - `VersionHandler.getImpl(data, ChunkFilter.Blocks.class).replaceBlocks(...)`
 - heightmaps are recomputed through `ChunkFilter.Heightmap`
@@ -143,7 +143,7 @@ CLI path:
 - Preview exists for modern 1.18+ paths, but unsupported older preview chunks are reported instead of estimated.
 - Replacing air can expand sparse sections across the existing section range, which is powerful but high risk.
 - Y-restricted air replacement reduces this risk by not completing sections outside the requested Y range. DataVersion 2860 and 4671 copied-world files matched and wrote exactly 20,736 and 20,479 Y=80 air blocks, with no remaining source matches; Minecraft rendering/reload validation is still required.
-- Replacing blocks removes section light data and marks the chunk lighting incomplete. Clearing `isLightOn` fixed selected 1.21 chunks, but the user found stale light in the immediately adjacent ring. Selection-only execution now expands only the processing/save scope by one square chunk ring and clears the relight flag there; block replacement still uses the original selection. Final in-game boundary confirmation remains required.
+- Replacing blocks removes section light data and marks the changed chunk lighting incomplete. Adjacent relighting now uses a two-stage save barrier: the primary stage processes only the original selection and publishes only ReplaceBlocks chunks whose region save succeeded; the second stage clears the relight flag in their exact eight-neighbor ring, excluding changed centers. It loads and saves only existing region MCA files, never creates missing chunks or region files, and never loads or writes adjacent POI/entities files. A zero-match ReplaceBlocks-only run queues no save at all.
 - Automated Phase 6 tests verify early-flat and post-21w43a heightmap scan, packing, and writeback shape. File-level copied-world checks found all four heightmaps present at 37 longs with no malformed arrays after ordinary, state, and bounded-air execution. Minecraft surface behavior and logs remain manual gates.
 
 ## UI status and improvement recommendation

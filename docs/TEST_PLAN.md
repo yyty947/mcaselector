@@ -236,6 +236,7 @@ Automated coverage:
 - `ReplaceBlocksPreviewCountsTest` builds in-memory modern sections and verifies aggregate matched blocks, per-rule counts, overlap count, Y range preview counts, synthetic air-section Y filtering, and Y range execution filtering without touching world files.
 - `ReplaceBlocksPreviewerCancellationTest` verifies cancellation stops the scan before the next chunk; `CancellableProgressDialogCancellationTest` verifies the task-local scope does not select global cancellation and the token is cross-thread visible.
 - `ReplaceBlocksFieldTest` and the pre-1.18 palette safety tests verify that valid but unmatched or unsupported fail-closed rules leave the entire chunk NBT unchanged, including light tags, heightmaps, palette storage, and tile/block-entity lists.
+- `FieldChangerTest`, `RegionFieldChangeTest`, and `FieldChangerIntegrationTest` verify the primary-save barrier, failed/cancelled publication rules, exact eight-neighbor target generation, region-only loading/saving, cross-region `(31,31)` relighting, zero-match byte/mtime stability, and untouched POI/entities sentinels.
 
 ## Test world preparation
 
@@ -499,6 +500,7 @@ Checks:
 - inspect whether changed sections had `BlockLight` / `SkyLight` removed
 - inspect whether the changed chunk has `isLightOn=0` (or the equivalent legacy `LightPopulated=0`) with the correct numeric tag type
 - run a valid rule whose source is absent and verify the complete chunk NBT remains byte-for-byte semantically unchanged, including light tags and heightmaps
+- verify only successfully saved, actually changed chunks seed adjacent relighting; changed centers are excluded from the second-stage ring, missing neighbor chunks/files remain missing, and neighbor POI/entities files are untouched
 - load world in Minecraft and wait for relighting
 - check client/server logs for lighting or chunk errors
 - revisit the area after save/reload
