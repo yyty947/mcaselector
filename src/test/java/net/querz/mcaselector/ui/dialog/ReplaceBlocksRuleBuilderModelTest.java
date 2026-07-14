@@ -6,15 +6,20 @@ import javafx.geometry.BoundingBox;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.ComboBoxBase;
 import javafx.scene.control.ListView;
 import javafx.scene.control.skin.ComboBoxListViewSkin;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
+import javafx.stage.Stage;
 import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.nbt.CompoundTag;
 import org.junit.jupiter.api.Test;
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -358,6 +363,59 @@ class ReplaceBlocksRuleBuilderModelTest {
 			assertNull(comboBox.getValue());
 			assertEquals(-1, comboBox.getSelectionModel().getSelectedIndex());
 			assertEquals(-1, popup.getFocusModel().getFocusedIndex());
+		});
+	}
+
+	@Test
+	void openingAutocompletePopupClearsNativeNavigationBeforeFirstArrowKey() throws Throwable {
+		runOnJavaFxThread(() -> {
+			ComboBox<String> comboBox = new ComboBox<>(FXCollections.observableArrayList(
+					"minecraft:acacia_button",
+					"minecraft:acacia_door",
+					"minecraft:acacia_fence"));
+			comboBox.setEditable(true);
+			comboBox.setSkin(new ComboBoxListViewSkin<>(comboBox));
+			StackPane root = new StackPane(comboBox);
+			new Scene(root);
+			root.applyCss();
+			ReplaceBlocksRuleBuilderDialog.installAutocompletePopupKeyFilter(comboBox, event -> {});
+
+			ListView<?> popup = (ListView<?>) ((ComboBoxListViewSkin<?>) comboBox.getSkin()).getPopupContent();
+			popup.getSelectionModel().select(0);
+			popup.getFocusModel().focus(0);
+			comboBox.fireEvent(new javafx.event.Event(ComboBoxBase.ON_SHOWN));
+
+			assertEquals(-1, popup.getSelectionModel().getSelectedIndex());
+			assertEquals(-1, popup.getFocusModel().getFocusedIndex());
+			assertEquals(0, ReplaceBlocksRuleBuilderDialog.popupSelectionTarget(
+					KeyCode.DOWN, -1, comboBox.getItems().size(), 3));
+		});
+	}
+
+	@Test
+	void marqueeSizeDoesNotChangeRulesOverlayPreferredSize() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = new Stage();
+			primaryStage.setScene(new Scene(new StackPane()));
+			try {
+				ReplaceBlocksRuleBuilderDialog dialog = new ReplaceBlocksRuleBuilderDialog(primaryStage, "");
+				Field marqueeField = ReplaceBlocksRuleBuilderDialog.class.getDeclaredField("ruleMarquee");
+				Field layerField = ReplaceBlocksRuleBuilderDialog.class.getDeclaredField("ruleMarqueeLayer");
+				marqueeField.setAccessible(true);
+				layerField.setAccessible(true);
+				Rectangle marquee = (Rectangle) marqueeField.get(dialog);
+				Pane layer = (Pane) layerField.get(dialog);
+				double initialWidth = layer.prefWidth(-1);
+				double initialHeight = layer.prefHeight(-1);
+
+				marquee.setWidth(2000);
+				marquee.setHeight(1200);
+
+				assertEquals(initialWidth, layer.prefWidth(-1));
+				assertEquals(initialHeight, layer.prefHeight(-1));
+			} finally {
+				primaryStage.close();
+			}
 		});
 	}
 

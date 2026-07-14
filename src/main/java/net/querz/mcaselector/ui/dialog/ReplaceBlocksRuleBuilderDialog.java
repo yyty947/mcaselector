@@ -226,6 +226,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		ruleMarqueeLayer.setMouseTransparent(true);
 		ruleMarquee.getStyleClass().add("replace-blocks-builder-rule-marquee");
+		ruleMarquee.setManaged(false);
 		ruleMarquee.setVisible(false);
 		ruleMarqueeLayer.getChildren().add(ruleMarquee);
 		StackPane rulesArea = new StackPane(rules, ruleMarqueeLayer);
@@ -860,17 +861,20 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	static boolean focusPopupSuggestion(ComboBox<?> comboBox, int index) {
-		if (comboBox == null || index < 0
+		if (comboBox == null || index < -1
 				|| !(comboBox.getSkin() instanceof ComboBoxListViewSkin<?> skin)
 				|| !(skin.getPopupContent() instanceof ListView<?> popup)
 				|| index >= popup.getItems().size()) {
 			return false;
 		}
-		PopupVisibleRange range = popupVisibleRange(popup);
-		boolean reveal = range == null || popupNeedsReveal(index, range.first(), range.last());
 		popup.getSelectionModel().clearSelection();
 		popup.getFocusModel().focus(-1);
 		applyPopupSuggestionHighlight(popup, index);
+		if (index < 0) {
+			return true;
+		}
+		PopupVisibleRange range = popupVisibleRange(popup);
+		boolean reveal = range == null || popupNeedsReveal(index, range.first(), range.last());
 		if (reveal) {
 			popup.scrollTo(index);
 			Platform.runLater(() -> {
@@ -998,6 +1002,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	static void installAutocompletePopupKeyFilter(ComboBox<?> comboBox, EventHandler<KeyEvent> handler) {
+		comboBox.addEventHandler(ComboBoxBase.ON_SHOWN, event -> focusPopupSuggestion(comboBox, -1));
 		comboBox.skinProperty().addListener((observable, oldSkin, newSkin) ->
 				installAutocompletePopupKeyFilter(newSkin, handler));
 		installAutocompletePopupKeyFilter(comboBox.getSkin(), handler);
@@ -1301,6 +1306,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			configureBuilderComboBox(block);
 			block.setCellFactory(v -> new HighlightedBlockCell());
 			installAutocompletePopupKeyFilter(block, this::handleKeyPressed);
+			block.addEventHandler(ComboBoxBase.ON_SHOWN, event -> blockSuggestionHighlight = -1);
 			block.addEventFilter(MouseEvent.MOUSE_PRESSED, this::handleBlockMousePressed);
 			block.setOnHidden(event -> scheduleBlockExplicitCatalogCleanup());
 			block.getEditor().setAlignment(Pos.CENTER);
@@ -1372,6 +1378,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				configureBuilderComboBox(biomeNames);
 				biomeNames.setCellFactory(v -> new HighlightedBiomeCell());
 				installAutocompletePopupKeyFilter(biomeNames, this::handleBiomeKeyPressed);
+				biomeNames.addEventHandler(ComboBoxBase.ON_SHOWN, event -> biomeSuggestionHighlight = -1);
 				biomeNames.addEventFilter(MouseEvent.MOUSE_PRESSED, this::handleBiomeMousePressed);
 				biomeNames.setOnHidden(event -> scheduleBiomeExplicitCatalogCleanup());
 				biomeNames.getEditor().promptTextProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_BIOME_PROMPT.getProperty());

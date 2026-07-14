@@ -170,12 +170,14 @@ The current From/To block inputs use editable JavaFX `ComboBox` controls backed 
 - Empty block queries should not expose the full block catalog automatically. An explicit empty-arrow click may show it for that popup only; closing without completion must clear the transient candidates so closed-key navigation cannot write a value.
 - Use a filtered backing list/predicate rather than replacing the ComboBox items list on every keystroke.
 - Do not synchronously clear selection, clear value, or refilter items from inside the ComboBox popup mouse-selection event path. That produced JavaFX `ListViewBehavior` `IndexOutOfBoundsException` errors when users clicked suggestions, while Tab completion could still appear fine.
+- Editable block and biome popups clear JavaFX's native `ListView` focus/selection when the popup opens, before custom autocomplete navigation starts. Otherwise the first arrow key only converts the already-highlighted first row into the custom highlight and appears to do nothing.
 - Mouse-click completion and Tab completion both need explicit manual tests. They can travel different JavaFX event paths even though they look like the same feature to the user.
 - Candidate hover/focus/selected styles should stay visible in dark theme and should match the main menu hover tone closely enough that dropdowns feel interactive.
 - Property dropdown cells use graphic `Text` nodes; set both CSS `-fx-text-fill` on list cells and explicit `Text#setFill`/`.text {-fx-fill: ...}` styles, otherwise hover/focus can leave some options rendered black on the dark popup.
 - Keep custom presets as serialized ReplaceBlocks text, not hidden builder state. This preserves advanced text round-tripping and keeps presets independent of future UI layout changes.
 - Normalize custom preset rules through `ReplaceBlocksField` before storing or comparing them. Raw SNBT ordering and whitespace are not rule identity, and equivalent rules must not be appended twice.
 - Clicking empty space in the rule table clears its selection so the documented all-rules preset fallback remains reachable. Closing a nonempty Builder through the window close control requires discard confirmation.
+- The rule-table marquee rectangle is an unmanaged overlay node. Its changing width and height must never participate in `StackPane`/`Pane` preferred-size calculation or move the table, headers, or surrounding controls while dragging.
 
 Recommended next work:
 
