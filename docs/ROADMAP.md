@@ -229,15 +229,15 @@ This is a release gate, not a place to begin testing. Each implementation phase 
 
 Release gates:
 
-- Passed on the 2026-07-13 dropdown UX candidate: compile and 82 automated tests covering parser/source modes, semantic preset normalization, rule restoration, Builder popup routing, boundary scrolling decisions, explicit catalog expansion and cleanup, Change/Force parity, selection relight-ring expansion, legacy fail-closed behavior, modern preview/execution parity, and heightmaps.
+- Passed on the 2026-07-14 release candidate: compile and 116 automated tests covering parser/source modes, semantic preset normalization, rule restoration, Builder popup routing, boundary scrolling decisions, explicit catalog expansion and cleanup, Change/Force parity, selection relight-ring expansion, legacy fail-closed behavior, modern preview/execution parity, and heightmaps.
 - Passed again on 2026-07-11: translation completeness and `build shadowJar`.
 - Passed on 2026-07-11: Windows `jpackage` with Azul Zulu 21.0.11 JDK FX; the packaged MCA Selector 2.8 image opened independently of Gradle.
-- Passed by user on the main Chinese/English regression with clean console and final screenshots. The latest Builder dropdown boundary-scrolling, visual-state, and empty-arrow changes need one focused rerun.
+- Passed by user on the main Chinese/English regression with clean console and final screenshots, including the final Builder dropdown boundary-scrolling, visual-state, empty-arrow, and first-popup-anchor rerun.
 - Passed at file level on 2026-07-11 using disposable DataVersion 2860 and 4671 copies: preview hashes, ordinary/multiple rules, selection-only execution, state/waterlogged round-trip, tile add/remove/update, bounded air, Y + biome + tile composition, overlap counts, light invalidation, and heightmap shape.
 - Passed: real 1.18/1.21 stored-biome boundary checks on disposable normal-terrain copies; preview hashes stayed unchanged, selected-biome matches reached zero after execution, and control-biome counts were unchanged.
 - User game pass completed load/save/reload, state, container, heightmap, log checks, and the focused 1.21 adjacent-ring relight rerun after execution began saving the existing one-chunk square ring solely for relight invalidation.
 - Passed at file level and by user game load on disposable Minecraft 26.3 snapshot 3 copies: biome + Y preview, preview non-mutation, Change/Force parity, selection-only block boundaries, and game load/reload.
-- Pending: final post-rerun documentation status and refresh of the already prepared local code/Wiki PR branches.
+- Phase 6 release gate is complete. B-class release hardening is the next work stream.
 
 Any failed gate is fixed on the feature branch, receives the narrowest practical automated regression, and reruns both its focused checks and the final full gate. Phase 6 must not be marked complete while a required UI or copied-world gate remains blocked.
 

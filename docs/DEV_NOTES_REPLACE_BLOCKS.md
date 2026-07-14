@@ -139,12 +139,12 @@ CLI path:
 - The builder now emits `props(...)` for catalog-backed source property rules, but it does not yet offer per-property enable/disable checkboxes or a dedicated source-mode selector.
 - The catalog currently includes Java 1.21.9. More versions need additional generated resources and a selection strategy.
 - Quoted custom target names appear fragile when followed by another rule or tile entity SNBT; this needs a focused test.
-- Modern 1.18+ target tile replacement removes existing block entities at the same coordinates before adding the replacement tile. Phase 6 also made the 1.13 and 1.17 palette paths remove all existing entries at the target coordinate before adding replacement tile SNBT. DataVersion 4671 copied-world files passed remove 2 / add 11 / update 2 checks with zero duplicate block-entity coordinates; Minecraft load/reload inspection is still required.
+- Modern 1.18+ target tile replacement removes existing block entities at the same coordinates before adding the replacement tile. Phase 6 also made the 1.13 and 1.17 palette paths remove all existing entries at the target coordinate before adding replacement tile SNBT. DataVersion 4671 copied-world files passed remove 2 / add 11 / update 2 checks with zero duplicate block-entity coordinates; the user also completed Minecraft load/save/reload inspection on disposable copies.
 - Preview exists for modern 1.18+ paths, but unsupported older preview chunks are reported instead of estimated.
 - Replacing air can expand sparse sections across the existing section range, which is powerful but high risk.
 - Y-restricted air replacement reduces this risk by not completing sections outside the requested Y range. DataVersion 2860 and 4671 copied-world files matched and wrote exactly 20,736 and 20,479 Y=80 air blocks, with no remaining source matches; Minecraft rendering/reload validation is still required.
 - Replacing blocks removes section light data and marks the changed chunk lighting incomplete. Adjacent relighting now uses a two-stage save barrier: the primary stage processes only the original selection and publishes only ReplaceBlocks chunks whose region save succeeded; the second stage clears the relight flag in their exact eight-neighbor ring, excluding changed centers. It loads and saves only existing region MCA files, never creates missing chunks or region files, and never loads or writes adjacent POI/entities files. A zero-match ReplaceBlocks-only run queues no save at all.
-- Automated Phase 6 tests verify early-flat and post-21w43a heightmap scan, packing, and writeback shape. File-level copied-world checks found all four heightmaps present at 37 longs with no malformed arrays after ordinary, state, and bounded-air execution. Minecraft surface behavior and logs remain manual gates.
+- Automated Phase 6 tests verify early-flat and post-21w43a heightmap scan, packing, and writeback shape. File-level copied-world checks found all four heightmaps present at 37 longs with no malformed arrays after ordinary, state, and bounded-air execution. Minecraft surface behavior and logs passed on disposable copied worlds.
 
 ## UI status and improvement recommendation
 
@@ -231,6 +231,6 @@ Detailed roadmap: `docs/ROADMAP.md`.
 - Phase 5A: per-rule preview counts, source-mode rows, and overlap warnings implemented.
 - Phase 4F-1: Y range restrictions implemented with `y(min..max, source)`, Builder min/max Y controls, parser/diagnostic tests, preview tests, and modern 1.18+ execution tests.
 - Phase 4F-2: biome restrictions implemented with `biome(<biome>[;<biome>...], source)`, Builder source biome input, parser/diagnostic tests, preview tests, and modern 1.18+ execution tests.
-- Phase 4G: built-in presets are visible input fillers with air/container warnings; custom presets use selected-rule/draft/all-rules save precedence and append on load. Next route is the focused Phase 6 rerun.
+- Phase 4G: built-in presets are visible input fillers with air/container warnings; custom presets use selected-rule/draft/all-rules save precedence and append on load. Phase 6 release hardening, including the focused Builder dropdown/first-popup rerun, is complete.
 
 Detailed next-development plan: `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.

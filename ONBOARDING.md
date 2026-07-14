@@ -44,11 +44,11 @@ Implemented:
 
 Not implemented yet:
 
-- Phase 6 remains in progress. Automated tests, translation completeness, `build shadowJar`, Zulu JDK FX packaging, DataVersion 2860/4671 and 26.3 snapshot checks, real biome boundaries, game load/save/reload, game-log review, the 1.21 adjacent-ring relight rerun, and the 26.3 copied-world game load have evidence. The latest Builder dropdown UX changes still need the final focused UI rerun before Phase 6 can close.
+- Phase 6 is complete. Automated tests, translation completeness, `build shadowJar`, Zulu JDK FX packaging, DataVersion 2860/4671 and 26.3 snapshot checks, real biome boundaries, game load/save/reload, game-log review, adjacent-ring relight, copied-world game loading, and the fresh-Builder From/To/Biome popup-anchor rerun all have evidence.
 
 ## Next Recommended Task
 
-Next best target: run the focused Builder dropdown regression for boundary scrolling, blue popup states, and explicit empty-arrow catalogs; then mark Phase 6 complete and refresh the local PR/Wiki branches.
+Next best target: begin B-class release hardening: share ReplaceBlocks parsing, make Builder catalog input forward-compatible, then address runtime safety, hot-path performance, and Builder responsibility boundaries.
 
 Goal:
 
