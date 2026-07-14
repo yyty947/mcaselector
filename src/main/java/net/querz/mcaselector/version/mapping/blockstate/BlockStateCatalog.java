@@ -3,21 +3,31 @@ package net.querz.mcaselector.version.mapping.blockstate;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import net.querz.mcaselector.io.FileHelper;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Function;
 
 public final class BlockStateCatalog {
 
 	private static final Gson GSON = new GsonBuilder().create();
-	private static final String JAVA_1_21_9_RESOURCE = "mapping/block_states/java_1_21_9.json";
-	private static final BlockStateCatalog JAVA_1_21_9 = FileHelper.loadFromResource(JAVA_1_21_9_RESOURCE, BlockStateCatalog::load);
-	private static final List<BlockStateCatalog> AVAILABLE = List.of(JAVA_1_21_9);
+	private static final Logger LOGGER = LogManager.getLogger(BlockStateCatalog.class);
+	private static final String CATALOG_INDEX_RESOURCE = "mapping/block_states/catalogs.json";
+	private static final BlockStateCatalog UNAVAILABLE = new BlockStateCatalog("unavailable", 0,
+			"No bundled block-state catalog is available", Collections.emptyMap());
+	private static final List<BlockStateCatalog> AVAILABLE = loadAvailable();
 
 	private final String version;
 	private final int dataVersion;
@@ -33,9 +43,66 @@ public final class BlockStateCatalog {
 
 	public static BlockStateCatalog load(Reader reader) {
 		CatalogData data = GSON.fromJson(reader, new TypeToken<CatalogData>() {}.getType());
+		if (data == null || data.version == null || data.source == null || data.blocks == null) {
+			throw new IllegalArgumentException("invalid block-state catalog");
+		}
 		Map<String, Block> blocks = new TreeMap<>();
 		data.blocks.forEach((name, block) -> blocks.put(normalizeName(name), block.normalized()));
 		return new BlockStateCatalog(data.version, data.dataVersion, data.source, blocks);
+	}
+
+	static List<BlockStateCatalog> loadCatalogs(Reader index, Function<String, Reader> resourceLoader) {
+		List<String> resourcePaths;
+		try {
+			resourcePaths = GSON.fromJson(index, new TypeToken<List<String>>() {}.getType());
+		} catch (RuntimeException ex) {
+			LOGGER.warn("failed to load block-state catalog index", ex);
+			return List.of();
+		}
+		if (resourcePaths == null) {
+			return List.of();
+		}
+		List<BlockStateCatalog> catalogs = new ArrayList<>();
+		Set<String> versions = new HashSet<>();
+		Set<Integer> dataVersions = new HashSet<>();
+		for (String path : resourcePaths) {
+			if (path == null || path.isBlank()) {
+				continue;
+			}
+			try (Reader resource = resourceLoader.apply(path)) {
+				if (resource == null) {
+					LOGGER.warn("missing block-state catalog resource {}", path);
+					continue;
+				}
+				BlockStateCatalog catalog = load(resource);
+				if (!versions.add(catalog.version()) || !dataVersions.add(catalog.dataVersion())) {
+					LOGGER.warn("skipping duplicate block-state catalog {} ({})", catalog.version(), catalog.dataVersion());
+					continue;
+				}
+				catalogs.add(catalog);
+			} catch (Exception ex) {
+				LOGGER.warn("failed to load block-state catalog resource {}", path, ex);
+			}
+		}
+		catalogs.sort(Comparator.comparingInt(BlockStateCatalog::dataVersion));
+		return List.copyOf(catalogs);
+	}
+
+	private static List<BlockStateCatalog> loadAvailable() {
+		InputStream index = BlockStateCatalog.class.getClassLoader().getResourceAsStream(CATALOG_INDEX_RESOURCE);
+		if (index == null) {
+			LOGGER.warn("missing block-state catalog index {}", CATALOG_INDEX_RESOURCE);
+			return List.of();
+		}
+		try (Reader reader = new InputStreamReader(index, StandardCharsets.UTF_8)) {
+			return loadCatalogs(reader, path -> {
+				InputStream resource = BlockStateCatalog.class.getClassLoader().getResourceAsStream(path);
+				return resource == null ? null : new InputStreamReader(resource, StandardCharsets.UTF_8);
+			});
+		} catch (Exception ex) {
+			LOGGER.warn("failed to load block-state catalogs", ex);
+			return List.of();
+		}
 	}
 
 	public static List<BlockStateCatalog> available() {
@@ -43,7 +110,7 @@ public final class BlockStateCatalog {
 	}
 
 	public static BlockStateCatalog latestJava() {
-		return JAVA_1_21_9;
+		return AVAILABLE.isEmpty() ? UNAVAILABLE : AVAILABLE.getLast();
 	}
 
 	public static Optional<BlockStateCatalog> findByVersion(String version) {
