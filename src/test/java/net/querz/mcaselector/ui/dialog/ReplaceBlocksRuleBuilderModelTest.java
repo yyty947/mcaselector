@@ -2,8 +2,10 @@ package net.querz.mcaselector.ui.dialog;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.geometry.Bounds;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ComboBoxBase;
@@ -11,10 +13,14 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.skin.ComboBoxListViewSkin;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.nbt.CompoundTag;
 import org.junit.jupiter.api.Test;
@@ -394,6 +400,150 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
+	void firstFocusedEmptyCatalogPopupsStayAttachedAfterLateResize() throws Throwable {
+		assertFirstFocusedEmptyCatalogPopupStaysAttachedAfterLateResize("from", "block");
+		assertFirstFocusedEmptyCatalogPopupStaysAttachedAfterLateResize("to", "block");
+		assertFirstFocusedEmptyCatalogPopupStaysAttachedAfterLateResize("from", "biomeNames");
+	}
+
+	@Test
+	void popupPositionTrackingDoesNotMoveAPopupBelowItsField() throws Throwable {
+		AtomicReference<Stage> stageReference = new AtomicReference<>();
+		AtomicReference<ComboBox<String>> comboBoxReference = new AtomicReference<>();
+		try {
+			runOnJavaFxThread(() -> {
+				ComboBox<String> comboBox = new ComboBox<>(FXCollections.observableArrayList("a", "b", "c"));
+				comboBox.setEditable(true);
+				comboBox.setVisibleRowCount(3);
+				ReplaceBlocksRuleBuilderDialog.installAutocompletePopupKeyFilter(comboBox, event -> {});
+				Stage stage = new Stage();
+				stage.setX(100);
+				stage.setY(100);
+				stage.setScene(new Scene(new StackPane(comboBox), 400, 200));
+				stage.show();
+				stage.getScene().getRoot().applyCss();
+				stage.getScene().getRoot().layout();
+				comboBox.show();
+				assertTrue(comboBox.isShowing());
+				stageReference.set(stage);
+				comboBoxReference.set(comboBox);
+			});
+
+			// Drain callbacks scheduled by ON_SHOWN before simulating a later geometry update.
+			runOnJavaFxThread(() -> {});
+
+			runOnJavaFxThread(() -> {
+				ComboBox<String> comboBox = comboBoxReference.get();
+				Bounds comboBounds = comboBox.localToScreen(comboBox.getBoundsInLocal());
+				Window popupWindow = popupWindow(comboBox);
+				double belowY = comboBounds.getMaxY();
+				popupWindow.setY(belowY);
+				popupWindow.setHeight(popupWindow.getHeight() + 32);
+				assertEquals(belowY, popupWindow.getY(), 0.5);
+			});
+		} finally {
+			runOnJavaFxThread(() -> {
+				if (comboBoxReference.get() != null) {
+					comboBoxReference.get().hide();
+				}
+				if (stageReference.get() != null) {
+					stageReference.get().close();
+				}
+			});
+		}
+	}
+
+	private static void assertFirstFocusedEmptyCatalogPopupStaysAttachedAfterLateResize(
+			String inputFieldName, String comboBoxFieldName) throws Throwable {
+		AtomicReference<Stage> primaryStageReference = new AtomicReference<>();
+		AtomicReference<ReplaceBlocksRuleBuilderDialog> dialogReference = new AtomicReference<>();
+		AtomicReference<ComboBox<?>> comboBoxReference = new AtomicReference<>();
+		try {
+			runOnJavaFxThread(() -> {
+				Stage primaryStage = new Stage();
+				Scene primaryScene = new Scene(new StackPane(), 1200, 900);
+				primaryScene.getStylesheets().add(ReplaceBlocksRuleBuilderDialog.class.getClassLoader()
+						.getResource("style/base.css").toExternalForm());
+				primaryStage.setScene(primaryScene);
+				primaryStage.setX(50);
+				primaryStage.setY(50);
+				primaryStage.show();
+				primaryStageReference.set(primaryStage);
+				ReplaceBlocksRuleBuilderDialog dialog = new ReplaceBlocksRuleBuilderDialog(primaryStage, "");
+				dialogReference.set(dialog);
+				dialog.setX(100);
+				dialog.setY(Screen.getPrimary().getVisualBounds().getMaxY() - 250);
+				dialog.show();
+				dialog.getDialogPane().applyCss();
+				dialog.getDialogPane().layout();
+
+				Field inputField = ReplaceBlocksRuleBuilderDialog.class.getDeclaredField(inputFieldName);
+				inputField.setAccessible(true);
+				Object input = inputField.get(dialog);
+				Field comboBoxField = input.getClass().getDeclaredField(comboBoxFieldName);
+				comboBoxField.setAccessible(true);
+				ComboBox<?> comboBox = (ComboBox<?>) comboBoxField.get(input);
+				comboBoxReference.set(comboBox);
+				firePrimaryMouseEvent(comboBox.getEditor(), MouseEvent.MOUSE_PRESSED, true);
+				firePrimaryMouseEvent(comboBox.getEditor(), MouseEvent.MOUSE_RELEASED, false);
+				assertTrue(comboBox.getEditor().isFocused());
+			});
+
+			runOnJavaFxThread(() -> {
+				ComboBox<?> comboBox = comboBoxReference.get();
+				Node arrowButton = comboBox.lookup(".arrow-button");
+				assertNotNull(arrowButton);
+				firePrimaryMouseEvent(arrowButton, MouseEvent.MOUSE_PRESSED, true);
+				firePrimaryMouseEvent(arrowButton, MouseEvent.MOUSE_RELEASED, false);
+				assertTrue(comboBox.isShowing());
+			});
+
+			// The old workaround runs once here. The regression happens when JavaFX changes
+			// the popup geometry again after that callback has completed.
+			runOnJavaFxThread(() -> {});
+
+			runOnJavaFxThread(() -> {
+				ComboBox<?> comboBox = comboBoxReference.get();
+				Bounds comboBounds = comboBox.localToScreen(comboBox.getBoundsInLocal());
+				Window popupWindow = popupWindow(comboBox);
+				double originalHeight = popupWindow.getHeight();
+				assertTrue(originalHeight > 32);
+				popupWindow.setY(comboBounds.getMinY() - originalHeight);
+				popupWindow.setHeight(originalHeight + 32);
+			});
+
+			runOnJavaFxThread(() -> {
+				ComboBox<?> comboBox = comboBoxReference.get();
+				Bounds comboBounds = comboBox.localToScreen(comboBox.getBoundsInLocal());
+				ListView<?> popup = popupContent(comboBox);
+				Bounds popupBounds = popup.localToScreen(popup.getLayoutBounds());
+				assertEquals(comboBounds.getMinY(), popupBounds.getMaxY(), 0.5,
+						inputFieldName + "." + comboBoxFieldName + " popup detached after a late resize");
+			});
+		} finally {
+			runOnJavaFxThread(() -> {
+				if (dialogReference.get() != null) {
+					dialogReference.get().setOnCloseRequest(null);
+					dialogReference.get().close();
+				}
+				if (primaryStageReference.get() != null) {
+					primaryStageReference.get().close();
+				}
+			});
+		}
+	}
+
+	private static Window popupWindow(ComboBox<?> comboBox) {
+		ListView<?> popup = popupContent(comboBox);
+		assertNotNull(popup.getScene());
+		return popup.getScene().getWindow();
+	}
+
+	private static ListView<?> popupContent(ComboBox<?> comboBox) {
+		return (ListView<?>) ((ComboBoxListViewSkin<?>) comboBox.getSkin()).getPopupContent();
+	}
+
+	@Test
 	void marqueeOverlaysGeneratedPreviewWithoutChangingBuilderLayout() throws Throwable {
 		runOnJavaFxThread(() -> {
 			Stage primaryStage = new Stage();
@@ -484,6 +634,13 @@ class ReplaceBlocksRuleBuilderModelTest {
 		}
 	}
 
+	private static void firePrimaryMouseEvent(Node target, javafx.event.EventType<MouseEvent> type,
+			boolean primaryButtonDown) {
+		target.fireEvent(new MouseEvent(type, 1, 1, 1, 1, MouseButton.PRIMARY, 1,
+				false, false, false, false, primaryButtonDown, false, false,
+				false, false, false, null));
+	}
+
 	private static boolean supportsJavaFxControlTests(String osName, String display, String waylandDisplay) {
 		return osName == null || !osName.toLowerCase().contains("linux")
 				|| display != null && !display.isBlank()
@@ -502,6 +659,7 @@ class ReplaceBlocksRuleBuilderModelTest {
 			} catch (IllegalStateException ex) {
 				// Another test class may already have initialized the toolkit.
 			}
+			Platform.setImplicitExit(false);
 			javaFxStarted = true;
 		}
 	}

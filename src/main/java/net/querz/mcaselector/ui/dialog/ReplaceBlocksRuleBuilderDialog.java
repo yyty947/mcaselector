@@ -1,6 +1,7 @@
 package net.querz.mcaselector.ui.dialog;
 
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -37,6 +38,7 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import javafx.stage.StageStyle;
 import net.querz.mcaselector.changer.fields.ReplaceBlocksField;
 import net.querz.mcaselector.config.ConfigProvider;
@@ -1016,10 +1018,102 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	static void installAutocompletePopupKeyFilter(ComboBox<?> comboBox, EventHandler<KeyEvent> handler) {
-		comboBox.addEventHandler(ComboBoxBase.ON_SHOWN, event -> focusPopupSuggestion(comboBox, -1));
+		AutocompletePopupPositionTracker positionTracker = new AutocompletePopupPositionTracker(comboBox);
+		comboBox.addEventHandler(ComboBoxBase.ON_SHOWN, event -> {
+			focusPopupSuggestion(comboBox, -1);
+			positionTracker.attach();
+		});
+		comboBox.addEventHandler(ComboBoxBase.ON_HIDDEN, event -> positionTracker.detach());
 		comboBox.skinProperty().addListener((observable, oldSkin, newSkin) ->
 				installAutocompletePopupKeyFilter(newSkin, handler));
 		installAutocompletePopupKeyFilter(comboBox.getSkin(), handler);
+	}
+
+	private static final class AutocompletePopupPositionTracker {
+
+		private static final double POSITION_EPSILON = 0.5;
+
+		private final ComboBox<?> comboBox;
+		private final InvalidationListener geometryListener = observable -> stabilize();
+		private ListView<?> popupContent;
+		private Window popupWindow;
+		private boolean stabilizing;
+		private boolean stabilizationPending;
+
+		private AutocompletePopupPositionTracker(ComboBox<?> comboBox) {
+			this.comboBox = comboBox;
+		}
+
+		private void attach() {
+			detach();
+			popupContent = popupContent(comboBox);
+			if (popupContent == null || popupContent.getScene() == null) {
+				popupContent = null;
+				return;
+			}
+			popupWindow = popupContent.getScene().getWindow();
+			if (popupWindow == null) {
+				popupContent = null;
+				return;
+			}
+			popupContent.heightProperty().addListener(geometryListener);
+			popupWindow.heightProperty().addListener(geometryListener);
+			popupWindow.yProperty().addListener(geometryListener);
+			stabilize();
+		}
+
+		private void detach() {
+			if (popupContent != null) {
+				popupContent.heightProperty().removeListener(geometryListener);
+				popupContent = null;
+			}
+			if (popupWindow != null) {
+				popupWindow.heightProperty().removeListener(geometryListener);
+				popupWindow.yProperty().removeListener(geometryListener);
+				popupWindow = null;
+			}
+			stabilizationPending = false;
+		}
+
+		private void stabilize() {
+			if (stabilizing) {
+				stabilizationPending = true;
+				return;
+			}
+			do {
+				stabilizationPending = false;
+				Window window = popupWindow;
+				ListView<?> popup = popupContent;
+				if (window == null || popup == null || !comboBox.isShowing()) {
+					return;
+				}
+				Bounds comboBounds = comboBox.localToScreen(comboBox.getBoundsInLocal());
+				Bounds popupBounds = popup.localToScreen(popup.getLayoutBounds());
+				if (comboBounds == null || popupBounds == null
+						|| popupBounds.getMinY() >= comboBounds.getMinY()) {
+					return;
+				}
+				// JavaFX can resize the visible content without updating the popup window's outer height.
+				double correction = comboBounds.getMinY() - popupBounds.getMaxY();
+				if (Math.abs(correction) <= POSITION_EPSILON) {
+					continue;
+				}
+				stabilizing = true;
+				try {
+					window.setY(window.getY() + correction);
+				} finally {
+					stabilizing = false;
+				}
+			} while (stabilizationPending);
+		}
+	}
+
+	private static ListView<?> popupContent(ComboBox<?> comboBox) {
+		if (comboBox != null && comboBox.getSkin() instanceof ComboBoxListViewSkin<?> skin
+				&& skin.getPopupContent() instanceof ListView<?> popup) {
+			return popup;
+		}
+		return null;
 	}
 
 	static void configureBuilderComboBox(ComboBox<?> comboBox) {

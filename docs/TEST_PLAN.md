@@ -49,12 +49,12 @@ Phase 6 execution record:
 | Gate | Status | Commit / environment | Evidence or remaining action |
 |---|---|---|---|
 | Focused parser, Builder model, legacy safety, modern preview, light, and heightmap tests | Passed | Windows, Java 21, 2026-07-12 | Added semantic preset normalization, Change/Force parity, and one-chunk relight-ring regressions |
-| `AUTO-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-14 | 113 tests passed; clean `compileJava`, full `test`, `build`, and `shadowJar` succeeded |
-| `AUTO-02` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-11 | `run --args="--mode printMissingTranslations"` succeeded with no missing-key output |
-| `PKG-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-14 | Clean `build shadowJar` succeeded and reran all 113 tests |
+| `AUTO-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-14 | 116 tests passed; clean `compileJava`, full `test`, `build`, and `shadowJar` succeeded |
+| `AUTO-02` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-14 | `run --args="--mode printMissingTranslations"` succeeded with no missing-key output |
+| `PKG-01` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-14 | Clean `build shadowJar` succeeded and reran all 116 tests |
 | `PKG-02` | Passed | Windows 11, Azul Zulu 21.0.11 JDK FX | JDK FX `jpackage` and standalone startup passed; the Adoptium-only `jlink` limitation is environmental and does not apply to the configured JDK FX path |
 | JavaFX startup smoke | Passed | Chinese locale, Java 21, 2026-07-10 | Main window rendered with menu, chunk grid, status bar, and no startup exception |
-| `UI-01` / `UI-02` | Focused dropdown rerun passed; first-key/marquee fix rerun pending | User reports, 2026-07-12/14 | Boundary-only scrolling, blue hover/focus/selected states, explicit empty-arrow catalogs, preview, and copied-world checks passed. Rerun immediate first-arrow response and stationary marquee layout after the follow-up fix |
+| `UI-01` / `UI-02` | Passed | User reports, 2026-07-12/14 | Boundary-only scrolling, blue hover/focus/selected states, explicit empty-arrow catalogs, preview, copied-world checks, and the fresh-Builder editor-focus then arrow path for From/To/Biome all passed |
 | `WORLD-18` / `WORLD-21` file-level checks | Passed | Commit `35261278`, DataVersions 2860 and 4671, 2026-07-11 | Preview hashes, preview/execution counts, selection-only execution, bounded air, state round-trip, tile effects, duplicate coordinates, light invalidation, and heightmap shape passed on disposable copies |
 | Real biome boundary | Passed | Disposable copies of user-provided 1.18 and 1.21 normal terrain, 2026-07-11 | Preview hashes unchanged; execution removed all selected-biome source matches while the control-biome counts stayed unchanged |
 | `WORLD-18` / `WORLD-21` game checks | Passed | User game pass and log review, 2026-07-12/13 | Selected chunks and the adjacent one-chunk ring relit correctly after execution saved existing ring chunks with the version-specific relight flag cleared |
@@ -184,6 +184,7 @@ Manual checks:
 - With the default NBT Changer dialog size, the ReplaceBlocks `Builder` button should be visible without dragging the horizontal scrollbar.
 - Open an empty builder and confirm the From/To fields are blank, the generated value is empty, and no `Add at least one rule` error is shown before user action.
 - Before typing in an empty Builder From/To field, click the dropdown arrow. The complete A-Z block catalog should open; it must not open automatically when the Builder first appears.
+- Open a fresh Builder, click once inside an empty From, To, or Biome editor, then click that field's arrow as the next action. On this first show the full catalog must stay attached directly above or below its field instead of jumping away from it; repeat all three fields after reopening the Builder.
 - In the builder From/To fields, type `oak` or `sto`. The candidate list should open automatically, show every matching block ID in A-Z order, highlight the typed substring in blue, allow mouse scrolling, and collapse after Tab completion.
 - Narrow the suggestion list from many matches to two or three and drag its scrollbar repeatedly. The popup must shrink to the actual result count, show no empty rows, and log no `VirtualFlow index exceeds maxCellCount` warning.
 - With a Chinese IME active, select part of a completed block ID, enter two Latin letters, and confirm neither letter is swallowed and no `TextInputControl.replaceText` exception is logged.
