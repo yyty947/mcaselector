@@ -114,6 +114,14 @@ class ReplaceBlocksFieldTest {
 	}
 
 	@Test
+	void acceptsSyntacticallyValidVanillaIdsOutsideTheBundledRegistry() {
+		ReplaceBlocksField field = new ReplaceBlocksField();
+
+		assertTrue(field.parseNewValue("literal(minecraft:future_block)=minecraft:future_target"));
+		assertEquals("literal(minecraft:future_block)=minecraft:future_target", field.valueToString());
+	}
+
+	@Test
 	void literalModeDoesNotInterpretRegexMetacharacters() {
 		ReplaceBlocksField field = parse("literal(example:block.name)=minecraft:dirt");
 		ChunkFilter.BlockReplaceSource source = onlySource(field);
