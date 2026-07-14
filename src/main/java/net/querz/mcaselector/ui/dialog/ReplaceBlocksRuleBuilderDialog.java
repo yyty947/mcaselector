@@ -29,7 +29,6 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -89,7 +88,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private final ObservableList<Rule> ruleItems = FXCollections.observableArrayList();
 	private final TextArea result = new TextArea();
 	private final Label validation = new Label();
-	private final Pane ruleMarqueeLayer = new Pane();
+	private final StackPane contentLayer = new StackPane();
 	private final Rectangle ruleMarquee = new Rectangle();
 	private Node previewButton;
 	private Button savePreset;
@@ -224,12 +223,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		ruleItems.addListener((ListChangeListener<Rule>) c -> updateRulesTableHeight());
 		updateRulesTableHeight();
 
-		ruleMarqueeLayer.setMouseTransparent(true);
 		ruleMarquee.getStyleClass().add("replace-blocks-builder-rule-marquee");
 		ruleMarquee.setManaged(false);
+		ruleMarquee.setMouseTransparent(true);
 		ruleMarquee.setVisible(false);
-		ruleMarqueeLayer.getChildren().add(ruleMarquee);
-		StackPane rulesArea = new StackPane(rules, ruleMarqueeLayer);
+		StackPane rulesArea = new StackPane(rules);
 		rulesArea.getStyleClass().add("replace-blocks-builder-rules-area");
 
 		Button edit = UIFactory.button(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_EDIT_RULE);
@@ -265,7 +263,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		content.getChildren().addAll(presetInput, input, rulesLabel, rulesArea, ruleActions, resultLabel, result, validation, advanced);
 		VBox.setMargin(rulesLabel, new Insets(8, 0, 0, 0));
 		VBox.setVgrow(rulesArea, Priority.ALWAYS);
-		getDialogPane().setContent(content);
+		contentLayer.getChildren().setAll(content, ruleMarquee);
+		getDialogPane().setContent(contentLayer);
 
 		loadSimpleRules(initialValue);
 		updateResult();
@@ -643,22 +642,37 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private void updateRuleMarquee(double x, double y) {
-		double minX = Math.min(ruleMarqueeAnchor.getX(), x);
-		double minY = Math.min(ruleMarqueeAnchor.getY(), y);
+		Point2D anchor = rulesToContent(ruleMarqueeAnchor);
+		Point2D current = rulesToContent(new Point2D(x, y));
+		double minX = Math.min(anchor.getX(), current.getX());
+		double minY = Math.min(anchor.getY(), current.getY());
 		ruleMarquee.setX(minX);
 		ruleMarquee.setY(minY);
-		ruleMarquee.setWidth(Math.abs(x - ruleMarqueeAnchor.getX()));
-		ruleMarquee.setHeight(Math.abs(y - ruleMarqueeAnchor.getY()));
+		ruleMarquee.setWidth(Math.abs(current.getX() - anchor.getX()));
+		ruleMarquee.setHeight(Math.abs(current.getY() - anchor.getY()));
 		ruleMarquee.setVisible(ruleMarquee.getWidth() > 0 && ruleMarquee.getHeight() > 0);
 	}
 
 	private void applyRuleMarquee() {
-		Rectangle2D marquee = new Rectangle2D(ruleMarquee.getX(), ruleMarquee.getY(), ruleMarquee.getWidth(), ruleMarquee.getHeight());
+		Point2D start = contentToRules(new Point2D(ruleMarquee.getX(), ruleMarquee.getY()));
+		Point2D end = contentToRules(new Point2D(
+			ruleMarquee.getX() + ruleMarquee.getWidth(), ruleMarquee.getY() + ruleMarquee.getHeight()));
+		Rectangle2D marquee = new Rectangle2D(
+			Math.min(start.getX(), end.getX()), Math.min(start.getY(), end.getY()),
+			Math.abs(end.getX() - start.getX()), Math.abs(end.getY() - start.getY()));
 		List<Integer> selected = intersectingRuleIndices(marquee, visibleRuleBounds());
 		if (!ruleMarqueeAdditive) {
 			rules.getSelectionModel().clearSelection();
 		}
 		selected.forEach(index -> rules.getSelectionModel().select(index));
+	}
+
+	private Point2D rulesToContent(Point2D point) {
+		return contentLayer.sceneToLocal(rules.localToScene(point));
+	}
+
+	private Point2D contentToRules(Point2D point) {
+		return rules.sceneToLocal(contentLayer.localToScene(point));
 	}
 
 	private List<VisibleRuleBounds> visibleRuleBounds() {

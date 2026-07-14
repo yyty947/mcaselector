@@ -170,7 +170,7 @@
 }
 
 .replace-blocks-builder-pane .replace-blocks-builder-rule-marquee {
-    -fx-fill: rgba(74, 163, 255, 0.22);
+    -fx-fill: rgba(74, 163, 255, 0.12);
     -fx-stroke: #4aa3ff;
     -fx-stroke-width: 1;
 }
