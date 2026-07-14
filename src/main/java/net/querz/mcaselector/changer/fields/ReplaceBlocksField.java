@@ -81,18 +81,11 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 				}
 			} else if (to.startsWith("'")) {
 				// quoted
-				int i = 1;
-				while (i < to.length() && to.charAt(i) != '\'') {
-					i++;
-				}
-				toName = to.substring(1, Math.max(i, to.length()));
-				if (!toName.endsWith("'")) {
+				int i = to.indexOf('\'', 1);
+				if (i <= 1) {
 					return super.parseNewValue(s);
 				}
-				toName = toName.substring(0, toName.length() - 1);
-				if (toName.isEmpty()) {
-					return super.parseNewValue(s);
-				}
+				toName = to.substring(1, i);
 				read += i + 1;
 			} else {
 				// minecraft block
@@ -124,10 +117,14 @@ public class ReplaceBlocksField extends Field<Map<ChunkFilter.BlockReplaceSource
 				}
 				try {
 					SNBTParser parser = new SNBTParser(to);
-					toTile = (CompoundTag) parser.parse(true);
+					Tag parsed = parser.parse(true);
+					if (!(parsed instanceof CompoundTag compound)) {
+						return super.parseNewValue(s);
+					}
+					toTile = compound;
 					int readTile = parser.getReadChars();
 					to = to.substring(readTile - 1);
-				} catch (ParseException ex) {
+				} catch (ParseException | RuntimeException ex) {
 					return super.parseNewValue(s);
 				}
 			}

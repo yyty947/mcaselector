@@ -12,6 +12,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +73,26 @@ class ReplaceBlocksFieldTest {
 		assertTrue(source.matches(state("minecraft:oak_log")));
 		assertTrue(source.matches(state("minecraft:birch_log")));
 		assertFalse(source.matches(state("minecraft:spruce_log")));
+	}
+
+	@Test
+	void parsesQuotedTargetWithTileAndFollowingRule() {
+		ReplaceBlocksField field = new ReplaceBlocksField();
+
+		assertTrue(field.parseNewValue(
+				"literal(stone)='example:target';{id:\"example:tile\"}, literal(dirt)=minecraft:gold_block"));
+		List<ChunkFilter.BlockReplaceData> targets = new ArrayList<>(field.getNewValue().values());
+		assertEquals(2, targets.size());
+		assertEquals("example:target", targets.get(0).getName());
+		assertEquals("example:tile", targets.get(0).getTile().getString("id"));
+		assertEquals("minecraft:gold_block", targets.get(1).getName());
+	}
+
+	@Test
+	void rejectsNonCompoundTargetTileInsteadOfThrowing() {
+		ReplaceBlocksField field = new ReplaceBlocksField();
+
+		assertFalse(field.parseNewValue("literal(stone)=minecraft:dirt;\"not_a_compound\""));
 	}
 
 	@Test
