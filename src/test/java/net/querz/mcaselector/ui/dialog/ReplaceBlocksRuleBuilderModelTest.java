@@ -2,6 +2,7 @@ package net.querz.mcaselector.ui.dialog;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.event.ActionEvent;
 import javafx.geometry.Bounds;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Rectangle2D;
@@ -28,12 +29,16 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import net.querz.mcaselector.config.GlobalConfig;
+import net.querz.mcaselector.text.Translation;
 import net.querz.mcaselector.version.ChunkFilter;
 import net.querz.mcaselector.version.mapping.blockstate.BlockStateCatalog;
 import net.querz.nbt.CompoundTag;
 import org.junit.jupiter.api.Test;
 import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -137,6 +142,127 @@ class ReplaceBlocksRuleBuilderModelTest {
 		assertEquals(1, rules.size());
 		assertEquals("literal(minecraft:stone)", rules.get(0).from());
 		assertEquals("minecraft:gold_block", rules.get(0).to());
+	}
+
+	@Test
+	void customPresetAppendsUnknownExactTargetAndShowsTargetWarning() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				String unknownTarget = "minecraft:task2_missing_target";
+
+				applyCustomPreset(dialog, "literal(minecraft:stone)=" + unknownTarget);
+
+				assertEquals(1, fieldValue(dialog, "ruleItems", List.class).size());
+				assertTrue(fieldValue(dialog, "result", TextArea.class).getText().contains(unknownTarget));
+				BlockStateCatalog catalog = fieldValue(dialog, "catalog", BlockStateCatalog.class);
+				assertEquals(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_TARGET_UNKNOWN
+						.format(unknownTarget, catalog.version()),
+						fieldValue(dialog, "validation", Label.class).getText());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void customPresetWarnsForEachDeterminableExactSourceWhenTargetsAreKnown() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				List<String> unknownSources = List.of(
+						"minecraft:task2_missing_literal",
+						"minecraft:task2_missing_properties",
+						"minecraft:task2_missing_state");
+				List<String> presetValues = List.of(
+						"literal(" + unknownSources.get(0) + ")=minecraft:stone",
+						"props({Name:\"" + unknownSources.get(1) + "\",Properties:{axis:\"x\"}})=minecraft:stone",
+						"{Name:\"" + unknownSources.get(2) + "\",Properties:{axis:\"x\"}}=minecraft:stone");
+				BlockStateCatalog catalog = fieldValue(dialog, "catalog", BlockStateCatalog.class);
+
+				for (int i = 0; i < presetValues.size(); i++) {
+					applyCustomPreset(dialog, presetValues.get(i));
+
+					assertEquals(i + 1, fieldValue(dialog, "ruleItems", List.class).size());
+					assertEquals(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_SOURCE_UNKNOWN
+							.format(unknownSources.get(i), catalog.version()),
+							fieldValue(dialog, "validation", Label.class).getText());
+				}
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void customPresetDoesNotGuessUnknownSourceFromRegex() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				String unknownLookingRegex = "minecraft:task2_missing_.*";
+
+				applyCustomPreset(dialog, "regex(" + unknownLookingRegex + ")=minecraft:stone");
+
+				assertEquals(1, fieldValue(dialog, "ruleItems", List.class).size());
+				TextArea result = fieldValue(dialog, "result", TextArea.class);
+				assertEquals(ReplaceBlocksDiagnostics.diagnoseValue(result.getText(), true).message(),
+						fieldValue(dialog, "validation", Label.class).getText());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void customPresetTargetWarningWinsOverEarlierSourceWarning() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				String unknownSource = "minecraft:task2_missing_source_first";
+				String unknownTarget = "minecraft:task2_missing_target_second";
+
+				applyCustomPreset(dialog,
+						"literal(" + unknownSource + ")=minecraft:stone, "
+								+ "literal(minecraft:dirt)=" + unknownTarget);
+
+				assertEquals(2, fieldValue(dialog, "ruleItems", List.class).size());
+				BlockStateCatalog catalog = fieldValue(dialog, "catalog", BlockStateCatalog.class);
+				assertEquals(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_TARGET_UNKNOWN
+						.format(unknownTarget, catalog.version()),
+						fieldValue(dialog, "validation", Label.class).getText());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void customPresetDoesNotWarnForDuplicateUnknownRuleThatWasSkipped() throws Throwable {
+		runOnJavaFxThread(() -> {
+			String duplicateSource = "minecraft:task2_duplicate_unknown_source";
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage,
+					"literal(" + duplicateSource + ")=minecraft:stone");
+			try {
+				String skippedUnknownTarget = "minecraft:task2_skipped_unknown_target";
+
+				applyCustomPreset(dialog,
+						"literal(" + duplicateSource + ")=" + skippedUnknownTarget + ", "
+								+ "literal(minecraft:dirt)=minecraft:stone");
+
+				assertEquals(2, fieldValue(dialog, "ruleItems", List.class).size());
+				TextArea result = fieldValue(dialog, "result", TextArea.class);
+				assertFalse(result.getText().contains(skippedUnknownTarget));
+				assertEquals(ReplaceBlocksDiagnostics.diagnoseValue(result.getText(), true).message(),
+						fieldValue(dialog, "validation", Label.class).getText());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
 	}
 
 	@Test
@@ -854,6 +980,20 @@ class ReplaceBlocksRuleBuilderModelTest {
 		primaryStage.close();
 	}
 
+	private static void applyCustomPreset(ReplaceBlocksRuleBuilderDialog dialog, String value)
+			throws ReflectiveOperationException {
+		ComboBox<Object> presets = fieldValue(dialog, "presets", ComboBox.class);
+		Object builtin = presets.getItems().getFirst();
+		Constructor<?> constructor = builtin.getClass().getDeclaredConstructors()[0];
+		constructor.setAccessible(true);
+		Object custom = constructor.newInstance(null,
+				new GlobalConfig.ReplaceBlocksUserPreset("Task 2", value));
+		presets.getItems().add(custom);
+		presets.setValue(custom);
+		Method applyPreset = declaredMethod(dialog, "applyPreset", ActionEvent.class);
+		applyPreset.invoke(dialog, new ActionEvent());
+	}
+
 	@SuppressWarnings("unchecked")
 	private static ComboBox<BlockStateCatalog> catalogSelector(ReplaceBlocksRuleBuilderDialog dialog) {
 		return (ComboBox<BlockStateCatalog>) dialog.getDialogPane().lookupAll(".combo-box").stream()
@@ -1056,6 +1196,21 @@ class ReplaceBlocksRuleBuilderModelTest {
 			}
 		}
 		throw new NoSuchFieldException(name);
+	}
+
+	private static Method declaredMethod(Object target, String name, Class<?>... parameterTypes)
+			throws NoSuchMethodException {
+		Class<?> type = target.getClass();
+		while (type != null) {
+			try {
+				Method method = type.getDeclaredMethod(name, parameterTypes);
+				method.setAccessible(true);
+				return method;
+			} catch (NoSuchMethodException ex) {
+				type = type.getSuperclass();
+			}
+		}
+		throw new NoSuchMethodException(name);
 	}
 
 	private record FullBuilderState(

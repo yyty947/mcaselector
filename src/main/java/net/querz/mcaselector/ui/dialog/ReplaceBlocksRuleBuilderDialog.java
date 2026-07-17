@@ -386,18 +386,23 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					showDiagnostic(ReplaceBlocksDiagnostics.builderInvalid());
 					return;
 				}
-				int added = 0;
+				List<Rule> appended = new ArrayList<>();
 				for (Rule rule : loaded) {
 					if (!hasRule(rule.from(), rule.to())) {
 						ruleItems.add(rule);
-						added++;
+						appended.add(rule);
 					}
 				}
 				updateResult();
-				if (added == 0) {
+				if (appended.isEmpty()) {
 					showDiagnostic(new ReplaceBlocksDiagnostics.Diagnostic(
 							ReplaceBlocksDiagnostics.Severity.ERROR,
 							Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_ALREADY_FILLED.toString()));
+				} else {
+					ReplaceBlocksDiagnostics.Diagnostic compatibilityWarning = presetCompatibilityWarning(appended);
+					if (compatibilityWarning.isWarning()) {
+						showDiagnostic(compatibilityWarning);
+					}
 				}
 				return;
 			}
@@ -414,6 +419,48 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		} finally {
 			applyingPreset = false;
 		}
+	}
+
+	private ReplaceBlocksDiagnostics.Diagnostic presetCompatibilityWarning(List<Rule> appended) {
+		String firstUnknownTarget = null;
+		String firstUnknownSource = null;
+		for (Rule rule : appended) {
+			ParsedRule parsed = parseEditableRule(rule.from(), rule.to());
+			if (parsed == null) {
+				continue;
+			}
+			String target = switch (parsed.target().getType()) {
+				case NAME, STATE -> parsed.target().getName();
+				default -> null;
+			};
+			if (firstUnknownTarget == null && target != null && !catalog.containsBlock(target)) {
+				firstUnknownTarget = target;
+			}
+			String source = switch (parsed.source().getType()) {
+				case LITERAL_NAME, SELECTED_PROPERTIES, EXACT_STATE -> parsed.source().getName();
+				default -> null;
+			};
+			if (firstUnknownSource == null && source != null && !catalog.containsBlock(source)) {
+				firstUnknownSource = source;
+			}
+		}
+		if (firstUnknownTarget != null) {
+			return presetCatalogWarning(
+					Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_TARGET_UNKNOWN,
+					firstUnknownTarget);
+		}
+		if (firstUnknownSource != null) {
+			return presetCatalogWarning(
+					Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_SOURCE_UNKNOWN,
+					firstUnknownSource);
+		}
+		return ReplaceBlocksDiagnostics.none();
+	}
+
+	private ReplaceBlocksDiagnostics.Diagnostic presetCatalogWarning(Translation message, String blockName) {
+		return new ReplaceBlocksDiagnostics.Diagnostic(
+				ReplaceBlocksDiagnostics.Severity.WARNING,
+				message.format(blockName, catalog.version()));
 	}
 
 	private void savePreset(ActionEvent event) {
