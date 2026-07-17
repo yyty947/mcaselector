@@ -28,6 +28,10 @@ menu.view.reload;重新載入
 menu.view.chunk_grid;區塊網格
 menu.view.region_grid;區域網格
 menu.view.coordinates;坐標
+menu.view.coordinate_style;座標樣式
+menu.view.coordinate_style.dynamic;動態
+menu.view.coordinate_style.edge;邊緣
+menu.view.coordinate_style.grid;網格
 menu.view.structure_icons;結構
 menu.view.select_structures;選擇結構
 menu.view.goto;轉到
@@ -75,6 +79,9 @@ dialog.settings.rendering.smooth.smooth_rendering;平滑渲染
 dialog.settings.rendering.smooth.smooth_overlays;平滑疊加
 dialog.settings.rendering.background.background_pattern;背景圖案
 dialog.settings.rendering.background;背景
+dialog.settings.rendering.zoom_level.low_detail_zoom_level;低細節縮放層級
+dialog.settings.rendering.zoom_level.low_detail_color;低細節顏色
+dialog.settings.rendering.zoom_level;縮放層級
 dialog.settings.global.misc.mc_saves_dir;MC 儲存目錄
 dialog.settings.global.misc.print_debug;打印調試信息
 dialog.settings.global.misc.show_log_file;顯示日誌檔案

@@ -28,6 +28,10 @@ menu.view.reload;Ricarica
 menu.view.chunk_grid;Griglia dei chunk
 menu.view.region_grid;Griglia della regione
 menu.view.coordinates;Coordinate
+menu.view.coordinate_style;Stile coordinate
+menu.view.coordinate_style.dynamic;Dinamico
+menu.view.coordinate_style.edge;Bordo
+menu.view.coordinate_style.grid;Griglia
 menu.view.structure_icons;Strutture
 menu.view.select_structures;Seleziona Strutture
 menu.view.goto;Vai a
@@ -75,6 +79,9 @@ dialog.settings.rendering.smooth.smooth_rendering;Rendering uniforme
 dialog.settings.rendering.smooth.smooth_overlays;Sovrapposizioni lisce
 dialog.settings.rendering.background.background_pattern;Motivo di sfondo
 dialog.settings.rendering.background;Sfondo
+dialog.settings.rendering.zoom_level.low_detail_zoom_level;Livello di zoom a basso dettaglio
+dialog.settings.rendering.zoom_level.low_detail_color;Colore a basso dettaglio
+dialog.settings.rendering.zoom_level;Livello di zoom
 dialog.settings.global.misc.mc_saves_dir;MC salva dir
 dialog.settings.global.misc.print_debug;Stampa messaggi di debug
 dialog.settings.global.misc.show_log_file;Mostra file di registro

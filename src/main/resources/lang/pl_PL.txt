@@ -28,6 +28,10 @@ menu.view.reload;Przeładować
 menu.view.chunk_grid;Siatka chunków
 menu.view.region_grid;Siatka regionów
 menu.view.coordinates;Współrzędne
+menu.view.coordinate_style;Styl współrzędnych
+menu.view.coordinate_style.dynamic;Dynamiczny
+menu.view.coordinate_style.edge;Krawędź
+menu.view.coordinate_style.grid;Siatka
 menu.view.structure_icons;Struktury
 menu.view.select_structures;Wybierz Struktury
 menu.view.goto;Idź do...
@@ -75,6 +79,9 @@ dialog.settings.rendering.smooth.smooth_rendering;Płynne renderowanie
 dialog.settings.rendering.smooth.smooth_overlays;Gładkie nakładki
 dialog.settings.rendering.background.background_pattern;Wzór tła
 dialog.settings.rendering.background;Tło
+dialog.settings.rendering.zoom_level.low_detail_zoom_level;Poziom powiększenia o niskiej szczegółowości
+dialog.settings.rendering.zoom_level.low_detail_color;Kolor niskiej szczegółowości
+dialog.settings.rendering.zoom_level;Poziom powiększenia
 dialog.settings.global.misc.mc_saves_dir;MC zapisuje reż
 dialog.settings.global.misc.print_debug;Wydrukuj komunikaty debugowania
 dialog.settings.global.misc.show_log_file;Pokaż plik dziennika

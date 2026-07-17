@@ -2,7 +2,6 @@ package net.querz.mcaselector.tile;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import javafx.scene.image.Image;
-import net.querz.mcaselector.util.math.Bits;
 import net.querz.mcaselector.ui.Color;
 import net.querz.mcaselector.io.FileHelper;
 import net.querz.mcaselector.util.point.Point2i;
@@ -13,7 +12,7 @@ public class Tile {
 
 	public static Color REGION_GRID_COLOR = new Color(0, 0, 0, 0.5);
 	public static Color CHUNK_GRID_COLOR = new Color(0.6627451f, 0.6627451f, 0.6627451f, 0.5);
-	public static Color COORDINATES_COLOR = new Color(1, 1, 1, 0.5);
+	public static Color COORDINATES_COLOR = new Color(1, 1, 1, 1);
 	public static Color EMPTY_COLOR = new Color(0.2, 0.2, 0.2, 1);
 	public static double GRID_LINE_WIDTH = 1;
 
@@ -42,7 +41,7 @@ public class Tile {
 	}
 
 	public static int getZoomLevel(float scale) {
-		return Bits.getMsb((int) scale);
+		return Math.max(Integer.highestOneBit((int) scale), 1);
 	}
 
 	public boolean isVisible(TileMap tileMap) {

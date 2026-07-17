@@ -28,6 +28,10 @@ menu.view.reload;リロード
 menu.view.chunk_grid;チャンクの境界
 menu.view.region_grid;リージョンの境界
 menu.view.coordinates;コーディネート
+menu.view.coordinate_style;座標の表示スタイル
+menu.view.coordinate_style.dynamic;ダイナミック
+menu.view.coordinate_style.edge;エッジ
+menu.view.coordinate_style.grid;グリッド
 menu.view.structure_icons;構造物
 menu.view.select_structures;構造物を選択
 menu.view.goto;移動
@@ -75,6 +79,9 @@ dialog.settings.rendering.smooth.smooth_rendering;滑らかなレンダリング
 dialog.settings.rendering.smooth.smooth_overlays;滑らかなオーバーレイ
 dialog.settings.rendering.background.background_pattern;背景パターン
 dialog.settings.rendering.background;背景
+dialog.settings.rendering.zoom_level.low_detail_zoom_level;低詳細ズームレベル
+dialog.settings.rendering.zoom_level.low_detail_color;低詳細の色
+dialog.settings.rendering.zoom_level;ズームレベル
 dialog.settings.global.misc.mc_saves_dir;セーブフォルダ
 dialog.settings.global.misc.print_debug;デバッグ情報を出力
 dialog.settings.global.misc.show_log_file;ログを表示

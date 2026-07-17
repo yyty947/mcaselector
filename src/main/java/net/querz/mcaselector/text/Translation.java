@@ -47,6 +47,10 @@ public enum Translation {
 	MENU_VIEW_CHUNK_GRID("menu.view.chunk_grid"),
 	MENU_VIEW_REGION_GRID("menu.view.region_grid"),
 	MENU_VIEW_COORDINATES("menu.view.coordinates"),
+	MENU_VIEW_COORDINATE_STYLE("menu.view.coordinate_style"),
+	MENU_VIEW_COORDINATE_STYLE_DYNAMIC("menu.view.coordinate_style.dynamic"),
+	MENU_VIEW_COORDINATE_STYLE_EDGE("menu.view.coordinate_style.edge"),
+	MENU_VIEW_COORDINATE_STYLE_GRID("menu.view.coordinate_style.grid"),
 	MENU_VIEW_STRUCTURE_ICONS("menu.view.structure_icons"),
 	MENU_VIEW_SELECT_STRUCTURES("menu.view.select_structures"),
 	MENU_VIEW_GOTO("menu.view.goto"),
@@ -94,6 +98,9 @@ public enum Translation {
 	DIALOG_SETTINGS_RENDERING_SMOOTH_SMOOTH_OVERLAYS("dialog.settings.rendering.smooth.smooth_overlays"),
 	DIALOG_SETTINGS_RENDERING_BACKGROUND_BACKGROUND_PATTERN("dialog.settings.rendering.background.background_pattern"),
 	DIALOG_SETTINGS_RENDERING_BACKGROUND("dialog.settings.rendering.background"),
+	DIALOG_SETTINGS_RENDERING_ZOOM_LEVEL_LOD("dialog.settings.rendering.zoom_level.low_detail_zoom_level"),
+	DIALOG_SETTINGS_RENDERING_ZOOM_LEVEL_COLOR("dialog.settings.rendering.zoom_level.low_detail_color"),
+	DIALOG_SETTINGS_RENDERING_ZOOM_LEVEL("dialog.settings.rendering.zoom_level"),
 	DIALOG_SETTINGS_GLOBAL_MISC_MC_SAVES_DIR("dialog.settings.global.misc.mc_saves_dir"),
 	DIALOG_SETTINGS_GLOBAL_MISC_PRINT_DEBUG("dialog.settings.global.misc.print_debug"),
 	DIALOG_SETTINGS_GLOBAL_MISC_SHOW_LOG_FILE("dialog.settings.global.misc.show_log_file"),
@@ -324,23 +331,27 @@ public enum Translation {
 
 	private static final Logger LOGGER = LogManager.getLogger(Translation.class);
 
-	private static final Set<Locale> availableLanguages = new HashSet<>();
+	private static final Set<Locale> availableLanguages = new LinkedHashSet<>();
 
 	private static final Pattern languageFilePattern = Pattern.compile("^(?<locale>-?(?<language>-?[a-z]{2})_(?<country>-?[A-Z]{2}))\\.txt$");
 
 	static {
 		String[] langFiles = getResourceListing(Translation.class, "lang");
 		if (langFiles != null) {
+			List<Locale> locales = new ArrayList<>(langFiles.length);
 			for (String langFile : langFiles) {
 				Matcher matcher = languageFilePattern.matcher(langFile);
 				if (matcher.matches()) {
 					String language = matcher.group("language");
 					String country = matcher.group("country");
-					availableLanguages.add(Locale.of(language, country));
+					locales.add(Locale.of(language, country));
 				} else {
 					LOGGER.error("invalid language file: {}", langFile);
 				}
 			}
+			// sort by their endonym display name
+			locales.sort(Comparator.comparing(l -> l.getDisplayName(l).toLowerCase()));
+			availableLanguages.addAll(locales);
 		}
 	}
 

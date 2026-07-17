@@ -28,6 +28,10 @@ menu.view.reload;Herladen
 menu.view.chunk_grid;Chunk Raster
 menu.view.region_grid;Region Raster
 menu.view.coordinates;Coördinaten
+menu.view.coordinate_style;Coördinatenstijl
+menu.view.coordinate_style.dynamic;Dynamisch
+menu.view.coordinate_style.edge;Rand
+menu.view.coordinate_style.grid;Raster
 menu.view.structure_icons;Structuren
 menu.view.select_structures;Selecteer Structuren
 menu.view.goto;Ga naar
@@ -75,6 +79,9 @@ dialog.settings.rendering.smooth.smooth_rendering;Vloeiende weergave
 dialog.settings.rendering.smooth.smooth_overlays;Vloeiende overlays
 dialog.settings.rendering.background.background_pattern;Achtergrondpatroon
 dialog.settings.rendering.background;Achtergrond
+dialog.settings.rendering.zoom_level.low_detail_zoom_level;Zoomniveau voor lage details
+dialog.settings.rendering.zoom_level.low_detail_color;Kleur voor lage details
+dialog.settings.rendering.zoom_level;Zoomniveau
 dialog.settings.global.misc.mc_saves_dir;MC slaat map op
 dialog.settings.global.misc.print_debug;Foutopsporingsberichten afdrukken
 dialog.settings.global.misc.show_log_file;Toon logbestand

@@ -28,6 +28,10 @@ menu.view.reload;Yeniden Yükle
 menu.view.chunk_grid;Chunk Izgarası
 menu.view.region_grid;Region Izgarası
 menu.view.coordinates;Koordinatlar
+menu.view.coordinate_style;Koordinat Stili
+menu.view.coordinate_style.dynamic;Dinamik
+menu.view.coordinate_style.edge;Kenar
+menu.view.coordinate_style.grid;Izgara
 menu.view.structure_icons;Yapılar
 menu.view.select_structures;Yapıları Seç
 menu.view.goto;Git
@@ -75,6 +79,9 @@ dialog.settings.rendering.smooth.smooth_rendering;Pürüzsüz işleme
 dialog.settings.rendering.smooth.smooth_overlays;Pürüzsüz kaplama
 dialog.settings.rendering.background.background_pattern;Arka plan deseni
 dialog.settings.rendering.background;Arka plan
+dialog.settings.rendering.zoom_level.low_detail_zoom_level;Düşük detay Yakınlaştırma Seviyesi
+dialog.settings.rendering.zoom_level.low_detail_color;Düşük detay Rengi
+dialog.settings.rendering.zoom_level;Yakınlaştırma Seviyesi
 dialog.settings.global.misc.mc_saves_dir;Varsayılan Dünya Konumu
 dialog.settings.global.misc.print_debug;Hata ayıklama mesajlarını göster
 dialog.settings.global.misc.show_log_file;Log dosyalarını göster
