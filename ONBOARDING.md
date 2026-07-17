@@ -46,20 +46,17 @@ Implemented:
 Completed release validation:
 
 - Phase 6 is complete. Automated tests, translation completeness, `build shadowJar`, Zulu JDK FX packaging, DataVersion 2860/4671 and 26.3 snapshot checks, real biome boundaries, game load/save/reload, game-log review, adjacent-ring relight, copied-world game loading, and the fresh-Builder From/To/Biome popup-anchor rerun all have evidence.
-
-Pending:
-
-- The new focused catalogue-switch reset UI rerun is still pending user validation; historical Phase 6/B-class evidence does not mark it passed.
+- The focused five-catalogue `UI-CATALOG` rerun passed by user report on 2026-07-17: empty switching was direct, Cancel preserved all work, Confirm fully reset the Builder under the new catalogue, saved presets remained available, exact out-of-catalogue preset IDs warned without blocking, and regex sources were not misclassified.
 
 ## Next Recommended Task
 
-Next best target: complete the focused catalogue-switch reset UI acceptance and record the result in `docs/TEST_PLAN.md`.
+Next best target: prepare the upstream contribution using the logical PR boundaries recorded in `docs/RELEASE_REVIEW_REPLACE_BLOCKS.md`.
 
 Goal:
 
-- Verify an empty switch is direct, Cancel preserves the old catalogue and every Builder state, and Confirm selects the new catalogue then fully resets fields, rules, selections, result, validation, and popups.
-- Verify catalogue switching clears current preset selection/content without deleting saved presets, and that an exact out-of-catalogue ID loaded from a custom preset remains accepted with a non-blocking warning.
-- Keep automatic world-version selection and cross-version ID migration out of scope.
+- Preserve parser/diagnostic, catalogue/Builder, runtime-safety/performance, and UI/docs/test boundaries so upstream can review or revert them independently.
+- Carry the automated, packaging, copied-world, game, and `UI-CATALOG` evidence with the relevant PR descriptions.
+- Do not reopen automatic world-version selection or cross-version ID migration as part of upstream preparation.
 
 Current builder/UI manual validation checklist:
 

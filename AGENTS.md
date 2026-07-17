@@ -121,5 +121,5 @@ Then manually inspect the relevant dialog. Do not claim world mutation behavior 
 - Phase 4G presets are implemented as visible Builder input fillers for common replacements, with warning text for air and container/data-block cases.
 - ReplaceBlocks UI polish is implemented: debounced field-row diagnostics, visible default Builder button, and addable empty-builder example defaults.
 - Phase 6 release hardening is complete, including semantic preset normalization, Builder restoration, Change/Force parity, selection relight-ring expansion, pre-1.18 fail-closed execution, modern preview/execution parity, heightmaps, and Builder popup navigation regressions. Translation completeness and `build shadowJar` pass.
-- Catalogue-switch reset and custom-preset catalogue advisories are implemented with automated coverage; the focused user-run switch/reset UI row remains pending in `docs/TEST_PLAN.md`.
+- Catalogue-switch reset and custom-preset catalogue advisories are implemented with automated coverage; the focused user-run `UI-CATALOG` switch/reset check passed on 2026-07-17.
 - Packaging, DataVersion 2860/4671 and 26.3 snapshot checks, real biome boundaries, Minecraft load/save/reload, game-log review, the 1.21 adjacent-ring relight rerun, the 26.3 copied-world game load, and the final Builder dropdown/first-popup UX rerun all have evidence.

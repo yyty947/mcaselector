@@ -50,7 +50,7 @@ Automated JavaFX/model coverage must prove:
 - the re-entrant selector rollback cannot trigger a second switch;
 - versionless custom presets remain accepted and warn for determinable IDs outside the selected catalogue.
 
-Replace the previous documentation claim that catalogue changes preserve drafts/rules. Update the catalogue inventory to Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2. Historical release evidence may remain labelled as historical, but the new catalogue-switch UX stays pending until the focused user-run manual test passes.
+Replace the previous documentation claim that catalogue changes preserve drafts/rules. Update the catalogue inventory to Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2. Historical release evidence may remain labelled as historical. The focused user-run manual test passed on 2026-07-17, closing the catalogue-switch UX gate.
 
 ## Out of scope
 

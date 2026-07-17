@@ -1,5 +1,7 @@
 # ReplaceBlocks Builder Catalogue Switch Reset Implementation Plan
 
+**Status:** Completed on 2026-07-17. Automated verification and the user-run `UI-CATALOG` acceptance passed; evidence is recorded in `docs/TEST_PLAN.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make catalogue changes either preserve the entire Builder on cancel or reset it completely on confirmation, while keeping presets versionless and catalogue warnings advisory.

@@ -239,7 +239,7 @@ Release gates:
 - Passed: real 1.18/1.21 stored-biome boundary checks on disposable normal-terrain copies; preview hashes stayed unchanged, selected-biome matches reached zero after execution, and control-biome counts were unchanged.
 - User game pass completed load/save/reload, state, container, heightmap, log checks, and the focused 1.21 adjacent-ring relight rerun after execution began saving the existing one-chunk square ring solely for relight invalidation.
 - Passed at file level and by user game load on disposable Minecraft 26.3 snapshot 3 copies: biome + Y preview, preview non-mutation, Change/Force parity, selection-only block boundaries, and game load/reload.
-- Phase 6 and B-class release hardening are complete. The new focused catalogue-switch reset UI rerun is pending user validation and is not covered by the earlier historical pass evidence.
+- Phase 6 and B-class release hardening are complete. The focused five-catalogue switch/reset `UI-CATALOG` rerun passed by user report on 2026-07-17, including direct empty switching, Cancel preservation, Confirm full reset, saved-preset survival, non-blocking exact-ID advisories, and regex-source protection.
 
 Any failed gate is fixed on the feature branch, receives the narrowest practical automated regression, and reruns both its focused checks and the final full gate. Phase 6 must not be marked complete while a required UI or copied-world gate remains blocked.
 

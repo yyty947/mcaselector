@@ -61,7 +61,7 @@ Phase 6 execution record:
 | `WORLD-18` / `WORLD-21` game checks | Passed | User game pass and log review, 2026-07-12/13 | Selected chunks and the adjacent one-chunk ring relit correctly after execution saved existing ring chunks with the version-specific relight flag cleared |
 | `WORLD-LATEST` | Passed | 26.3 snapshot 3 disposable copies, 2026-07-12/13 | File checks passed and the user completed the copied-world game load/reload; source world remained read-only |
 | B-class release hardening | Passed | Windows 11, Adoptium Java 21, 2026-07-17 | 134 tests passed; translation check produced no missing keys; `build shadowJar` succeeded with parser/diagnostic unification, catalogue compatibility, preset rollback, ReplaceBlocks-only region abort, and context-read call-count regressions |
-| `UI-CATALOG` | **Pending** | User-run Builder check | New five-catalogue switch/reset behavior has automated coverage but has not yet received the focused user-run UI acceptance; do not reuse the historical Phase 6/B-class pass |
+| `UI-CATALOG` | Passed | User report, 2026-07-17 | Five-catalogue checks passed: empty switching was direct; Cancel preserved the old catalogue and all work; Confirm selected the new catalogue and fully reset the Builder; saved presets survived; exact out-of-catalogue custom-preset IDs warned without blocking; regex sources were not misclassified |
 
 ### Phase 6 copied-world evidence
 
