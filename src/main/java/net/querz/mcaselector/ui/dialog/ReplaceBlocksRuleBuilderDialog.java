@@ -1,7 +1,6 @@
 package net.querz.mcaselector.ui.dialog;
 
 import javafx.application.Platform;
-import javafx.beans.InvalidationListener;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyStringWrapper;
@@ -19,10 +18,7 @@ import javafx.geometry.Pos;
 import javafx.geometry.Rectangle2D;
 import javafx.geometry.VPos;
 import javafx.scene.Node;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.control.skin.ComboBoxListViewSkin;
-import javafx.scene.control.skin.VirtualFlow;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
@@ -38,7 +34,6 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
-import javafx.stage.Window;
 import javafx.stage.StageStyle;
 import net.querz.mcaselector.changer.fields.ReplaceBlocksField;
 import net.querz.mcaselector.config.ConfigProvider;
@@ -79,9 +74,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private final Stage primaryStage;
 	private final TileMap tileMap;
 	private final boolean selectionOnly;
-	private final BlockStateCatalog catalog = BlockStateCatalog.latestJava();
+	private final ReplaceBlocksCatalogModel catalogModel = new ReplaceBlocksCatalogModel(BlockStateCatalog.available());
+	private BlockStateCatalog catalog = catalogModel.selected();
 	private final ObservableList<String> blockNames = FXCollections.observableArrayList(catalog.blockNames().stream().sorted().collect(Collectors.toList()));
 	private final ObservableList<String> biomeCatalogNames = FXCollections.observableArrayList(BiomeRegistry.names().stream().sorted().collect(Collectors.toList()));
+	private final ReplaceBlocksPresetRepository presetRepository = new ReplaceBlocksPresetRepository(
+			ConfigProvider.GLOBAL.getReplaceBlocksUserPresets(), ConfigProvider.GLOBAL::saveWithResult);
 	private final BlockInput from = new BlockInput(true);
 	private final BlockInput to = new BlockInput(false);
 	private final ComboBox<PresetItem> presets = new ComboBox<>();
@@ -262,7 +260,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		advanced.managedProperty().bind(advanced.visibleProperty());
 		Label rulesLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_RULES);
 		Label resultLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_RESULT);
-		content.getChildren().addAll(presetInput, input, rulesLabel, rulesArea, ruleActions, resultLabel, result, validation, advanced);
+		content.getChildren().addAll(presetInput, createCatalogControl(), input, rulesLabel, rulesArea, ruleActions, resultLabel, result, validation, advanced);
 		VBox.setMargin(rulesLabel, new Insets(8, 0, 0, 0));
 		VBox.setVgrow(rulesArea, Priority.ALWAYS);
 		contentLayer.getChildren().setAll(content, ruleMarquee);
@@ -286,6 +284,35 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		constraints.setHgrow(Priority.NEVER);
 		constraints.setFillWidth(false);
 		return constraints;
+	}
+
+	private Node createCatalogControl() {
+		Label label = new Label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG.toString());
+		if (catalogModel.catalogs().size() <= 1) {
+			Label version = new Label(catalogModel.label(catalog));
+			version.getStyleClass().add("replace-blocks-builder-catalog-version");
+			return new HBox(8, label, version);
+		}
+		ComboBox<BlockStateCatalog> selector = new ComboBox<>(FXCollections.observableArrayList(catalogModel.catalogs()));
+		selector.setConverter(new javafx.util.StringConverter<>() {
+			@Override public String toString(BlockStateCatalog value) {
+				return value == null ? "" : catalogModel.label(value);
+			}
+			@Override public BlockStateCatalog fromString(String value) {
+				return null;
+			}
+		});
+		selector.setValue(catalog);
+		configureBuilderComboBox(selector);
+		selector.valueProperty().addListener((observable, oldCatalog, newCatalog) -> {
+			if (newCatalog != null && catalogModel.select(newCatalog.version())) {
+				catalog = catalogModel.selected();
+				blockNames.setAll(catalog.blockNames().stream().sorted().toList());
+				from.catalogChanged();
+				to.catalogChanged();
+			}
+		});
+		return new HBox(8, label, selector);
 	}
 
 	private void applyPreset(ActionEvent event) {
@@ -357,18 +384,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			showPresetMessage(Alert.AlertType.WARNING, Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_BUILTIN_LOCKED.toString());
 			return;
 		}
-		List<GlobalConfig.ReplaceBlocksUserPreset> userPresets = ConfigProvider.GLOBAL.getReplaceBlocksUserPresets();
 		int existing = findUserPreset(name);
 		if (existing >= 0 && !confirmPresetOverwrite(name)) {
 			return;
 		}
-		GlobalConfig.ReplaceBlocksUserPreset saved = new GlobalConfig.ReplaceBlocksUserPreset(name, value);
-		if (existing >= 0) {
-			userPresets.set(existing, saved);
-		} else {
-			userPresets.add(saved);
+		if (!presetRepository.save(name, value)) {
+			showPresetMessage(Alert.AlertType.ERROR, Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_PERSIST_FAILED.toString());
+			return;
 		}
-		ConfigProvider.GLOBAL.save();
 		refreshPresetItems(name);
 		showMessage(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_SAVED.format(name));
 	}
@@ -381,8 +404,10 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		if (!confirmPresetDelete(preset.name())) {
 			return;
 		}
-		ConfigProvider.GLOBAL.getReplaceBlocksUserPresets().removeIf(p -> p.name().equals(preset.name()));
-		ConfigProvider.GLOBAL.save();
+		if (!presetRepository.delete(preset.name())) {
+			showPresetMessage(Alert.AlertType.ERROR, Translation.DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_PERSIST_FAILED.toString());
+			return;
+		}
 		refreshPresetItems(null);
 		updatePresetButtons();
 	}
@@ -732,62 +757,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private String formatPreviewResult(ReplaceBlocksPreviewer.Result result) {
-		StringBuilder builder = new StringBuilder(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_RESULT.format(
-				result.getScannedRegions(),
-				result.getScannedChunks(),
-				result.getAffectedChunks(),
-				result.getAffectedSections(),
-				result.getMatchedBlocks(),
-				result.getTileEntityAdditions(),
-				result.getTileEntityRemovals(),
-				result.getTileEntityUpdates()
-		));
-		appendPreviewRules(builder, result);
-		if (result.getOverlappingBlocks() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_OVERLAP.format(result.getOverlappingBlocks()));
-		}
-		if (result.replacesAir()) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_AIR.format(result.getCompletedAirSections()));
-		}
-		if (result.replacesWithTileEntity() || result.getTileEntityAdditions() > 0 || result.getTileEntityRemovals() > 0 || result.getTileEntityUpdates() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_TILE.toString());
-		}
-		if (result.getLightSections() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_LIGHT.format(result.getLightSections()));
-		}
-		if (result.getPotentialAdjacentRelightChunks() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_ADJACENT_RELIGHT.format(
-					result.getPotentialAdjacentRelightChunks()));
-		}
-		if (result.getAffectedChunks() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_HEIGHTMAPS.format(result.getAffectedChunks()));
-		}
-		if (result.getUnsupportedChunks() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_UNSUPPORTED.format(result.getUnsupportedChunks()));
-		}
-		if (result.getErrorChunks() > 0 || result.getErrorRegions() > 0) {
-			builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_WARNING_ERRORS.format(result.getErrorChunks(), result.getErrorRegions()));
-			for (String error : result.getErrors()) {
-				builder.append("\n").append(error);
-			}
-		}
-		return builder.toString();
-	}
-
-	private void appendPreviewRules(StringBuilder builder, ReplaceBlocksPreviewer.Result result) {
-		if (result.getRules().isEmpty()) {
-			return;
-		}
-		builder.append("\n\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_RULES.toString());
-		for (ReplaceBlocksPreviewer.RulePreview rule : result.getRules()) {
-			builder.append("\n").append(Translation.DIALOG_REPLACE_BLOCKS_PREVIEW_RULE.format(
-					rule.getIndex(),
-					rule.getSourceMode(),
-					rule.getSourceText(),
-					rule.getTargetText(),
-					rule.getBlocks()
-			));
-		}
+		return ReplaceBlocksPreviewFormatter.format(result);
 	}
 
 	private void updateRulesTableHeight() {
@@ -809,10 +779,15 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			showDiagnostic(ReplaceBlocksDiagnostics.builderDuplicate());
 			return;
 		}
+		ReplaceBlocksDiagnostics.Diagnostic compatibilityWarning = toName.diagnostic().isWarning()
+				? toName.diagnostic() : fromName.diagnostic();
 		ruleItems.add(new Rule(fromName.value(), toName.value()));
 		from.clear();
 		to.clear();
 		updateResult();
+		if (compatibilityWarning.isWarning()) {
+			showDiagnostic(compatibilityWarning);
+		}
 		clearPresetSelectionAfterEdit();
 		from.focusInput();
 	}
@@ -854,297 +829,63 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	static boolean isAutocompletePopupKey(KeyCode code) {
-		return code == KeyCode.UP
-				|| code == KeyCode.DOWN
-				|| code == KeyCode.PAGE_UP
-				|| code == KeyCode.PAGE_DOWN
-				|| code == KeyCode.ENTER
-				|| code == KeyCode.TAB;
+		return ReplaceBlocksAutocomplete.isPopupKey(code);
 	}
 
 	static int popupSelectionTarget(KeyCode code, int selectedIndex, int itemCount, int visibleRows) {
-		if (itemCount <= 0) {
-			return -1;
-		}
-		int current = selectedIndex < 0 ? 0 : selectedIndex;
-		return switch (code) {
-			case UP -> Math.max(0, selectedIndex < 0 ? itemCount - 1 : current - 1);
-			case DOWN -> Math.min(itemCount - 1, selectedIndex < 0 ? 0 : current + 1);
-			case PAGE_UP -> Math.max(0, current - Math.max(1, visibleRows - 1));
-			case PAGE_DOWN -> Math.min(itemCount - 1, current + Math.max(1, visibleRows - 1));
-			default -> -1;
-		};
+		return ReplaceBlocksAutocomplete.selectionTarget(code, selectedIndex, itemCount, visibleRows);
 	}
 
 	static boolean focusPopupSuggestion(ComboBox<?> comboBox, int index) {
-		if (comboBox == null || index < -1
-				|| !(comboBox.getSkin() instanceof ComboBoxListViewSkin<?> skin)
-				|| !(skin.getPopupContent() instanceof ListView<?> popup)
-				|| index >= popup.getItems().size()) {
-			return false;
-		}
-		popup.getSelectionModel().clearSelection();
-		popup.getFocusModel().focus(-1);
-		applyPopupSuggestionHighlight(popup, index);
-		if (index < 0) {
-			return true;
-		}
-		PopupVisibleRange range = popupVisibleRange(popup);
-		boolean reveal = range == null || popupNeedsReveal(index, range.first(), range.last());
-		if (reveal) {
-			popup.scrollTo(index);
-			Platform.runLater(() -> {
-				if (Objects.equals(popup.getProperties().get(AUTOCOMPLETE_HIGHLIGHT_INDEX), index)) {
-					applyPopupSuggestionHighlight(popup, index);
-				}
-			});
-		}
-		return true;
-	}
-
-	private static PopupVisibleRange popupVisibleRange(ListView<?> popup) {
-		if (!(popup.lookup(".virtual-flow") instanceof VirtualFlow<?> flow)) {
-			return null;
-		}
-		IndexedCell<?> first = flow.getFirstVisibleCell();
-		IndexedCell<?> last = flow.getLastVisibleCell();
-		if (first == null || last == null) {
-			return null;
-		}
-		int firstFullyVisible = first.getIndex();
-		int lastFullyVisible = last.getIndex();
-		Node viewport = flow.lookup(".clipped-container");
-		if (viewport != null) {
-			Bounds viewportBounds = viewport.getBoundsInLocal();
-			Bounds firstBounds = viewport.sceneToLocal(first.localToScene(first.getBoundsInLocal()));
-			Bounds lastBounds = viewport.sceneToLocal(last.localToScene(last.getBoundsInLocal()));
-			if (!isPopupCellFullyVisible(firstBounds, viewportBounds)) {
-				firstFullyVisible++;
-			}
-			if (!isPopupCellFullyVisible(lastBounds, viewportBounds)) {
-				lastFullyVisible--;
-			}
-		}
-		return new PopupVisibleRange(firstFullyVisible, lastFullyVisible);
+		return ReplaceBlocksAutocomplete.focusSuggestion(comboBox, index);
 	}
 
 	private static int popupVisibleRowCount(ComboBox<?> comboBox, int fallback) {
-		if (comboBox.getSkin() instanceof ComboBoxListViewSkin<?> skin
-				&& skin.getPopupContent() instanceof ListView<?> popup) {
-			PopupVisibleRange range = popupVisibleRange(popup);
-			if (range != null) {
-				return popupPageSize(range.first(), range.last(), fallback);
-			}
-		}
-		return Math.max(1, fallback);
+		return ReplaceBlocksAutocomplete.visibleRowCount(comboBox, fallback);
 	}
 
 	static boolean popupNeedsReveal(int target, int firstVisible, int lastVisible) {
-		return target < firstVisible || target > lastVisible;
+		return ReplaceBlocksAutocomplete.needsReveal(target, firstVisible, lastVisible);
 	}
 
 	static int popupPageSize(int firstVisible, int lastVisible, int fallback) {
-		int visible = lastVisible - firstVisible + 1;
-		return visible > 0 ? visible : Math.max(1, fallback);
+		return ReplaceBlocksAutocomplete.pageSize(firstVisible, lastVisible, fallback);
 	}
 
 	static boolean isPopupCellFullyVisible(Bounds cellBounds, Bounds viewportBounds) {
-		return cellBounds.getMinY() >= viewportBounds.getMinY() - 0.5
-				&& cellBounds.getMaxY() <= viewportBounds.getMaxY() + 0.5;
+		return ReplaceBlocksAutocomplete.isCellFullyVisible(cellBounds, viewportBounds);
 	}
 
 	static List<String> suggestionsForQuery(List<String> names, String query, boolean allowEmpty) {
-		String text = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
-		if (text.isEmpty()) {
-			return allowEmpty ? List.copyOf(names) : List.of();
-		}
-		return names.stream()
-				.filter(name -> matchesSuggestion(name, text))
-				.toList();
-	}
-
-	private static boolean matchesSuggestion(String name, String query) {
-		if (name.contains(query)) {
-			return true;
-		}
-		int namespace = name.indexOf(':');
-		return namespace >= 0 && name.substring(namespace + 1).contains(query);
+		return ReplaceBlocksAutocomplete.suggestions(names, query, allowEmpty);
 	}
 
 	static boolean isComboBoxArrowTarget(Object target) {
-		Node node = target instanceof Node n ? n : null;
-		while (node != null) {
-			if (node.getStyleClass().contains("arrow-button")) {
-				return true;
-			}
-			node = node.getParent();
-		}
-		return false;
-	}
-
-	private static void applyPopupSuggestionHighlight(ListView<?> popup, int index) {
-		popup.getProperties().put(AUTOCOMPLETE_HIGHLIGHT_INDEX, index);
-		for (Node node : popup.lookupAll(".list-cell")) {
-			if (node instanceof IndexedCell<?> cell) {
-				cell.pseudoClassStateChanged(autocompleteHighlighted,
-						isAutocompleteCellHighlighted(cell.getIndex(), index, cell.isEmpty()));
-			}
-		}
+		return ReplaceBlocksAutocomplete.isArrowTarget(target);
 	}
 
 	static boolean isAutocompleteCellHighlighted(int cellIndex, int highlightIndex, boolean empty) {
-		return !empty && cellIndex == highlightIndex;
+		return ReplaceBlocksAutocomplete.isCellHighlighted(cellIndex, highlightIndex, empty);
 	}
 
 	static boolean shouldClearExplicitCatalog(boolean explicitCatalog, boolean showing, String editorText) {
-		return explicitCatalog && !showing && (editorText == null || editorText.isBlank());
+		return ReplaceBlocksAutocomplete.shouldClearExplicitCatalog(explicitCatalog, showing, editorText);
 	}
 
 	static void clearEmptyExplicitCatalog(ComboBox<?> comboBox) {
-		String editorText = comboBox.getEditor() == null ? null : comboBox.getEditor().getText();
-		if (!shouldClearExplicitCatalog(true, comboBox.isShowing(), editorText)) {
-			return;
-		}
-		comboBox.getItems().clear();
-		comboBox.getSelectionModel().clearSelection();
-		comboBox.setValue(null);
+		ReplaceBlocksAutocomplete.clearEmptyExplicitCatalog(comboBox);
 	}
 
 	private static void clearPopupSuggestionHighlight(ComboBox<?> comboBox) {
-		if (comboBox.getSkin() instanceof ComboBoxListViewSkin<?> skin
-				&& skin.getPopupContent() instanceof ListView<?> popup) {
-			applyPopupSuggestionHighlight(popup, -1);
-		}
+		ReplaceBlocksAutocomplete.clearHighlight(comboBox);
 	}
 
 	static void installAutocompletePopupKeyFilter(ComboBox<?> comboBox, EventHandler<KeyEvent> handler) {
-		AutocompletePopupPositionTracker positionTracker = new AutocompletePopupPositionTracker(comboBox);
-		comboBox.addEventHandler(ComboBoxBase.ON_SHOWN, event -> {
-			focusPopupSuggestion(comboBox, -1);
-			positionTracker.attach();
-		});
-		comboBox.addEventHandler(ComboBoxBase.ON_HIDDEN, event -> positionTracker.detach());
-		comboBox.skinProperty().addListener((observable, oldSkin, newSkin) ->
-				installAutocompletePopupKeyFilter(newSkin, handler));
-		installAutocompletePopupKeyFilter(comboBox.getSkin(), handler);
-	}
-
-	private static final class AutocompletePopupPositionTracker {
-
-		private static final double POSITION_EPSILON = 0.5;
-
-		private final ComboBox<?> comboBox;
-		private final InvalidationListener geometryListener = observable -> stabilize();
-		private ListView<?> popupContent;
-		private Window popupWindow;
-		private boolean stabilizing;
-		private boolean stabilizationPending;
-
-		private AutocompletePopupPositionTracker(ComboBox<?> comboBox) {
-			this.comboBox = comboBox;
-		}
-
-		private void attach() {
-			detach();
-			popupContent = popupContent(comboBox);
-			if (popupContent == null || popupContent.getScene() == null) {
-				popupContent = null;
-				return;
-			}
-			popupWindow = popupContent.getScene().getWindow();
-			if (popupWindow == null) {
-				popupContent = null;
-				return;
-			}
-			popupContent.heightProperty().addListener(geometryListener);
-			popupWindow.heightProperty().addListener(geometryListener);
-			popupWindow.yProperty().addListener(geometryListener);
-			stabilize();
-		}
-
-		private void detach() {
-			if (popupContent != null) {
-				popupContent.heightProperty().removeListener(geometryListener);
-				popupContent = null;
-			}
-			if (popupWindow != null) {
-				popupWindow.heightProperty().removeListener(geometryListener);
-				popupWindow.yProperty().removeListener(geometryListener);
-				popupWindow = null;
-			}
-			stabilizationPending = false;
-		}
-
-		private void stabilize() {
-			if (stabilizing) {
-				stabilizationPending = true;
-				return;
-			}
-			do {
-				stabilizationPending = false;
-				Window window = popupWindow;
-				ListView<?> popup = popupContent;
-				if (window == null || popup == null || !comboBox.isShowing()) {
-					return;
-				}
-				Bounds comboBounds = comboBox.localToScreen(comboBox.getBoundsInLocal());
-				Bounds popupBounds = popup.localToScreen(popup.getLayoutBounds());
-				if (comboBounds == null || popupBounds == null
-						|| popupBounds.getMinY() >= comboBounds.getMinY()) {
-					return;
-				}
-				// JavaFX can resize the visible content without updating the popup window's outer height.
-				double correction = comboBounds.getMinY() - popupBounds.getMaxY();
-				if (Math.abs(correction) <= POSITION_EPSILON) {
-					continue;
-				}
-				stabilizing = true;
-				try {
-					window.setY(window.getY() + correction);
-				} finally {
-					stabilizing = false;
-				}
-			} while (stabilizationPending);
-		}
-	}
-
-	private static ListView<?> popupContent(ComboBox<?> comboBox) {
-		if (comboBox != null && comboBox.getSkin() instanceof ComboBoxListViewSkin<?> skin
-				&& skin.getPopupContent() instanceof ListView<?> popup) {
-			return popup;
-		}
-		return null;
+		ReplaceBlocksAutocomplete.installPopupKeyFilter(comboBox, handler);
 	}
 
 	static void configureBuilderComboBox(ComboBox<?> comboBox) {
-		comboBox.skinProperty().addListener((observable, oldSkin, newSkin) -> configureBuilderComboBox(newSkin));
-		configureBuilderComboBox(comboBox.getSkin());
-	}
-
-	private static void configureBuilderComboBox(Skin<?> skin) {
-		if (skin instanceof ComboBoxListViewSkin<?> comboBoxSkin
-				&& comboBoxSkin.getPopupContent() instanceof ListView<?> popup
-				&& !popup.getStyleClass().contains("replace-blocks-builder-dropdown")) {
-			popup.getStyleClass().add("replace-blocks-builder-dropdown");
-		}
-	}
-
-	private static void installAutocompletePopupKeyFilter(Skin<?> skin, EventHandler<KeyEvent> handler) {
-		if (skin instanceof ComboBoxListViewSkin<?> comboBoxSkin
-				&& comboBoxSkin.getPopupContent() instanceof ListView<?> popup) {
-			popup.sceneProperty().addListener((observable, oldScene, newScene) -> {
-				if (oldScene != null) {
-					oldScene.removeEventFilter(KeyEvent.KEY_PRESSED, handler);
-				}
-				if (newScene != null) {
-					newScene.addEventFilter(KeyEvent.KEY_PRESSED, handler);
-				}
-			});
-			Scene scene = popup.getScene();
-			if (scene != null) {
-				scene.addEventFilter(KeyEvent.KEY_PRESSED, handler);
-			}
-		}
+		ReplaceBlocksAutocomplete.configure(comboBox);
 	}
 
 	static List<Integer> intersectingRuleIndices(Rectangle2D marquee, List<VisibleRuleBounds> rows) {
@@ -1162,8 +903,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	static String normalizeRulesValue(String value) {
-		ReplaceBlocksField field = new ReplaceBlocksField();
-		return ReplaceBlocksDiagnostics.parseReplaceBlocksValue(field, value) ? field.valueToString() : null;
+		return ReplaceBlocksRuleBuilderModel.normalizeRulesValue(value);
 	}
 
 	static ParsedRule parseEditableRule(String from, String to) {
@@ -1172,11 +912,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private static ParsedRule parseSingleRule(String value) {
-		ReplaceBlocksField field = new ReplaceBlocksField();
-		if (!ReplaceBlocksDiagnostics.parseReplaceBlocksValue(field, value) || field.getNewValue().isEmpty()) {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> rules =
+				ReplaceBlocksRuleBuilderModel.parseRules(value);
+		if (rules.isEmpty()) {
 			return null;
 		}
-		Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> parsed = field.getNewValue().entrySet().iterator().next();
+		Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> parsed = rules.entrySet().iterator().next();
 		return new ParsedRule(parsed.getKey(), parsed.getValue());
 	}
 
@@ -1185,11 +926,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			return List.of();
 		}
 		List<Rule> parsed = new ArrayList<>();
-		ReplaceBlocksField field = new ReplaceBlocksField();
-		if (!ReplaceBlocksDiagnostics.parseReplaceBlocksValue(field, initialValue)) {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> rules =
+				ReplaceBlocksRuleBuilderModel.parseRules(initialValue);
+		if (rules.isEmpty()) {
 			return List.of();
 		}
-		for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> rule : field.getNewValue().entrySet()) {
+		for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> rule : rules.entrySet()) {
 			parsed.add(new Rule(rule.getKey().toString(), rule.getValue().toString()));
 		}
 		return List.copyOf(parsed);
@@ -1370,9 +1112,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		return values;
 	}
 
-	private class BlockInput extends VBox {
+	private class BlockInput extends ReplaceBlocksBlockInput {
 
-		private final boolean source;
 		private final ComboBox<String> block = new ComboBox<>();
 		private final ObservableList<String> blockSuggestions = FXCollections.observableArrayList();
 		private final ComboBox<SourceTileMode> tileEntityMode = new ComboBox<>();
@@ -1395,7 +1136,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		private boolean biomeExplicitCatalog;
 
 		private BlockInput(boolean source) {
-			this.source = source;
+			super(source, catalog);
 			getStyleClass().add("replace-blocks-builder-block");
 			addEventFilter(KeyEvent.KEY_PRESSED, this::handleAutocompleteKeyPressed);
 			setMaxWidth(Double.MAX_VALUE);
@@ -1519,18 +1260,31 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			if (generated == null) {
 				return new ValueResult(null, ReplaceBlocksDiagnostics.builderInvalid());
 			}
+			ReplaceBlocksDiagnostics.Diagnostic catalogDiagnostic = catalogDiagnostic();
 			if (!source && generated.contains(";")) {
 				ReplaceBlocksField field = new ReplaceBlocksField();
 				boolean valid = ReplaceBlocksDiagnostics.parseReplaceBlocksValue(field, "minecraft:stone=" + generated);
-				return new ValueResult(generated, valid ? ReplaceBlocksDiagnostics.none() : ReplaceBlocksDiagnostics.builderInvalid());
+				return new ValueResult(generated, valid ? catalogDiagnostic : ReplaceBlocksDiagnostics.builderInvalid());
 			}
 			if (source && isSourceModeExpression(generated)) {
 				ReplaceBlocksField field = new ReplaceBlocksField();
 				boolean valid = ReplaceBlocksDiagnostics.parseReplaceBlocksValue(field, generated + "=minecraft:stone");
-				return new ValueResult(generated, valid ? ReplaceBlocksDiagnostics.none() : ReplaceBlocksDiagnostics.builderInvalid());
+				return new ValueResult(generated, valid ? catalogDiagnostic : ReplaceBlocksDiagnostics.builderInvalid());
 			}
 			ReplaceBlocksDiagnostics.NameResult normalized = ReplaceBlocksDiagnostics.normalizeBuilderValue(generated, source);
-			return new ValueResult(normalized.name(), normalized.diagnostic());
+			return new ValueResult(normalized.name(), normalized.diagnostic().isError()
+					? normalized.diagnostic() : catalogDiagnostic);
+		}
+
+		private ReplaceBlocksDiagnostics.Diagnostic catalogDiagnostic() {
+			return catalogDiagnostic(currentText());
+		}
+
+		private void catalogChanged() {
+			setCatalog(catalog);
+			String text = currentText();
+			updateBlockSuggestions(text);
+			rebuildProperties(text);
 		}
 
 		private String generatedValue() {
@@ -2306,8 +2060,6 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	record ParsedRule(ChunkFilter.BlockReplaceSource source, ChunkFilter.BlockReplaceData target) {}
 
 	record Rule(String from, String to) {}
-
-	private record PopupVisibleRange(int first, int last) {}
 
 	record VisibleRuleBounds(int index, Rectangle2D bounds) {}
 

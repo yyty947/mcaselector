@@ -30,4 +30,23 @@ class ReplaceBlocksParserTest {
 		assertEquals("minecraft:future_block", success.rules().get(0).source().getName());
 		assertEquals("minecraft:future_target", success.rules().get(0).target().getName());
 	}
+
+	@Test
+	void rejectsInvalidLegacyRegexBeforeExecution() {
+		ReplaceBlocksParser.Result result = ReplaceBlocksParser.parse(
+				"'minecraft:['=minecraft:stone");
+
+		ReplaceBlocksParser.Failure failure = assertInstanceOf(ReplaceBlocksParser.Failure.class, result);
+		assertEquals("INVALID_REGEX", failure.error().code().name());
+		assertEquals(0, failure.error().offset());
+	}
+
+	@Test
+	void reportsInvalidTargetTileSeparatelyFromInvalidTarget() {
+		ReplaceBlocksParser.Result result = ReplaceBlocksParser.parse(
+				"literal(minecraft:stone)=minecraft:barrel;not_snbt");
+
+		ReplaceBlocksParser.Failure failure = assertInstanceOf(ReplaceBlocksParser.Failure.class, result);
+		assertEquals(ReplaceBlocksParser.ErrorCode.INVALID_TILE, failure.error().code());
+	}
 }

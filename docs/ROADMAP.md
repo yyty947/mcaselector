@@ -1,7 +1,7 @@
 # ReplaceBlocks Roadmap
 
 Date: 2026-06-04
-Last updated: 2026-07-08
+Last updated: 2026-07-17
 
 This roadmap is the current source of truth for ReplaceBlocks feature sequencing. The older linear phase list has been replaced with a dependency-driven route so later semantic work does not force repeated rewrites.
 
@@ -14,7 +14,7 @@ Implemented:
 - Phase 3: non-mutating preview/dry-run for modern 1.18+ chunk formats; unsupported older preview chunks are reported instead of guessed.
 - Phase 4: exact source block-state SNBT matching.
 - Phase 4A: Java 1.21.9 block-state catalog foundation.
-- Phase 4B: property-aware builder UI backed by `BlockStateCatalog.latestJava()`.
+- Phase 4B: property-aware builder UI backed by an indexed, version-labelled block-state catalogue. The latest catalogue is selected by default and future multi-catalogue bundles support manual selection.
 - Gate A: source matching design for Phase 4C/4D is decided in `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.
 - Phase 4C/4D: explicit source modes implemented with `regex(...)`, `literal(...)`, and `props(...)`.
 - Phase 4E: tile/block entity source safety controls implemented with `tile(...)` and `no_tile(...)`; target tile replacement now removes existing block entities at the target coordinates before adding replacement tile SNBT. The Builder labels this as an "Extra NBT" source condition and includes an extensible Help dialog for this and future Builder explanations.
@@ -23,10 +23,12 @@ Implemented:
 - Phase 4F-2: biome restrictions implemented with `biome(<biome>[;<biome>...], source)`, Builder source biome input, parser diagnostics, preview counts, and modern 1.18+ execution filtering. Matching is block-position aware using the chunk biome value for the candidate block position; in modern chunks that value covers a 4x4x4 block cell.
 - Phase 4G: Builder presets implemented for common replacement starting points. Built-in presets fill visible From/To and source condition controls, keep the generated rules editable before adding, and show warnings for air and container/data-block cases. Custom presets save the selected rule, otherwise the current valid draft, otherwise all table rules; loading appends non-duplicate rules without replacing current work.
 - UI polish: ReplaceBlocks field-row diagnostics are debounced, the main dialog defaults wide enough to show `Builder`, empty Builder inputs start blank without immediate empty-rule errors or empty-query full-list popups, Builder lists support mouse/Tab completion plus focused Up/Down/PageUp/PageDown/Enter/Esc navigation, property dropdowns support an `all`/`全部` option, the rules table supports Ctrl/Shift and empty-area marquee multi-selection for subset preset saving/deletion, and Preview now lives beside Help in the Builder.
+- Phase 6 release hardening: shared syntax parsing, parser-time regex rejection, cached regex patterns, forward-compatible catalogue warnings, ReplaceBlocks-only region aborts, preset persistence rollback, modern context fast paths, JavaFX autocomplete isolation, translations, packaging, and copied-world/game gates.
 
 Still not implemented:
 
-- Release hardening for broader copied-world regression coverage.
+- Automatic world-version catalogue selection and cross-version ID migration are intentionally out of scope.
+- Rich target block-entity editing remains an advanced-text workflow.
 
 ## Non-Negotiable Constraints
 

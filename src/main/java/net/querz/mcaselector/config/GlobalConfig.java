@@ -264,7 +264,11 @@ public class GlobalConfig extends Config {
 
 	@Override
 	public void save() {
-		save(gsonInstance, BASE_CONFIG_FILE);
+		saveWithResult();
+	}
+
+	public boolean saveWithResult() {
+		return saveWithResult(gsonInstance, BASE_CONFIG_FILE);
 	}
 
 	public static GlobalConfig load() {

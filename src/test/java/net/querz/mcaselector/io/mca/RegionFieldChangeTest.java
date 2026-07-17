@@ -22,6 +22,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RegionFieldChangeTest {
 
@@ -101,7 +102,43 @@ class RegionFieldChangeTest {
 		assertEquals(1, region.getRegion().getChunkAt(location).getData().getInt("testMarker"));
 	}
 
+	@Test
+	void replaceBlocksOnlyFailureAbortsTheRegionWithChunkCoordinates(@TempDir Path tempDir) throws IOException {
+		Point2i first = new Point2i(0, 0);
+		Point2i second = new Point2i(1, 0);
+		RegionDirectories directories = createRegion(tempDir, first,
+				modernRoot(first, "minecraft:stone"), second, modernRoot(second, "minecraft:stone"));
+		Region region = Region.loadRegionFile(directories);
+		Selection selection = new Selection();
+		selection.addChunk(first);
+		selection.addChunk(second);
+		ReplaceBlocksField throwing = new ReplaceBlocksField() {
+			private int calls;
+
+			@Override
+			public boolean applyWithResult(ChunkData data, boolean force) {
+				if (++calls == 2) {
+					throw new IllegalStateException("expected");
+				}
+				data.region().getData().putInt("testMarker", 1);
+				return true;
+			}
+		};
+
+		Region.FieldChangeException failure = assertThrows(Region.FieldChangeException.class,
+				() -> region.applyFieldChangesTracked(List.of(throwing), false, selection, () -> false));
+
+		assertEquals(second, failure.chunk());
+		Region reloaded = Region.loadRegionFile(directories);
+		assertFalse(reloaded.getRegion().getChunkAt(first).getData().containsKey("testMarker"));
+	}
+
 	private RegionDirectories createRegion(Path tempDir, Point2i chunkLocation, CompoundTag root) throws IOException {
+		return createRegion(tempDir, chunkLocation, root, null, null);
+	}
+
+	private RegionDirectories createRegion(Path tempDir, Point2i chunkLocation, CompoundTag root,
+			Point2i secondLocation, CompoundTag secondRoot) throws IOException {
 		Point2i regionLocation = chunkLocation.chunkToRegion();
 		File regionFile = tempDir.resolve("r." + regionLocation.getX() + "." + regionLocation.getZ() + ".mca").toFile();
 		RegionMCAFile mca = new RegionMCAFile(regionFile);
@@ -109,6 +146,12 @@ class RegionFieldChangeTest {
 		chunk.setData(root);
 		chunk.setCompressionType(CompressionType.ZLIB);
 		mca.setChunkAt(chunkLocation, chunk);
+		if (secondLocation != null) {
+			RegionChunk second = new RegionChunk(secondLocation);
+			second.setData(secondRoot);
+			second.setCompressionType(CompressionType.ZLIB);
+			mca.setChunkAt(secondLocation, second);
+		}
 		mca.saveWithTempFile();
 		return new RegionDirectories(regionLocation, regionFile, null, null);
 	}

@@ -141,7 +141,12 @@ public class ChunkFilter_21w43a {
 			if (tileEntities == null) {
 				tileEntities = new ListTag();
 			}
-			Set<String> sourceTileEntityLocations = getTileEntityLocations(tileEntities);
+			boolean needsTileContext = needsTileContext(replace);
+			boolean needsYContext = needsYContext(replace);
+			boolean needsBiomeContext = needsBiomeContext(replace);
+			Set<String> sourceTileEntityLocations = needsTileContext
+					? getTileEntityLocations(tileEntities)
+					: Collections.emptySet();
 
 			for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
 				boolean sectionChanged = false;
@@ -168,12 +173,17 @@ public class ChunkFilter_21w43a {
 
 				for (int i = 0; i < 4096; i++) {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
-					Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
-					boolean sourceHasTileEntity = sourceTileEntityLocations.contains(locationKey(location));
-					String biome = syntheticSectionsWithUnknownBiomes.contains(section) ? null : getBiomeAt(section, i);
+					int blockY = y * 16 + (i >>> 8);
+					int blockX = pos.getX() + (i & 15);
+					int blockZ = pos.getZ() + ((i >>> 4) & 15);
+					boolean sourceHasTileEntity = needsTileContext
+							&& sourceTileEntityLocations.contains(locationKey(blockX, blockY, blockZ));
+					String biome = needsBiomeContext && !syntheticSectionsWithUnknownBiomes.contains(section)
+							? getBiomeAt(section, i) : null;
 
 					for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-						if (!entry.getKey().matches(blockState, sourceHasTileEntity, location.getY(), biome)) {
+						if (!matchesSource(entry.getKey(), blockState, sourceHasTileEntity,
+								needsYContext ? blockY : 0, biome)) {
 							continue;
 						}
 						ChunkFilter.BlockReplaceData replacement = entry.getValue();
@@ -191,6 +201,7 @@ public class ChunkFilter_21w43a {
 						}
 
 						if (replacement.getTile() != null) {
+							Point3i location = new Point3i(blockX, blockY, blockZ);
 							removeTileEntitiesAt(tileEntities, location);
 							CompoundTag tile = replacement.getTile().copy();
 							tile.putInt("x", location.getX());
@@ -198,7 +209,7 @@ public class ChunkFilter_21w43a {
 							tile.putInt("z", location.getZ());
 							tileEntities.add(tile);
 						} else if (!tileEntities.isEmpty()) {
-							removeTileEntitiesAt(tileEntities, location);
+							removeTileEntitiesAt(tileEntities, new Point3i(blockX, blockY, blockZ));
 						}
 
 					}

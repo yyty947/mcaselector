@@ -30,7 +30,12 @@ public final class ReplaceBlocksParser {
 		String remaining = value.trim();
 		int offset = value.indexOf(remaining);
 		while (!remaining.isEmpty()) {
-			SourceReadResult source = readSource(remaining);
+			SourceReadResult source;
+			try {
+				source = readSource(remaining);
+			} catch (PatternSyntaxException ex) {
+				return failure(ErrorCode.INVALID_REGEX, offset, remaining);
+			}
 			if (source == null) {
 				return failure(ErrorCode.INVALID_SOURCE, offset, remaining);
 			}
@@ -40,7 +45,12 @@ public final class ReplaceBlocksParser {
 				return failure(ErrorCode.MISSING_EQUALS, targetOffset, targetText);
 			}
 
-			TargetReadResult target = readTarget(targetText.substring(1).trim());
+			TargetReadResult target;
+			try {
+				target = readTarget(targetText.substring(1).trim());
+			} catch (InvalidTileSyntaxException ex) {
+				return failure(ErrorCode.INVALID_TILE, targetOffset + 1, targetText);
+			}
 			if (target == null) {
 				return failure(ErrorCode.INVALID_TARGET, targetOffset + 1, targetText);
 			}
@@ -116,18 +126,18 @@ public final class ReplaceBlocksParser {
 		if (tail.startsWith(";")) {
 			String tileText = tail.substring(1).trim();
 			if (tileText.isEmpty()) {
-				return null;
+				throw new InvalidTileSyntaxException();
 			}
 			try {
 				SNBTParser parser = new SNBTParser(tileText);
 				Tag parsed = parser.parse(true);
 				if (!(parsed instanceof CompoundTag compound)) {
-					return null;
+					throw new InvalidTileSyntaxException();
 				}
 				tile = compound;
 				tail = tileText.substring(parser.getReadChars() - 1).trim();
 			} catch (ParseException | RuntimeException ex) {
-				return null;
+				throw new InvalidTileSyntaxException();
 			}
 		}
 
@@ -272,12 +282,7 @@ public final class ReplaceBlocksParser {
 			String name = normalizeResourceLocation(argument);
 			return name == null ? null : new SourceReadResult(ChunkFilter.BlockReplaceSource.literalName(name), end + 1);
 		}
-		try {
-			Pattern.compile(argument);
-			return new SourceReadResult(ChunkFilter.BlockReplaceSource.regexName(argument), end + 1);
-		} catch (PatternSyntaxException ex) {
-			return null;
-		}
+		return new SourceReadResult(ChunkFilter.BlockReplaceSource.regexName(argument), end + 1);
 	}
 
 	private static YRange parseYRange(String raw) {
@@ -382,12 +387,14 @@ public final class ReplaceBlocksParser {
 	public record ParseError(ErrorCode code, int offset, String token) {}
 
 	public enum ErrorCode {
-		EMPTY_VALUE, INVALID_SOURCE, MISSING_EQUALS, INVALID_TARGET, INVALID_TILE, TRAILING_INPUT
+		EMPTY_VALUE, INVALID_SOURCE, INVALID_REGEX, MISSING_EQUALS, INVALID_TARGET, INVALID_TILE, TRAILING_INPUT
 	}
 
 	private record SourceReadResult(ChunkFilter.BlockReplaceSource source, int read) {}
 
 	private record TargetReadResult(ChunkFilter.BlockReplaceData target, String tail) {}
+
+	private static final class InvalidTileSyntaxException extends RuntimeException {}
 
 	private record YRange(Integer minY, Integer maxY) {}
 }

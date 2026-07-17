@@ -424,6 +424,9 @@ public class Region {
 							replaceBlocksChangedChunks.add(absoluteLocation);
 						}
 					} catch (Exception ex) {
+						if (!preserveLegacySave) {
+							throw new FieldChangeException(absoluteLocation, ex);
+						}
 						LOGGER.warn("failed to apply field changes to chunk {}: {}", absoluteLocation, ex.getMessage());
 					}
 				}
@@ -465,6 +468,19 @@ public class Region {
 	}
 
 	public record FieldChangeResult(boolean dirty, Set<Point2i> replaceBlocksChangedChunks, boolean cancelled) {}
+
+	public static final class FieldChangeException extends RuntimeException {
+		private final Point2i chunk;
+
+		private FieldChangeException(Point2i chunk, Throwable cause) {
+			super("failed to apply ReplaceBlocks changes to chunk " + chunk, cause);
+			this.chunk = chunk;
+		}
+
+		public Point2i chunk() {
+			return chunk;
+		}
+	}
 
 	public record RelightResult(boolean dirty, boolean cancelled) {}
 

@@ -53,6 +53,25 @@ class ReplaceBlocksPreviewCountsTest {
 	}
 
 	@Test
+	void simpleRulesSkipBiomeAndTileLocationIndexesInPreviewAndExecution() {
+		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
+		replace.put(ChunkFilter.BlockReplaceSource.literalName("minecraft:stone"),
+				new ChunkFilter.BlockReplaceData("minecraft:dirt"));
+		CompoundTag root = root();
+		root.putInt("DataVersion", 2844);
+		root.put("sections", sections());
+		RegionChunk region = new RegionChunk(new Point2i(0, 0));
+		region.setData(root);
+		TrackingBlocks blocks = new TrackingBlocks();
+
+		blocks.preview(root, root.getListTag("sections"), replace);
+		blocks.replaceBlocks(new ChunkData(new Point2i(0, 0), region, null, null, true), replace);
+
+		assertEquals(0, blocks.biomeReads);
+		assertEquals(0, blocks.tileLocationIndexBuilds);
+	}
+
+	@Test
 	void sourceTileFiltersUseOriginalBlockEntityPresence() {
 		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace = new LinkedHashMap<>();
 		replace.put(
@@ -535,7 +554,7 @@ class ReplaceBlocksPreviewCountsTest {
 
 	private static class PreviewBlocks extends ChunkFilter_21w43a.Blocks {
 
-		private ChunkFilter.BlockReplacePreviewData preview(CompoundTag root, ListTag sections, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
+		protected ChunkFilter.BlockReplacePreviewData preview(CompoundTag root, ListTag sections, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
 			return previewReplaceBlocks(root, sections, "block_entities", replace);
 		}
 
@@ -547,6 +566,23 @@ class ReplaceBlocksPreviewCountsTest {
 			CompoundTag section = ((ListTag) root.get("sections")).getCompound(sectionIndex);
 			CompoundTag blockStates = section.getCompound("block_states");
 			return getBlockAt(index, blockStates.getLongArray("data"), blockStates.getListTag("palette")).getString("Name");
+		}
+	}
+
+	private static class TrackingBlocks extends PreviewBlocks {
+		private int biomeReads;
+		private int tileLocationIndexBuilds;
+
+		@Override
+		protected String getBiomeAt(CompoundTag section, int blockIndex) {
+			biomeReads++;
+			return super.getBiomeAt(section, blockIndex);
+		}
+
+		@Override
+		protected java.util.Set<String> getTileEntityLocations(ListTag tileEntities) {
+			tileLocationIndexBuilds++;
+			return super.getTileEntityLocations(tileEntities);
 		}
 	}
 

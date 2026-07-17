@@ -152,7 +152,7 @@ Implemented:
 
 - `ChangeNBTDialog` keeps the existing raw ReplaceBlocks field and advanced query.
 - `ReplaceBlocksRuleBuilderDialog` builds simple rules from `from` and `to` inputs.
-- `ReplaceBlocksRuleBuilderDialog` uses `BlockStateCatalog.latestJava()` for searchable from/to block selectors and property dropdown rows.
+- `ReplaceBlocksRuleBuilderDialog` defaults to the newest indexed block-state catalogue, displays its Java/DataVersion label, and can expose a manual selector when multiple catalogues are bundled. Catalogue changes affect suggestions only and preserve drafts/rules.
 - `ReplaceBlocksRuleBuilderDialog` exposes an additive source tile selector that generates `tile(...)` or `no_tile(...)`.
 - `ReplaceBlocksRuleBuilderDialog` exposes source min/max Y inputs that generate `y(min..max, source)` when either field is filled.
 - Builder inputs accept block IDs, unknown/modded resource locations, and block state SNBT.
@@ -160,6 +160,10 @@ Implemented:
 - `ReplaceBlocksRuleBuilderDialog` has a `Preview` button for ReplaceBlocks dry-run counts, per-rule matched block rows, and overlap warnings.
 - `ReplaceBlocksDiagnostics` surfaces common validation errors and regex warnings.
 - `BlockStateCatalog` provides the UI data source for vanilla block IDs and properties.
+- Syntactically valid future/modded IDs are accepted outside the selected catalogue with a non-blocking warning; parsing and execution do not depend on catalogue membership and do not migrate IDs.
+- ReplaceBlocks-only region processing aborts the save chain on the first chunk exception and reports that coordinate. Mixed-field processing retains legacy per-chunk continuation.
+- User preset save/delete/overwrite operations roll back their in-memory list if the global configuration write fails.
+- Modern simple rules bypass biome reads, source tile-location indexes, and per-block `Point3i` allocation; contextual rules still use the same matching semantics in preview and execution.
 
 ## Builder JavaFX input lessons
 

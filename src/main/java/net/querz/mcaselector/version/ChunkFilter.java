@@ -9,6 +9,7 @@ import net.querz.mcaselector.version.mapping.registry.StatusRegistry;
 import net.querz.nbt.*;
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 public interface ChunkFilter {
 
@@ -222,6 +223,7 @@ public interface ChunkFilter {
 		private final Integer minY;
 		private final Integer maxY;
 		private final Set<String> biomes;
+		private final Pattern pattern;
 
 		public BlockReplaceSource(String name) {
 			this.type = BlockReplaceSourceType.LEGACY_REGEX_NAME;
@@ -231,6 +233,7 @@ public interface ChunkFilter {
 			minY = null;
 			maxY = null;
 			biomes = Collections.emptySet();
+			pattern = Pattern.compile(name);
 		}
 
 		public BlockReplaceSource(CompoundTag state) {
@@ -241,9 +244,15 @@ public interface ChunkFilter {
 			minY = null;
 			maxY = null;
 			biomes = Collections.emptySet();
+			pattern = null;
 		}
 
 		private BlockReplaceSource(BlockReplaceSourceType type, BlockReplaceTileEntityMode tileEntityMode, String name, CompoundTag state, Integer minY, Integer maxY, Set<String> biomes) {
+			this(type, tileEntityMode, name, state, minY, maxY, biomes, null);
+		}
+
+		private BlockReplaceSource(BlockReplaceSourceType type, BlockReplaceTileEntityMode tileEntityMode, String name,
+				CompoundTag state, Integer minY, Integer maxY, Set<String> biomes, Pattern pattern) {
 			this.type = type;
 			this.tileEntityMode = tileEntityMode;
 			this.name = name;
@@ -251,6 +260,10 @@ public interface ChunkFilter {
 			this.minY = minY;
 			this.maxY = maxY;
 			this.biomes = biomes == null || biomes.isEmpty() ? Collections.emptySet() : Collections.unmodifiableSet(new LinkedHashSet<>(biomes));
+			this.pattern = pattern != null ? pattern : switch (type) {
+				case LEGACY_REGEX_NAME, REGEX_NAME -> Pattern.compile(name);
+				default -> null;
+			};
 		}
 
 		public static BlockReplaceSource regexName(String pattern) {
@@ -266,15 +279,16 @@ public interface ChunkFilter {
 		}
 
 		public BlockReplaceSource withTileEntityMode(BlockReplaceTileEntityMode tileEntityMode) {
-			return new BlockReplaceSource(type, tileEntityMode, name, state, minY, maxY, biomes);
+			return new BlockReplaceSource(type, tileEntityMode, name, state, minY, maxY, biomes, pattern);
 		}
 
 		public BlockReplaceSource withYRange(Integer minY, Integer maxY) {
-			return new BlockReplaceSource(type, tileEntityMode, name, state, minY, maxY, biomes);
+			return new BlockReplaceSource(type, tileEntityMode, name, state, minY, maxY, biomes, pattern);
 		}
 
 		public BlockReplaceSource withBiomes(Collection<String> biomes) {
-			return new BlockReplaceSource(type, tileEntityMode, name, state, minY, maxY, biomes == null ? Collections.emptySet() : new LinkedHashSet<>(biomes));
+			return new BlockReplaceSource(type, tileEntityMode, name, state, minY, maxY,
+					biomes == null ? Collections.emptySet() : new LinkedHashSet<>(biomes), pattern);
 		}
 
 		public boolean matches(CompoundTag blockState) {
@@ -307,7 +321,7 @@ public interface ChunkFilter {
 					return Objects.equals(name, blockName);
 				case LEGACY_REGEX_NAME:
 				case REGEX_NAME:
-					return blockName != null && blockName.matches(name);
+					return blockName != null && pattern.matcher(blockName).matches();
 				default:
 					return false;
 			}

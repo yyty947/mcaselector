@@ -144,7 +144,12 @@ public class ChunkFilter_21w37a {
 			if (tileEntities == null) {
 				tileEntities = new ListTag();
 			}
-			Set<String> sourceTileEntityLocations = getTileEntityLocations(tileEntities);
+			boolean needsTileContext = needsTileContext(replace);
+			boolean needsYContext = needsYContext(replace);
+			boolean needsBiomeContext = needsBiomeContext(replace);
+			Set<String> sourceTileEntityLocations = needsTileContext
+					? getTileEntityLocations(tileEntities)
+					: Collections.emptySet();
 
 			for (CompoundTag section : sections.iterateType(CompoundTag.class)) {
 				boolean sectionChanged = false;
@@ -171,12 +176,17 @@ public class ChunkFilter_21w37a {
 
 				for (int i = 0; i < 4096; i++) {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
-					Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
-					boolean sourceHasTileEntity = sourceTileEntityLocations.contains(locationKey(location));
-					String biome = syntheticSectionsWithUnknownBiomes.contains(section) ? null : getBiomeAt(section, i);
+					int blockY = y * 16 + (i >>> 8);
+					int blockX = pos.getX() + (i & 15);
+					int blockZ = pos.getZ() + ((i >>> 4) & 15);
+					boolean sourceHasTileEntity = needsTileContext
+							&& sourceTileEntityLocations.contains(locationKey(blockX, blockY, blockZ));
+					String biome = needsBiomeContext && !syntheticSectionsWithUnknownBiomes.contains(section)
+							? getBiomeAt(section, i) : null;
 
 					for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-						if (!entry.getKey().matches(blockState, sourceHasTileEntity, location.getY(), biome)) {
+						if (!matchesSource(entry.getKey(), blockState, sourceHasTileEntity,
+								needsYContext ? blockY : 0, biome)) {
 							continue;
 						}
 						ChunkFilter.BlockReplaceData replacement = entry.getValue();
@@ -194,6 +204,7 @@ public class ChunkFilter_21w37a {
 						}
 
 						if (replacement.getTile() != null) {
+							Point3i location = new Point3i(blockX, blockY, blockZ);
 							removeTileEntitiesAt(tileEntities, location);
 							CompoundTag tile = replacement.getTile().copy();
 							tile.putInt("x", location.getX());
@@ -201,7 +212,7 @@ public class ChunkFilter_21w37a {
 							tile.putInt("z", location.getZ());
 							tileEntities.add(tile);
 						} else if (!tileEntities.isEmpty()) {
-							removeTileEntitiesAt(tileEntities, location);
+							removeTileEntitiesAt(tileEntities, new Point3i(blockX, blockY, blockZ));
 						}
 
 					}
@@ -247,7 +258,13 @@ public class ChunkFilter_21w37a {
 				return result;
 			}
 
-			Set<String> tileEntityLocations = getTileEntityLocations(root, tileEntitiesKey);
+			boolean needsTileContext = needsTileContext(replace);
+			boolean needsYContext = needsYContext(replace);
+			boolean needsBiomeContext = needsBiomeContext(replace);
+			ListTag tileEntities = Helper.tagFromCompound(root, tileEntitiesKey);
+			Set<String> tileEntityLocations = needsTileContext
+					? getTileEntityLocations(tileEntities)
+					: Collections.emptySet();
 
 			if (replace.keySet().stream().anyMatch(ChunkFilter.BlockReplaceSource::matchesAir)) {
 				Map<Integer, CompoundTag> sectionMap = new HashMap<>();
@@ -303,9 +320,16 @@ public class ChunkFilter_21w37a {
 				long sectionMatches = 0;
 				for (int i = 0; i < 4096; i++) {
 					CompoundTag blockState = getBlockAt(i, blockStates, palette);
-					Point3i location = indexToLocation(i).add(pos.getX(), y * 16, pos.getZ());
-					String biome = getBiomeAt(section, i);
-					if (countMatchingBlock(blockState, replace, result, tileEntityLocations.contains(locationKey(location)), location.getY(), biome)) {
+					int blockY = y * 16 + (i >>> 8);
+					int blockX = pos.getX() + (i & 15);
+					int blockZ = pos.getZ() + ((i >>> 4) & 15);
+					String biome = needsBiomeContext ? getBiomeAt(section, i) : null;
+					boolean hasTileEntity = needsTileContext
+							? tileEntityLocations.contains(locationKey(blockX, blockY, blockZ))
+							: tileEntities != null && !tileEntities.isEmpty()
+							&& hasTileEntityAt(tileEntities, blockX, blockY, blockZ);
+					if (countMatchingBlock(blockState, replace, result, hasTileEntity,
+							needsYContext ? blockY : 0, biome)) {
 						sectionMatches++;
 					}
 				}
@@ -324,6 +348,33 @@ public class ChunkFilter_21w37a {
 
 		protected boolean sourceMayMatchSection(Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, int sectionY) {
 			return replace.keySet().stream().anyMatch(source -> source.intersectsSection(sectionY));
+		}
+
+		protected boolean needsTileContext(Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
+			return replace.keySet().stream().anyMatch(source ->
+					source.getTileEntityMode() != ChunkFilter.BlockReplaceTileEntityMode.ANY);
+		}
+
+		protected boolean needsYContext(Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
+			return replace.keySet().stream().anyMatch(source -> source.hasYRange() || source.hasBiomeRestriction());
+		}
+
+		protected boolean needsBiomeContext(Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace) {
+			return replace.keySet().stream().anyMatch(ChunkFilter.BlockReplaceSource::hasBiomeRestriction);
+		}
+
+		protected boolean matchesSource(ChunkFilter.BlockReplaceSource source, CompoundTag blockState,
+				boolean hasTileEntity, int y, String biome) {
+			if (source.hasBiomeRestriction()) {
+				return source.matches(blockState, hasTileEntity, y, biome);
+			}
+			if (source.hasYRange()) {
+				return source.matches(blockState, hasTileEntity, y);
+			}
+			if (source.getTileEntityMode() != ChunkFilter.BlockReplaceTileEntityMode.ANY) {
+				return source.matches(blockState, hasTileEntity);
+			}
+			return source.matches(blockState);
 		}
 
 		private long countSyntheticAirSection(CompoundTag section, int sectionY, Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> replace, ChunkFilter.BlockReplacePreviewData result) {
@@ -345,7 +396,7 @@ public class ChunkFilter_21w37a {
 			int matchedRules = 0;
 			int ruleIndex = 0;
 			for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> entry : replace.entrySet()) {
-				if (!entry.getKey().matches(blockState, hasTileEntity, y, biome)) {
+				if (!matchesSource(entry.getKey(), blockState, hasTileEntity, y, biome)) {
 					ruleIndex++;
 					continue;
 				}
@@ -415,6 +466,15 @@ public class ChunkFilter_21w37a {
 				}
 			}
 			return removed;
+		}
+
+		protected boolean hasTileEntityAt(ListTag tileEntities, int x, int y, int z) {
+			for (CompoundTag tile : tileEntities.iterateType(CompoundTag.class)) {
+				if (tile.getInt("x") == x && tile.getInt("y") == y && tile.getInt("z") == z) {
+					return true;
+				}
+			}
+			return false;
 		}
 
 		protected String locationKey(Point3i location) {

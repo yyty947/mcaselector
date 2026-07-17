@@ -1,7 +1,7 @@
 # ReplaceBlocks Test Plan
 
 Date: 2026-06-04
-Last updated: 2026-07-13
+Last updated: 2026-07-17
 
 Safety rule: never test on a real world save. Always copy a small test world and keep an untouched backup.
 
@@ -59,6 +59,7 @@ Phase 6 execution record:
 | Real biome boundary | Passed | Disposable copies of user-provided 1.18 and 1.21 normal terrain, 2026-07-11 | Preview hashes unchanged; execution removed all selected-biome source matches while the control-biome counts stayed unchanged |
 | `WORLD-18` / `WORLD-21` game checks | Passed | User game pass and log review, 2026-07-12/13 | Selected chunks and the adjacent one-chunk ring relit correctly after execution saved existing ring chunks with the version-specific relight flag cleared |
 | `WORLD-LATEST` | Passed | 26.3 snapshot 3 disposable copies, 2026-07-12/13 | File checks passed and the user completed the copied-world game load/reload; source world remained read-only |
+| B-class release hardening | Passed | Windows 11, Adoptium Java 21, 2026-07-17 | 134 tests passed; translation check produced no missing keys; `build shadowJar` succeeded with parser/diagnostic unification, catalogue compatibility, preset rollback, ReplaceBlocks-only region abort, and context-read call-count regressions |
 
 ### Phase 6 copied-world evidence
 
@@ -113,6 +114,8 @@ Manual checks:
 - Change several trapdoor properties and add the rule; the generated target text should use block-state SNBT with `Name` and the selected `Properties`, then parse successfully.
 - Search/select `minecraft:blue_ice`; no property rows should appear, and the generated rule should still parse.
 - Enter an unknown/modded ID such as `example:custom_block`; no property rows should appear, and manual entry should remain possible.
+- Confirm the Builder displays the active Java/DataVersion catalogue. If more than one catalogue is bundled, switching it must update suggestions without changing draft text or rule rows.
+- Enter `minecraft:future_block` as source and target. Both remain addable with warnings; the target warning must explicitly ask the user to verify world support.
 - Paste or type block-state SNBT with `Name` directly in a from/to input; the builder should still accept it through existing validation.
 - Copy the generated value into the advanced text workflow and confirm it remains accepted there.
 

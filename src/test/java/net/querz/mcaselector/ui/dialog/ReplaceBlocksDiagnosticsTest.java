@@ -1,6 +1,7 @@
 package net.querz.mcaselector.ui.dialog;
 
 import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ReplaceBlocksDiagnosticsTest {
@@ -66,5 +67,25 @@ class ReplaceBlocksDiagnosticsTest {
 		assertTrue(ReplaceBlocksDiagnostics
 				.diagnoseValue("biome(minecraft:plains)=minecraft:dirt", false)
 				.isError());
+	}
+
+	@Test
+	void consumesSharedParserForQuotedTargetTileAndFollowingRule() {
+		assertTrue(ReplaceBlocksDiagnostics.diagnoseValue(
+				"literal(stone)='example:target';{id:\"example:tile\"}, literal(dirt)=minecraft:gold_block",
+				true).isNone());
+	}
+
+	@Test
+	void acceptsSyntacticallyValidFutureAndModdedBuilderNames() {
+		ReplaceBlocksDiagnostics.NameResult future = ReplaceBlocksDiagnostics.normalizeBuilderName(
+				"minecraft:future_block", false);
+		ReplaceBlocksDiagnostics.NameResult modded = ReplaceBlocksDiagnostics.normalizeBuilderName(
+				"example:custom_block", true);
+
+		assertEquals("minecraft:future_block", future.name());
+		assertTrue(future.diagnostic().isNone());
+		assertEquals("example:custom_block", modded.name());
+		assertTrue(modded.diagnostic().isNone());
 	}
 }
