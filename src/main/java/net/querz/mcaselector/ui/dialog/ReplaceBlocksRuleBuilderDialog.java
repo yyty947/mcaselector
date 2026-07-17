@@ -95,6 +95,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private Button deletePreset;
 	private boolean applyingPreset;
 	private boolean dialogButtonClose;
+	private boolean updatingCatalogSelector;
 	private Point2D ruleMarqueeAnchor;
 	private boolean ruleMarqueeAdditive;
 	private boolean ruleMarqueeDragging;
@@ -305,14 +306,55 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		selector.setValue(catalog);
 		configureBuilderComboBox(selector);
 		selector.valueProperty().addListener((observable, oldCatalog, newCatalog) -> {
-			if (newCatalog != null && catalogModel.select(newCatalog.version())) {
-				catalog = catalogModel.selected();
-				blockNames.setAll(catalog.blockNames().stream().sorted().toList());
-				from.catalogChanged();
-				to.catalogChanged();
-			}
+			requestCatalogSwitch(selector, oldCatalog, newCatalog);
 		});
 		return wrapCatalogControl(new HBox(8, label, selector));
+	}
+
+	private void requestCatalogSwitch(ComboBox<BlockStateCatalog> selector,
+			BlockStateCatalog oldCatalog, BlockStateCatalog newCatalog) {
+		if (updatingCatalogSelector || newCatalog == null
+				|| newCatalog.version().equals(catalog.version())) {
+			return;
+		}
+		if (hasBuilderContent() && !confirmCatalogSwitch(newCatalog)) {
+			updatingCatalogSelector = true;
+			try {
+				selector.setValue(oldCatalog == null ? catalog : oldCatalog);
+			} finally {
+				updatingCatalogSelector = false;
+			}
+			return;
+		}
+		if (!catalogModel.select(newCatalog.version())) {
+			return;
+		}
+		catalog = catalogModel.selected();
+		blockNames.setAll(catalog.blockNames().stream().sorted().toList());
+		from.catalogChanged();
+		to.catalogChanged();
+		resetBuilder();
+	}
+
+	private boolean confirmCatalogSwitch(BlockStateCatalog newCatalog) {
+		String message = catalogModel.label(catalog) + " → " + catalogModel.label(newCatalog)
+				+ "\n\n" + Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_NOTE;
+		Alert alert = new Alert(Alert.AlertType.CONFIRMATION, message, ButtonType.OK, ButtonType.CANCEL);
+		alert.initOwner(getDialogPane().getScene().getWindow());
+		alert.titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_TITLE.getProperty());
+		alert.setHeaderText(null);
+		alert.getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
+		return alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
+	}
+
+	private void resetBuilder() {
+		presets.hide();
+		presets.getSelectionModel().clearSelection();
+		rules.getSelectionModel().clearSelection();
+		ruleItems.clear();
+		from.clear();
+		to.clear();
+		updateResult();
 	}
 
 	private static Node wrapCatalogControl(Node control) {
@@ -582,7 +624,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private boolean hasBuilderContent() {
-		return !ruleItems.isEmpty() || from.userInputPresentProperty().get() || to.userInputPresentProperty().get();
+		return !ruleItems.isEmpty() || from.hasMeaningfulContent() || to.hasMeaningfulContent();
 	}
 
 	private boolean isFilledRuleRow(Object target) {
@@ -1290,9 +1332,17 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		private void catalogChanged() {
 			setCatalog(catalog);
-			String text = currentText();
-			updateBlockSuggestions(text);
-			rebuildProperties(text);
+		}
+
+		private boolean hasMeaningfulContent() {
+			return !currentText().isEmpty()
+					|| source && tileEntityMode.getValue() != SourceTileMode.ANY
+					|| minY.getText() != null && !minY.getText().isBlank()
+					|| maxY.getText() != null && !maxY.getText().isBlank()
+					|| biomeNames.getEditor().getText() != null && !biomeNames.getEditor().getText().isBlank()
+					|| propertyEditors.values().stream()
+							.map(ComboBox::getValue)
+							.anyMatch(choice -> choice != null && !choice.all());
 		}
 
 		private String generatedValue() {
@@ -1419,12 +1469,28 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		private void clear() {
 			suppressSuggestions = true;
+			suppressBiomeSuggestions = true;
 			try {
+				blockSuggestionRevision++;
+				biomeSuggestionRevision++;
+				blockExplicitCatalog = false;
+				biomeExplicitCatalog = false;
+				blockSuggestionHighlight = -1;
+				biomeSuggestionHighlight = -1;
+				block.hide();
+				biomeNames.hide();
+				tileEntityMode.hide();
+				propertyEditors.values().forEach(ComboBox::hide);
+				clearPopupSuggestionHighlight(block);
+				clearPopupSuggestionHighlight(biomeNames);
 				block.setValue(null);
+				block.getSelectionModel().clearSelection();
 				block.getEditor().clear();
 				minY.clear();
 				maxY.clear();
-				clearBiomeInput();
+				biomeNames.setValue(null);
+				biomeNames.getSelectionModel().clearSelection();
+				biomeNames.getEditor().clear();
 				if (source) {
 					tileEntityMode.setValue(SourceTileMode.ANY);
 				}
@@ -1436,6 +1502,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				userInputPresent.set(false);
 			} finally {
 				suppressSuggestions = false;
+				suppressBiomeSuggestions = false;
 			}
 		}
 

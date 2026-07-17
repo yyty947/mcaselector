@@ -1,6 +1,7 @@
 package net.querz.mcaselector.ui.dialog;
 
 import javafx.application.Platform;
+import javafx.beans.property.BooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Bounds;
 import javafx.geometry.BoundingBox;
@@ -9,8 +10,14 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ComboBoxBase;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.control.skin.ComboBoxListViewSkin;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -23,19 +30,23 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import net.querz.mcaselector.version.ChunkFilter;
+import net.querz.mcaselector.version.mapping.blockstate.BlockStateCatalog;
 import net.querz.nbt.CompoundTag;
 import org.junit.jupiter.api.Test;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
+@SuppressWarnings("unchecked")
 class ReplaceBlocksRuleBuilderModelTest {
 
 	private static final Object javaFxStartupLock = new Object();
@@ -359,6 +370,153 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
+	void selectingTheActiveCatalogIsANoop() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				ComboBox<BlockStateCatalog> selector = catalogSelector(dialog);
+				ComboBox<?> presets = fieldValue(dialog, "presets", ComboBox.class);
+				presets.getSelectionModel().selectFirst();
+				Object selectedPreset = presets.getValue();
+				AtomicInteger confirmations = autoRespondToConfirmation(dialog, true);
+
+				selector.setValue(selector.getValue());
+
+				assertEquals(0, confirmations.get());
+				assertSame(selectedPreset, presets.getValue());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void emptyBuilderSwitchesWithoutConfirmationAndClearsTransientPresetState() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				ComboBox<BlockStateCatalog> selector = catalogSelector(dialog);
+				BlockStateCatalog requested = differentCatalog(selector);
+				ComboBox<?> presets = fieldValue(dialog, "presets", ComboBox.class);
+				presets.getSelectionModel().selectFirst();
+				presets.show();
+				assertTrue(presets.isShowing());
+				AtomicInteger confirmations = autoRespondToConfirmation(dialog, true);
+
+				selector.setValue(requested);
+
+				assertEquals(0, confirmations.get());
+				assertSame(requested, fieldValue(dialog, "catalog", BlockStateCatalog.class));
+				assertNull(presets.getValue());
+				assertFalse(presets.isShowing());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void cancellingNonEmptyCatalogSwitchPreservesEveryBuilderStateWithoutReentry() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage,
+					"literal(minecraft:stone)=minecraft:dirt");
+			try {
+				FullBuilderState state = populateFullBuilderState(dialog);
+				ComboBox<BlockStateCatalog> selector = catalogSelector(dialog);
+				BlockStateCatalog original = selector.getValue();
+				BlockStateCatalog requested = differentCatalog(selector);
+				AtomicInteger confirmations = autoRespondToConfirmation(dialog, false);
+
+				selector.setValue(requested);
+
+				assertEquals(1, confirmations.get(), "selector rollback must not request confirmation again");
+				assertSame(original, selector.getValue());
+				assertSame(original, fieldValue(dialog, "catalog", BlockStateCatalog.class));
+				assertFullBuilderState(dialog, state);
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void confirmingNonEmptyCatalogSwitchUsesNewCatalogAndCompletelyResetsBuilder() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage,
+					"literal(minecraft:stone)=minecraft:dirt");
+			try {
+				FullBuilderState state = populateFullBuilderState(dialog);
+				ComboBox<BlockStateCatalog> selector = catalogSelector(dialog);
+				BlockStateCatalog requested = differentCatalog(selector);
+				AtomicInteger confirmations = autoRespondToConfirmation(dialog, true);
+
+				selector.setValue(requested);
+
+				assertEquals(1, confirmations.get());
+				assertSame(requested, selector.getValue());
+				assertSame(requested, fieldValue(dialog, "catalog", BlockStateCatalog.class));
+				assertTrue(fieldValue(dialog, "ruleItems", List.class).isEmpty());
+				assertEquals(-1, fieldValue(dialog, "rules", TableView.class).getSelectionModel().getSelectedIndex());
+				assertInputReset(fieldValue(dialog, "from", Object.class), true, state.fromPropertyEditor());
+				assertInputReset(fieldValue(dialog, "to", Object.class), false, state.toPropertyEditor());
+				ComboBox<?> presets = fieldValue(dialog, "presets", ComboBox.class);
+				assertNull(presets.getValue());
+				assertFalse(presets.isShowing());
+				assertEquals("", fieldValue(dialog, "result", TextArea.class).getText());
+				assertEquals("", fieldValue(dialog, "validation", Label.class).getText());
+				assertTrue(dialog.getDialogPane().lookupButton(ButtonType.OK).isDisabled());
+				assertTrue(fieldValue(dialog, "previewButton", Node.class).isDisabled());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void nonDefaultExtraNbtAloneCountsAsBuilderContent() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = new ReplaceBlocksRuleBuilderDialog(primaryStage, "");
+			try {
+				Object from = fieldValue(dialog, "from", Object.class);
+				ComboBox<?> tileEntityMode = fieldValue(from, "tileEntityMode", ComboBox.class);
+				tileEntityMode.getSelectionModel().select(1);
+
+				assertTrue(hasBuilderContent(dialog));
+			} finally {
+				primaryStage.close();
+			}
+		});
+	}
+
+	@Test
+	void nonDefaultPropertyCountsAsBuilderContentIndependentlyOfTheTextFlag() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = new ReplaceBlocksRuleBuilderDialog(primaryStage, "");
+			try {
+				Object from = fieldValue(dialog, "from", Object.class);
+				ComboBox<String> block = fieldValue(from, "block", ComboBox.class);
+				block.getEditor().setText("minecraft:acacia_stairs");
+				ComboBox<?> property = firstPropertyEditor(from);
+				property.getSelectionModel().select(1);
+				setBooleanField(from, "suppressSuggestions", true);
+				block.getEditor().clear();
+				setBooleanField(from, "suppressSuggestions", false);
+				fieldValue(from, "userInputPresent", BooleanProperty.class).set(false);
+
+				assertTrue(hasBuilderContent(dialog));
+			} finally {
+				primaryStage.close();
+			}
+		});
+	}
+
+	@Test
 	void popupNavigationFilterReceivesKeysFromPopupScene() throws Throwable {
 		runOnJavaFxThread(() -> {
 			ComboBox<String> comboBox = new ComboBox<>(FXCollections.observableArrayList(
@@ -629,6 +787,227 @@ class ReplaceBlocksRuleBuilderModelTest {
 		assertTrue(supportsJavaFxControlTests("Linux", ":99", null));
 		assertTrue(supportsJavaFxControlTests("Windows 11", null, null));
 	}
+
+	private static Stage showPrimaryStage() {
+		Stage primaryStage = new Stage();
+		primaryStage.setScene(new Scene(new StackPane(), 1200, 900));
+		primaryStage.show();
+		return primaryStage;
+	}
+
+	private static ReplaceBlocksRuleBuilderDialog showDialog(Stage primaryStage, String initialValue) {
+		ReplaceBlocksRuleBuilderDialog dialog = new ReplaceBlocksRuleBuilderDialog(primaryStage, initialValue);
+		dialog.show();
+		dialog.getDialogPane().applyCss();
+		dialog.getDialogPane().layout();
+		return dialog;
+	}
+
+	private static void closeDialog(ReplaceBlocksRuleBuilderDialog dialog, Stage primaryStage) {
+		dialog.setOnCloseRequest(null);
+		dialog.close();
+		primaryStage.close();
+	}
+
+	@SuppressWarnings("unchecked")
+	private static ComboBox<BlockStateCatalog> catalogSelector(ReplaceBlocksRuleBuilderDialog dialog) {
+		return (ComboBox<BlockStateCatalog>) dialog.getDialogPane().lookupAll(".combo-box").stream()
+				.filter(ComboBox.class::isInstance)
+				.map(ComboBox.class::cast)
+				.filter(comboBox -> !comboBox.getItems().isEmpty()
+						&& comboBox.getItems().getFirst() instanceof BlockStateCatalog)
+				.findFirst()
+				.orElseThrow();
+	}
+
+	private static BlockStateCatalog differentCatalog(ComboBox<BlockStateCatalog> selector) {
+		return selector.getItems().stream()
+				.filter(candidate -> candidate != selector.getValue())
+				.findFirst()
+				.orElseThrow();
+	}
+
+	private static AtomicInteger autoRespondToConfirmation(
+			ReplaceBlocksRuleBuilderDialog dialog, boolean confirm) {
+		AtomicInteger requests = new AtomicInteger();
+		Window owner = dialog.getDialogPane().getScene().getWindow();
+		Platform.runLater(() -> {
+			for (Window window : Window.getWindows()) {
+				if (window == owner || !window.isShowing() || window.getScene() == null) {
+					continue;
+				}
+				Node node = window.getScene().lookup(".dialog-pane");
+				if (!(node instanceof DialogPane pane)) {
+					continue;
+				}
+				Node button = pane.lookupButton(confirm ? ButtonType.OK : ButtonType.CANCEL);
+				if (button instanceof Button alertButton) {
+					requests.incrementAndGet();
+					alertButton.fire();
+					return;
+				}
+			}
+		});
+		return requests;
+	}
+
+	private static FullBuilderState populateFullBuilderState(ReplaceBlocksRuleBuilderDialog dialog)
+			throws ReflectiveOperationException {
+		Object from = fieldValue(dialog, "from", Object.class);
+		Object to = fieldValue(dialog, "to", Object.class);
+		ComboBox<String> fromBlock = fieldValue(from, "block", ComboBox.class);
+		ComboBox<String> toBlock = fieldValue(to, "block", ComboBox.class);
+		fromBlock.getEditor().setText("minecraft:acacia_stairs");
+		toBlock.getEditor().setText("minecraft:andesite_stairs");
+		ComboBox<?> fromProperty = firstPropertyEditor(from);
+		ComboBox<?> toProperty = firstPropertyEditor(to);
+		fromProperty.getSelectionModel().select(1);
+		toProperty.getSelectionModel().select(1);
+		ComboBox<?> tileEntityMode = fieldValue(from, "tileEntityMode", ComboBox.class);
+		tileEntityMode.getSelectionModel().select(1);
+		fieldValue(from, "minY", TextField.class).setText("-16");
+		fieldValue(from, "maxY", TextField.class).setText("31");
+		fieldValue(from, "biomeNames", ComboBox.class).getEditor().setText("minecraft:forest");
+		TableView<?> rules = fieldValue(dialog, "rules", TableView.class);
+		rules.getSelectionModel().selectFirst();
+		ComboBox<?> presets = fieldValue(dialog, "presets", ComboBox.class);
+		presets.getSelectionModel().selectFirst();
+		setIntField(from, "blockSuggestionRevision", 40);
+		setIntField(from, "biomeSuggestionRevision", 50);
+		setIntField(to, "blockSuggestionRevision", 40);
+		setIntField(to, "biomeSuggestionRevision", 50);
+		setIntField(from, "blockSuggestionHighlight", 2);
+		setIntField(from, "biomeSuggestionHighlight", 3);
+		setBooleanField(from, "blockExplicitCatalog", true);
+		setBooleanField(from, "biomeExplicitCatalog", true);
+		fromProperty.show();
+		assertTrue(fromProperty.isShowing());
+
+		return new FullBuilderState(
+				fromBlock.getEditor().getText(),
+				toBlock.getEditor().getText(),
+				fromProperty, fromProperty.getValue(),
+				toProperty, toProperty.getValue(),
+				tileEntityMode.getValue(),
+				fieldValue(from, "minY", TextField.class).getText(),
+				fieldValue(from, "maxY", TextField.class).getText(),
+				fieldValue(from, "biomeNames", ComboBox.class).getEditor().getText(),
+				List.copyOf(fieldValue(dialog, "ruleItems", List.class)),
+				rules.getSelectionModel().getSelectedIndex(),
+				presets.getValue(),
+				fieldValue(dialog, "result", TextArea.class).getText(),
+				fieldValue(dialog, "validation", Label.class).getText(),
+				40, 50, 2, 3, true, true);
+	}
+
+	private static void assertFullBuilderState(ReplaceBlocksRuleBuilderDialog dialog, FullBuilderState state)
+			throws ReflectiveOperationException {
+		Object from = fieldValue(dialog, "from", Object.class);
+		Object to = fieldValue(dialog, "to", Object.class);
+		assertEquals(state.fromText(), fieldValue(from, "block", ComboBox.class).getEditor().getText());
+		assertEquals(state.toText(), fieldValue(to, "block", ComboBox.class).getEditor().getText());
+		assertSame(state.fromPropertyValue(), state.fromPropertyEditor().getValue());
+		assertSame(state.toPropertyValue(), state.toPropertyEditor().getValue());
+		assertSame(state.tileMode(), fieldValue(from, "tileEntityMode", ComboBox.class).getValue());
+		assertEquals(state.minY(), fieldValue(from, "minY", TextField.class).getText());
+		assertEquals(state.maxY(), fieldValue(from, "maxY", TextField.class).getText());
+		assertEquals(state.biome(), fieldValue(from, "biomeNames", ComboBox.class).getEditor().getText());
+		assertEquals(state.rules(), fieldValue(dialog, "ruleItems", List.class));
+		assertEquals(state.selectedRuleIndex(),
+				fieldValue(dialog, "rules", TableView.class).getSelectionModel().getSelectedIndex());
+		assertSame(state.selectedPreset(), fieldValue(dialog, "presets", ComboBox.class).getValue());
+		assertEquals(state.result(), fieldValue(dialog, "result", TextArea.class).getText());
+		assertEquals(state.validation(), fieldValue(dialog, "validation", Label.class).getText());
+		assertEquals(state.blockRevision(), intField(from, "blockSuggestionRevision"));
+		assertEquals(state.biomeRevision(), intField(from, "biomeSuggestionRevision"));
+		assertEquals(state.blockHighlight(), intField(from, "blockSuggestionHighlight"));
+		assertEquals(state.biomeHighlight(), intField(from, "biomeSuggestionHighlight"));
+		assertEquals(state.blockExplicit(), booleanField(from, "blockExplicitCatalog"));
+		assertEquals(state.biomeExplicit(), booleanField(from, "biomeExplicitCatalog"));
+		assertTrue(state.fromPropertyEditor().isShowing());
+	}
+
+	private static void assertInputReset(Object input, boolean source, ComboBox<?> oldPropertyEditor)
+			throws ReflectiveOperationException {
+		assertEquals("", fieldValue(input, "block", ComboBox.class).getEditor().getText());
+		assertFalse(fieldValue(input, "block", ComboBox.class).isShowing());
+		assertTrue(fieldValue(input, "propertyEditors", Map.class).isEmpty());
+		assertFalse(oldPropertyEditor.isShowing());
+		assertTrue(intField(input, "blockSuggestionRevision") > 40);
+		assertEquals(-1, intField(input, "blockSuggestionHighlight"));
+		assertFalse(booleanField(input, "blockExplicitCatalog"));
+		if (source) {
+			ComboBox<?> tileEntityMode = fieldValue(input, "tileEntityMode", ComboBox.class);
+			assertEquals(0, tileEntityMode.getSelectionModel().getSelectedIndex());
+			assertFalse(tileEntityMode.isShowing());
+			assertEquals("", fieldValue(input, "minY", TextField.class).getText());
+			assertEquals("", fieldValue(input, "maxY", TextField.class).getText());
+			ComboBox<?> biomeNames = fieldValue(input, "biomeNames", ComboBox.class);
+			assertEquals("", biomeNames.getEditor().getText());
+			assertFalse(biomeNames.isShowing());
+			assertTrue(intField(input, "biomeSuggestionRevision") > 50);
+			assertEquals(-1, intField(input, "biomeSuggestionHighlight"));
+			assertFalse(booleanField(input, "biomeExplicitCatalog"));
+		}
+	}
+
+	private static ComboBox<?> firstPropertyEditor(Object input) throws ReflectiveOperationException {
+		Map<?, ?> propertyEditors = fieldValue(input, "propertyEditors", Map.class);
+		assertFalse(propertyEditors.isEmpty());
+		return (ComboBox<?>) propertyEditors.values().iterator().next();
+	}
+
+	private static boolean hasBuilderContent(ReplaceBlocksRuleBuilderDialog dialog) throws ReflectiveOperationException {
+		Method method = ReplaceBlocksRuleBuilderDialog.class.getDeclaredMethod("hasBuilderContent");
+		method.setAccessible(true);
+		return (boolean) method.invoke(dialog);
+	}
+
+	private static <T> T fieldValue(Object target, String name, Class<T> type)
+			throws ReflectiveOperationException {
+		Field field = declaredField(target, name);
+		return type.cast(field.get(target));
+	}
+
+	private static int intField(Object target, String name) throws ReflectiveOperationException {
+		return declaredField(target, name).getInt(target);
+	}
+
+	private static boolean booleanField(Object target, String name) throws ReflectiveOperationException {
+		return declaredField(target, name).getBoolean(target);
+	}
+
+	private static void setIntField(Object target, String name, int value) throws ReflectiveOperationException {
+		declaredField(target, name).setInt(target, value);
+	}
+
+	private static void setBooleanField(Object target, String name, boolean value) throws ReflectiveOperationException {
+		declaredField(target, name).setBoolean(target, value);
+	}
+
+	private static Field declaredField(Object target, String name) throws NoSuchFieldException {
+		Class<?> type = target.getClass();
+		while (type != null) {
+			try {
+				Field field = type.getDeclaredField(name);
+				field.setAccessible(true);
+				return field;
+			} catch (NoSuchFieldException ex) {
+				type = type.getSuperclass();
+			}
+		}
+		throw new NoSuchFieldException(name);
+	}
+
+	private record FullBuilderState(
+			String fromText, String toText,
+			ComboBox<?> fromPropertyEditor, Object fromPropertyValue,
+			ComboBox<?> toPropertyEditor, Object toPropertyValue,
+			Object tileMode, String minY, String maxY, String biome,
+			List<?> rules, int selectedRuleIndex, Object selectedPreset,
+			String result, String validation,
+			int blockRevision, int biomeRevision, int blockHighlight, int biomeHighlight,
+			boolean blockExplicit, boolean biomeExplicit) {}
 
 	private static void runOnJavaFxThread(ThrowingRunnable action) throws Throwable {
 		assumeTrue(supportsJavaFxControlTests(System.getProperty("os.name"),
