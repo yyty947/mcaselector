@@ -217,6 +217,60 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
+	void customPresetDoesNotTreatBareLegacyRegexAsExactSource() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				applyCustomPreset(dialog, "minecraft:task2_missing_.*=minecraft:stone");
+
+				assertEquals(1, fieldValue(dialog, "ruleItems", List.class).size());
+				TextArea result = fieldValue(dialog, "result", TextArea.class);
+				assertEquals(ReplaceBlocksDiagnostics.diagnoseValue(result.getText(), true).message(),
+						fieldValue(dialog, "validation", Label.class).getText());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void customPresetPreservesValidLookingBareLegacyRegexSemantics() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				applyCustomPreset(dialog, "minecraft:task2_missing_block=minecraft:stone");
+
+				assertEquals(1, fieldValue(dialog, "ruleItems", List.class).size());
+				TextArea result = fieldValue(dialog, "result", TextArea.class);
+				assertEquals(ReplaceBlocksDiagnostics.diagnoseValue(result.getText(), true).message(),
+						fieldValue(dialog, "validation", Label.class).getText());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void customPresetDoesNotTreatQuotedLegacyRegexAsExactSource() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				applyCustomPreset(dialog, "'task2:missing_.*'=minecraft:stone");
+
+				assertEquals(1, fieldValue(dialog, "ruleItems", List.class).size());
+				TextArea result = fieldValue(dialog, "result", TextArea.class);
+				assertEquals(ReplaceBlocksDiagnostics.diagnoseValue(result.getText(), true).message(),
+						fieldValue(dialog, "validation", Label.class).getText());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
 	void customPresetTargetWarningWinsOverEarlierSourceWarning() throws Throwable {
 		runOnJavaFxThread(() -> {
 			Stage primaryStage = showPrimaryStage();

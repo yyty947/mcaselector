@@ -381,16 +381,17 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		applyingPreset = true;
 		try {
 			if (preset.custom()) {
-				List<Rule> loaded = parseSimpleRules(preset.value());
+				List<ParsedPresetRule> loaded = parsePresetRules(preset.value());
 				if (loaded.isEmpty()) {
 					showDiagnostic(ReplaceBlocksDiagnostics.builderInvalid());
 					return;
 				}
-				List<Rule> appended = new ArrayList<>();
-				for (Rule rule : loaded) {
+				List<ParsedRule> appended = new ArrayList<>();
+				for (ParsedPresetRule presetRule : loaded) {
+					Rule rule = presetRule.rule();
 					if (!hasRule(rule.from(), rule.to())) {
 						ruleItems.add(rule);
-						appended.add(rule);
+						appended.add(presetRule.parsed());
 					}
 				}
 				updateResult();
@@ -421,14 +422,10 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 	}
 
-	private ReplaceBlocksDiagnostics.Diagnostic presetCompatibilityWarning(List<Rule> appended) {
+	private ReplaceBlocksDiagnostics.Diagnostic presetCompatibilityWarning(List<ParsedRule> appended) {
 		String firstUnknownTarget = null;
 		String firstUnknownSource = null;
-		for (Rule rule : appended) {
-			ParsedRule parsed = parseEditableRule(rule.from(), rule.to());
-			if (parsed == null) {
-				continue;
-			}
+		for (ParsedRule parsed : appended) {
 			String target = switch (parsed.target().getType()) {
 				case NAME, STATE -> parsed.target().getName();
 				default -> null;
@@ -1027,17 +1024,25 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	static List<Rule> parseSimpleRules(String initialValue) {
+		return parsePresetRules(initialValue).stream()
+				.map(ParsedPresetRule::rule)
+				.toList();
+	}
+
+	private static List<ParsedPresetRule> parsePresetRules(String initialValue) {
 		if (initialValue == null || initialValue.isBlank()) {
 			return List.of();
 		}
-		List<Rule> parsed = new ArrayList<>();
+		List<ParsedPresetRule> parsed = new ArrayList<>();
 		Map<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> rules =
 				ReplaceBlocksRuleBuilderModel.parseRules(initialValue);
 		if (rules.isEmpty()) {
 			return List.of();
 		}
 		for (Map.Entry<ChunkFilter.BlockReplaceSource, ChunkFilter.BlockReplaceData> rule : rules.entrySet()) {
-			parsed.add(new Rule(rule.getKey().toString(), rule.getValue().toString()));
+			parsed.add(new ParsedPresetRule(
+					new Rule(rule.getKey().toString(), rule.getValue().toString()),
+					new ParsedRule(rule.getKey(), rule.getValue())));
 		}
 		return List.copyOf(parsed);
 	}
@@ -2186,6 +2191,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private record ValueResult(String value, ReplaceBlocksDiagnostics.Diagnostic diagnostic) {}
 
 	private record PresetValue(String value, ReplaceBlocksDiagnostics.Diagnostic diagnostic) {}
+
+	private record ParsedPresetRule(Rule rule, ParsedRule parsed) {}
 
 	record ParsedRule(ChunkFilter.BlockReplaceSource source, ChunkFilter.BlockReplaceData target) {}
 
