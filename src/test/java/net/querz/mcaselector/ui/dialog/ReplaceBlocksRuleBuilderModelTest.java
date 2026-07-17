@@ -1,7 +1,6 @@
 package net.querz.mcaselector.ui.dialog;
 
 import javafx.application.Platform;
-import javafx.beans.property.BooleanProperty;
 import javafx.collections.FXCollections;
 import javafx.geometry.Bounds;
 import javafx.geometry.BoundingBox;
@@ -35,7 +34,6 @@ import net.querz.nbt.CompoundTag;
 import org.junit.jupiter.api.Test;
 import java.io.InputStream;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -428,10 +426,16 @@ class ReplaceBlocksRuleBuilderModelTest {
 				ComboBox<BlockStateCatalog> selector = catalogSelector(dialog);
 				BlockStateCatalog original = selector.getValue();
 				BlockStateCatalog requested = differentCatalog(selector);
-				AtomicInteger confirmations = autoRespondToConfirmation(dialog, false);
+				AtomicReference<Throwable> alertStateFailure = new AtomicReference<>();
+				AtomicInteger confirmations = autoRespondToConfirmation(dialog, false,
+						() -> {
+							assertCatalogState(dialog, selector, original);
+							assertFullBuilderState(dialog, state);
+						}, alertStateFailure);
 
 				selector.setValue(requested);
 
+				assertNull(alertStateFailure.get(), "selector changed before cancellation confirmation");
 				assertEquals(1, confirmations.get(), "selector rollback must not request confirmation again");
 				assertSame(original, selector.getValue());
 				assertSame(original, fieldValue(dialog, "catalog", BlockStateCatalog.class));
@@ -451,11 +455,18 @@ class ReplaceBlocksRuleBuilderModelTest {
 			try {
 				FullBuilderState state = populateFullBuilderState(dialog);
 				ComboBox<BlockStateCatalog> selector = catalogSelector(dialog);
+				BlockStateCatalog original = selector.getValue();
 				BlockStateCatalog requested = differentCatalog(selector);
-				AtomicInteger confirmations = autoRespondToConfirmation(dialog, true);
+				AtomicReference<Throwable> alertStateFailure = new AtomicReference<>();
+				AtomicInteger confirmations = autoRespondToConfirmation(dialog, true,
+						() -> {
+							assertCatalogState(dialog, selector, original);
+							assertFullBuilderState(dialog, state);
+						}, alertStateFailure);
 
 				selector.setValue(requested);
 
+				assertNull(alertStateFailure.get(), "selector changed before confirmation was accepted");
 				assertEquals(1, confirmations.get());
 				assertSame(requested, selector.getValue());
 				assertSame(requested, fieldValue(dialog, "catalog", BlockStateCatalog.class));
@@ -477,41 +488,75 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
-	void nonDefaultExtraNbtAloneCountsAsBuilderContent() throws Throwable {
+	void nonDefaultExtraNbtUsesRealCatalogSwitchConfirmation() throws Throwable {
 		runOnJavaFxThread(() -> {
 			Stage primaryStage = showPrimaryStage();
-			ReplaceBlocksRuleBuilderDialog dialog = new ReplaceBlocksRuleBuilderDialog(primaryStage, "");
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
 			try {
 				Object from = fieldValue(dialog, "from", Object.class);
 				ComboBox<?> tileEntityMode = fieldValue(from, "tileEntityMode", ComboBox.class);
 				tileEntityMode.getSelectionModel().select(1);
+				Object selectedMode = tileEntityMode.getValue();
+				ComboBox<BlockStateCatalog> selector = catalogSelector(dialog);
+				BlockStateCatalog original = selector.getValue();
+				BlockStateCatalog requested = differentCatalog(selector);
+				AtomicReference<Throwable> alertStateFailure = new AtomicReference<>();
+				AtomicInteger confirmations = autoRespondToConfirmation(dialog, false,
+						() -> {
+							assertCatalogState(dialog, selector, original);
+							assertSame(selectedMode, tileEntityMode.getValue());
+						}, alertStateFailure);
 
-				assertTrue(hasBuilderContent(dialog));
+				selector.setValue(requested);
+
+				assertNull(alertStateFailure.get(), "selector changed before Extra NBT confirmation");
+				assertEquals(1, confirmations.get());
+				assertSame(original, selector.getValue());
+				assertSame(selectedMode, tileEntityMode.getValue());
 			} finally {
-				primaryStage.close();
+				closeDialog(dialog, primaryStage);
 			}
 		});
 	}
 
 	@Test
-	void nonDefaultPropertyCountsAsBuilderContentIndependentlyOfTheTextFlag() throws Throwable {
+	void nonDefaultPropertyUsesRealCatalogSwitchConfirmation() throws Throwable {
 		runOnJavaFxThread(() -> {
 			Stage primaryStage = showPrimaryStage();
-			ReplaceBlocksRuleBuilderDialog dialog = new ReplaceBlocksRuleBuilderDialog(primaryStage, "");
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
 			try {
 				Object from = fieldValue(dialog, "from", Object.class);
 				ComboBox<String> block = fieldValue(from, "block", ComboBox.class);
 				block.getEditor().setText("minecraft:acacia_stairs");
 				ComboBox<?> property = firstPropertyEditor(from);
 				property.getSelectionModel().select(1);
+				Object selectedProperty = property.getValue();
 				setBooleanField(from, "suppressSuggestions", true);
-				block.getEditor().clear();
-				setBooleanField(from, "suppressSuggestions", false);
-				fieldValue(from, "userInputPresent", BooleanProperty.class).set(false);
+				try {
+					block.getEditor().clear();
+				} finally {
+					setBooleanField(from, "suppressSuggestions", false);
+				}
+				ComboBox<BlockStateCatalog> selector = catalogSelector(dialog);
+				BlockStateCatalog original = selector.getValue();
+				BlockStateCatalog requested = differentCatalog(selector);
+				AtomicReference<Throwable> alertStateFailure = new AtomicReference<>();
+				AtomicInteger confirmations = autoRespondToConfirmation(dialog, false,
+						() -> {
+							assertCatalogState(dialog, selector, original);
+							assertEquals("", block.getEditor().getText());
+							assertSame(selectedProperty, property.getValue());
+						}, alertStateFailure);
 
-				assertTrue(hasBuilderContent(dialog));
+				selector.setValue(requested);
+
+				assertNull(alertStateFailure.get(), "selector changed before property confirmation");
+				assertEquals(1, confirmations.get());
+				assertSame(original, selector.getValue());
+				assertEquals("", block.getEditor().getText());
+				assertSame(selectedProperty, property.getValue());
 			} finally {
-				primaryStage.close();
+				closeDialog(dialog, primaryStage);
 			}
 		});
 	}
@@ -829,6 +874,12 @@ class ReplaceBlocksRuleBuilderModelTest {
 
 	private static AtomicInteger autoRespondToConfirmation(
 			ReplaceBlocksRuleBuilderDialog dialog, boolean confirm) {
+		return autoRespondToConfirmation(dialog, confirm, () -> {}, new AtomicReference<>());
+	}
+
+	private static AtomicInteger autoRespondToConfirmation(
+			ReplaceBlocksRuleBuilderDialog dialog, boolean confirm,
+			ThrowingRunnable beforeClick, AtomicReference<Throwable> beforeClickFailure) {
 		AtomicInteger requests = new AtomicInteger();
 		Window owner = dialog.getDialogPane().getScene().getWindow();
 		Platform.runLater(() -> {
@@ -843,12 +894,26 @@ class ReplaceBlocksRuleBuilderModelTest {
 				Node button = pane.lookupButton(confirm ? ButtonType.OK : ButtonType.CANCEL);
 				if (button instanceof Button alertButton) {
 					requests.incrementAndGet();
+					try {
+						beforeClick.run();
+					} catch (Throwable ex) {
+						beforeClickFailure.set(ex);
+					}
 					alertButton.fire();
 					return;
 				}
 			}
 		});
 		return requests;
+	}
+
+	private static void assertCatalogState(ReplaceBlocksRuleBuilderDialog dialog,
+			ComboBox<BlockStateCatalog> selector, BlockStateCatalog expected)
+			throws ReflectiveOperationException {
+		assertSame(expected, selector.getValue());
+		assertSame(expected, fieldValue(dialog, "catalog", BlockStateCatalog.class));
+		assertSame(expected,
+				fieldValue(dialog, "catalogModel", ReplaceBlocksCatalogModel.class).selected());
 	}
 
 	private static FullBuilderState populateFullBuilderState(ReplaceBlocksRuleBuilderDialog dialog)
@@ -955,12 +1020,6 @@ class ReplaceBlocksRuleBuilderModelTest {
 		Map<?, ?> propertyEditors = fieldValue(input, "propertyEditors", Map.class);
 		assertFalse(propertyEditors.isEmpty());
 		return (ComboBox<?>) propertyEditors.values().iterator().next();
-	}
-
-	private static boolean hasBuilderContent(ReplaceBlocksRuleBuilderDialog dialog) throws ReflectiveOperationException {
-		Method method = ReplaceBlocksRuleBuilderDialog.class.getDeclaredMethod("hasBuilderContent");
-		method.setAccessible(true);
-		return (boolean) method.invoke(dialog);
 	}
 
 	private static <T> T fieldValue(Object target, String name, Class<T> type)

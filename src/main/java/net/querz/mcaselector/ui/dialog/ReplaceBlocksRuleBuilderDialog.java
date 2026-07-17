@@ -317,14 +317,12 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				|| newCatalog.version().equals(catalog.version())) {
 			return;
 		}
-		if (hasBuilderContent() && !confirmCatalogSwitch(newCatalog)) {
-			updatingCatalogSelector = true;
-			try {
-				selector.setValue(oldCatalog == null ? catalog : oldCatalog);
-			} finally {
-				updatingCatalogSelector = false;
+		if (hasBuilderContent()) {
+			setCatalogSelectorValue(selector, oldCatalog == null ? catalog : oldCatalog);
+			if (!confirmCatalogSwitch(newCatalog)) {
+				return;
 			}
-			return;
+			setCatalogSelectorValue(selector, newCatalog);
 		}
 		if (!catalogModel.select(newCatalog.version())) {
 			return;
@@ -334,6 +332,16 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		from.catalogChanged();
 		to.catalogChanged();
 		resetBuilder();
+	}
+
+	private void setCatalogSelectorValue(ComboBox<BlockStateCatalog> selector,
+			BlockStateCatalog value) {
+		updatingCatalogSelector = true;
+		try {
+			selector.setValue(value);
+		} finally {
+			updatingCatalogSelector = false;
+		}
 	}
 
 	private boolean confirmCatalogSwitch(BlockStateCatalog newCatalog) {
