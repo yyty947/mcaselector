@@ -141,12 +141,12 @@ Implemented controls:
 - The Builder `Preview` button runs dry-run counts without saving region data.
 - Preview output includes aggregate counts, one row per rule with source mode/source text/target text/matched blocks, and an overlap warning when multiple rules match the same original position.
 - Error text distinguishes common invalid values and source regex warnings.
-- Java 1.21.9 catalog data is wired into the builder for property dropdowns.
+- Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2 catalogue data is wired into the builder for property dropdowns; the newest is selected by default and selection is manual.
 - The source tile/block entity selector is presented as `Extra NBT: any/present/absent`, and the Builder has a Help button that opens a separate explanation dialog.
 - The source side has optional Min Y / Max Y inputs. Empty fields mean no Y restriction; filling either field wraps the generated source with `y(...)`.
 - The source side has an optional searchable Biome input. Empty means no biome restriction; one or more biome IDs separated by semicolons wrap the generated source with `biome(...)`. The dropdown suggests known vanilla biome IDs, completes the current semicolon-separated token with Tab or mouse click, and shows the full catalog only after an explicit empty-arrow click. Help text states that matching is block-position aware at the modern 4x4x4 biome-cell granularity.
 - The Builder has a Preset row. Built-in presets fill visible editable From/To and source condition controls for common starting points instead of adding hidden behavior; air and container/data-block presets show warning text.
-- The Builder saves a selected rule first, otherwise a valid draft, otherwise all table rules as a custom global preset. Loading appends non-duplicate parsed rules and preserves current work; presets can be overwritten or deleted.
+- The Builder saves a selected rule first, otherwise a valid draft, otherwise all table rules as a versionless custom global preset. Loading appends non-duplicate parsed rules and preserves current work; exact IDs outside the active catalogue warn without blocking, regex is not guessed, and saved presets survive catalogue switches.
 
 Builder-supported rule syntax:
 
@@ -200,17 +200,17 @@ Current implementation: a small dialog class, `ReplaceBlocksRuleBuilderDialog`, 
 Available data source:
 
 - `src/main/java/net/querz/mcaselector/version/mapping/blockstate/BlockStateCatalog.java`
-- `src/main/resources/mapping/block_states/java_1_21_9.json`
+- `src/main/resources/mapping/block_states/catalogs.json` and its five indexed catalogue resources
 
 Useful API:
 
-- `BlockStateCatalog.latestJava()`: loads the current Java catalog.
+- `BlockStateCatalog.available()`: loads the indexed Java catalogue set; the Builder selects the newest entry by default.
 - `blockNames()`: returns normalized `minecraft:` block IDs.
 - `properties(blockName)`: returns property names and allowed values.
 - `defaultProperties(blockName)`: returns the default state values from Mojang reports.
 - `containsBlock(...)`, `hasProperty(...)`, and `isValidPropertyValue(...)`: basic validation helpers.
 
-The catalog was generated from Mojang 1.21.9 server `reports/blocks.json` and stores only UI-useful data: block IDs, property values, default properties, and state counts. It is independent from `BlockRegistry`; `BlockRegistry` remains a lightweight ID validator and does not provide per-block property schema.
+The historical Phase 4A catalogue was generated from Mojang 1.21.9 server `reports/blocks.json`; the current index bundles Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2. Each resource stores only UI-useful data: block IDs, property values, default properties, and state counts. Catalogue selection never detects a world version or converts IDs.
 
 Current 4B usage:
 
@@ -219,6 +219,7 @@ Current 4B usage:
 - Property dropdowns start at `all`/`全部`; catalog default properties remain available as data, but they are not the current initial UI selections.
 - Unknown/modded IDs remain manual entries without property rows.
 - The builder generates existing ReplaceBlocks text from selected catalog values.
+- Empty catalogue switches are direct. Non-empty switches confirm first: Cancel preserves the old catalogue and all Builder work; Confirm selects the new catalogue and fully resets fields, rules, selections, result, validation, preset selection, and popups without deleting saved presets.
 - Simple source IDs serialize as `literal(...)`.
 - Source Min Y / Max Y fields serialize by wrapping the source expression in `y(min..max, source)`.
 - Source Biome field serializes by wrapping the source expression in `biome(<biome>[;<biome>...], source)`.

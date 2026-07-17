@@ -41,6 +41,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -533,6 +534,7 @@ class ReplaceBlocksRuleBuilderModelTest {
 	@Test
 	void catalogControlExplainsThatItDoesNotMigrateIds() throws Throwable {
 		runOnJavaFxThread(() -> {
+			Translation.load(Locale.UK);
 			Stage primaryStage = new Stage();
 			primaryStage.setScene(new Scene(new StackPane()));
 			try {
@@ -541,6 +543,8 @@ class ReplaceBlocksRuleBuilderModelTest {
 
 				assertNotNull(note);
 				assertTrue(note.isWrapText());
+				assertTrue(note.getText().contains("does not convert IDs"));
+				assertTrue(note.getText().contains("clears its contents after confirmation"));
 			} finally {
 				primaryStage.close();
 			}
@@ -629,6 +633,7 @@ class ReplaceBlocksRuleBuilderModelTest {
 	@Test
 	void confirmingNonEmptyCatalogSwitchUsesNewCatalogAndCompletelyResetsBuilder() throws Throwable {
 		runOnJavaFxThread(() -> {
+			Translation.load(Locale.UK);
 			Stage primaryStage = showPrimaryStage();
 			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage,
 					"literal(minecraft:stone)=minecraft:dirt");
@@ -642,6 +647,7 @@ class ReplaceBlocksRuleBuilderModelTest {
 						() -> {
 							assertCatalogState(dialog, selector, original);
 							assertFullBuilderState(dialog, state);
+							assertCatalogConfirmationText(dialog, original, requested);
 						}, alertStateFailure);
 
 				selector.setValue(requested);
@@ -1099,6 +1105,28 @@ class ReplaceBlocksRuleBuilderModelTest {
 			}
 		});
 		return requests;
+	}
+
+	private static void assertCatalogConfirmationText(ReplaceBlocksRuleBuilderDialog dialog,
+			BlockStateCatalog oldCatalog, BlockStateCatalog newCatalog)
+			throws ReflectiveOperationException {
+		Window owner = dialog.getDialogPane().getScene().getWindow();
+		Window confirmationWindow = Window.getWindows().stream()
+				.filter(window -> window != owner && window.isShowing() && window.getScene() != null)
+				.filter(window -> window.getScene().lookup(".dialog-pane") instanceof DialogPane)
+				.findFirst()
+				.orElseThrow();
+		DialogPane pane = (DialogPane) confirmationWindow.getScene().lookup(".dialog-pane");
+		ReplaceBlocksCatalogModel model = fieldValue(dialog, "catalogModel", ReplaceBlocksCatalogModel.class);
+		String oldLabel = model.label(oldCatalog);
+		String newLabel = model.label(newCatalog);
+
+		assertEquals(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_SWITCH_TITLE.toString(),
+				((Stage) confirmationWindow).getTitle());
+		assertEquals(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_SWITCH_MESSAGE.format(oldLabel, newLabel),
+				pane.getContentText());
+		assertTrue(pane.getContentText().contains(oldLabel));
+		assertTrue(pane.getContentText().contains(newLabel));
 	}
 
 	private static void assertCatalogState(ReplaceBlocksRuleBuilderDialog dialog,

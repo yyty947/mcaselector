@@ -1,9 +1,9 @@
 # ReplaceBlocks Development Notes
 
 Date: 2026-06-04
-Last updated: 2026-07-13
+Last updated: 2026-07-17
 
-Scope: ReplaceBlocks reconnaissance plus implemented phases 1-5A, Phase 4E, Phase 4F-1, and Phase 4F-2. Java source now includes a rule builder, validation diagnostics, modern preview/dry-run with per-rule counts, exact source block-state matching, a Java 1.21.9 block-state catalog foundation, a property-aware catalog-backed builder UI, explicit source modes, tile/block entity source safety controls, source-side Y range restrictions, and source-side biome restrictions. Gradle build logic and Minecraft world data were not modified by these development notes.
+Scope: ReplaceBlocks reconnaissance plus implemented phases 1-6 and B-class hardening. Java source now includes a rule builder, validation diagnostics, modern preview/dry-run with per-rule counts, exact source block-state matching, five bundled block-state catalogues, a property-aware catalogue-backed builder UI, explicit source modes, tile/block entity source safety controls, source-side Y/biome restrictions, presets, and deterministic catalogue-switch reset behavior. Gradle build logic and Minecraft world data were not modified by these development notes.
 
 ## Project stack
 
@@ -80,8 +80,8 @@ CLI path:
 - `src/main/java/net/querz/mcaselector/ui/dialog/ChangeNBTDialog.java`: current NBT Changer UI and best integration point.
 - `src/main/java/net/querz/mcaselector/ui/dialog/ReplaceBlocksRuleBuilderDialog.java`: rule builder dialog.
 - `src/main/java/net/querz/mcaselector/ui/dialog/ReplaceBlocksDiagnostics.java`: non-mutating UI diagnostics.
-- `src/main/java/net/querz/mcaselector/version/mapping/blockstate/BlockStateCatalog.java`: 1.21.9 block-state catalog loader used by the property-aware builder UI.
-- `src/main/resources/mapping/block_states/java_1_21_9.json`: generated 1.21.9 block-state catalog containing block IDs, property names, allowed values, defaults, and state counts.
+- `src/main/java/net/querz/mcaselector/version/mapping/blockstate/BlockStateCatalog.java`: indexed block-state catalogue loader used by the property-aware builder UI.
+- `src/main/resources/mapping/block_states/catalogs.json`: catalogue index for Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2 resources. The generated 1.21.9 JSON remains the historical Phase 4A foundation.
 - `src/main/java/net/querz/mcaselector/version/java_1_18/ChunkFilter_21w43a.java`: modern 1.18+ `replaceBlocks` implementation for DataVersion 2844+.
 - `src/main/java/net/querz/mcaselector/version/java_1_18/ChunkFilter_21w37a.java`: 1.18 snapshot implementation and helper behavior.
 - `src/main/java/net/querz/mcaselector/version/java_1_13/ChunkFilter_17w47a.java`: inherited block state palette helpers.
@@ -101,7 +101,7 @@ CLI path:
 - Multiple rules are supported in one ReplaceBlocks value.
 - Legacy bare or quoted source block-name matching still uses Java regex matching via `String.matches(...)`.
 - Builder inputs accept simple block IDs, source wrappers, or block state SNBT with `Name`.
-- Builder inputs can search/select Java 1.21.9 catalog block IDs, generate `literal(...)` for simple source IDs, generate `props(...)` for selected source property dropdowns, and omit properties whose dropdown is left at `all`.
+- Builder inputs can search/select block IDs from the active Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, or 26.2 catalogue, generate `literal(...)` for simple source IDs, generate `props(...)` for selected source property dropdowns, and omit properties whose dropdown is left at `all`.
 - Builder source tile filters are labeled as `Extra NBT: any/present/absent`; the Builder Help dialog explains the choices and is the intended home for future Builder-specific help text.
 - Builder source min/max Y fields default to empty; filling either field wraps the generated source with `y(...)`.
 - Builder source biome field defaults to empty; filling it with one or more biome IDs separated by semicolons wraps the generated source with `biome(...)`. It uses the known vanilla biome registry for filtered suggestions, Tab completion, and mouse-click completion while still allowing manually typed custom IDs. The Builder Help dialog states the block-position-aware 4x4x4 biome-cell granularity.
@@ -112,7 +112,7 @@ CLI path:
 - When opened without an existing value, the builder starts with blank From/To inputs and does not immediately show an empty-rule validation error.
 - The builder helper text below the generated value is only a pre-input hint; it hides after the user manually types non-empty From/To text.
 - The Builder offers ReplaceBlocks preview/dry-run counts for modern 1.18+ formats, including per-rule rows and overlap warnings. Light-section and heightmap warnings now use actual affected sections/chunks rather than all scanned candidates. Selection-only preview also reports the geometric upper bound of adjacent chunks outside the selection whose relight flags may be updated, and explicitly states that no blocks are replaced there. The Preview button sits in the Builder button bar beside Help and uses the generated Builder value. Cancelling this preview stops only its worker at a chunk boundary and never flushes unrelated process/save/parse queues.
-- `BlockStateCatalog.latestJava()` loads the generated Java 1.21.9 block-state catalog used by the builder dropdown UI.
+- `BlockStateCatalog.available()` loads the indexed catalogue set; the Builder defaults to the newest catalogue and exposes manual selection.
 - For modern versions, replacement iterates all 4096 blocks per section.
 - Palette entries are added as needed and unused palette entries are cleaned up.
 - Existing tile/block entities are removed when replacing a block with a non-tile target.
@@ -137,7 +137,7 @@ CLI path:
 - Source state matching is exact, not subset matching. A partial properties compound will not match a full palette state.
 - Selected-property matching is explicit through `props(...)`; existing source SNBT remains exact matching.
 - The builder now emits `props(...)` for catalog-backed source property rules, but it does not yet offer per-property enable/disable checkboxes or a dedicated source-mode selector.
-- The catalog currently includes Java 1.21.9. More versions need additional generated resources and a selection strategy.
+- Automatic world-version selection and cross-version block-ID migration remain intentionally out of scope; catalogue selection is manual and affects only suggestions/properties.
 - Quoted custom target names appear fragile when followed by another rule or tile entity SNBT; this needs a focused test.
 - Modern 1.18+ target tile replacement removes existing block entities at the same coordinates before adding the replacement tile. Phase 6 also made the 1.13 and 1.17 palette paths remove all existing entries at the target coordinate before adding replacement tile SNBT. DataVersion 4671 copied-world files passed remove 2 / add 11 / update 2 checks with zero duplicate block-entity coordinates; the user also completed Minecraft load/save/reload inspection on disposable copies.
 - Preview exists for modern 1.18+ paths, but unsupported older preview chunks are reported instead of estimated.
@@ -152,7 +152,7 @@ Implemented:
 
 - `ChangeNBTDialog` keeps the existing raw ReplaceBlocks field and advanced query.
 - `ReplaceBlocksRuleBuilderDialog` builds simple rules from `from` and `to` inputs.
-- `ReplaceBlocksRuleBuilderDialog` defaults to the newest indexed block-state catalogue, displays its Java/DataVersion label, and can expose a manual selector when multiple catalogues are bundled. Catalogue changes affect suggestions only and preserve drafts/rules.
+- `ReplaceBlocksRuleBuilderDialog` bundles Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2 catalogues, defaults to the newest indexed entry, and displays a manual Java/DataVersion selector. Empty Builders switch immediately. Non-empty Builders confirm before any state change: Cancel preserves the old catalogue and all work; Confirm selects the new catalogue and resets fields, properties, Extra NBT, Y/biome filters, rules, selections, result, validation, preset selection, and popups.
 - `ReplaceBlocksRuleBuilderDialog` exposes an additive source tile selector that generates `tile(...)` or `no_tile(...)`.
 - `ReplaceBlocksRuleBuilderDialog` exposes source min/max Y inputs that generate `y(min..max, source)` when either field is filled.
 - Builder inputs accept block IDs, unknown/modded resource locations, and block state SNBT.
@@ -161,6 +161,7 @@ Implemented:
 - `ReplaceBlocksDiagnostics` surfaces common validation errors and regex warnings.
 - `BlockStateCatalog` provides the UI data source for vanilla block IDs and properties.
 - Syntactically valid future/modded IDs are accepted outside the selected catalogue with a non-blocking warning; parsing and execution do not depend on catalogue membership and do not migrate IDs.
+- Presets remain versionless ReplaceBlocks text. Catalogue switching clears the active preset selection/content but never deletes built-in or saved presets; newly appended custom-preset exact IDs outside the selected catalogue produce a non-blocking advisory, and regex sources are not inferred as exact IDs.
 - ReplaceBlocks-only region processing aborts the save chain on the first chunk exception and reports that coordinate. Mixed-field processing retains legacy per-chunk continuation.
 - User preset save/delete/overwrite operations roll back their in-memory list if the global configuration write fails.
 - Modern simple rules bypass biome reads, source tile-location indexes, and per-block `Point3i` allocation; contextual rules still use the same matching semantics in preview and execution.
@@ -230,7 +231,7 @@ Detailed roadmap: `docs/ROADMAP.md`.
 - Phase 1: rule builder UI implemented.
 - Phase 2: validation and error messages implemented.
 - Phase 3: preview/dry-run counts implemented for modern 1.18+.
-- Phase 4: exact source block-state matching implemented; Phase 4A 1.21.9 block-state catalog implemented; Phase 4B property-aware builder UI implemented; Gate A source matching design completed; Phase 4C/4D explicit source modes implemented.
+- Phase 4: exact source block-state matching implemented; Phase 4A began with the generated 1.21.9 block-state catalogue; Phase 4B property-aware builder UI and the current five-catalogue manual selector are implemented; Gate A source matching design completed; Phase 4C/4D explicit source modes implemented.
 - Phase 4E: tile/block entity source filters, clearer Extra NBT Builder labels/help, preview add/remove/update estimates, modern duplicate tile cleanup, and user-reported copied-world in-game validation implemented.
 - Phase 5A: per-rule preview counts, source-mode rows, and overlap warnings implemented.
 - Phase 4F-1: Y range restrictions implemented with `y(min..max, source)`, Builder min/max Y controls, parser/diagnostic tests, preview tests, and modern 1.18+ execution tests.

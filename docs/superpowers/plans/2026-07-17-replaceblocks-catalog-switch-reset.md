@@ -135,7 +135,10 @@ Expected: both suites pass.
 - Modify: `docs/DEV_NOTES_REPLACE_BLOCKS.md`
 - Modify: `docs/ROADMAP.md`
 - Modify: `docs/TEST_PLAN.md`
+- Modify: `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`
+- Modify: `docs/RELEASE_REVIEW_REPLACE_BLOCKS.md`
 - Modify: `ONBOARDING.md`
+- Modify: `AGENTS.md`
 
 **Interfaces:**
 - Consumes: final Task 1 and Task 2 behavior.
@@ -161,11 +164,11 @@ Run:
 .\gradlew.bat compileJava
 .\gradlew.bat test --tests net.querz.mcaselector.ui.dialog.ReplaceBlocksRuleBuilderModelTest
 .\gradlew.bat test
-.\gradlew.bat printMissingTranslations
+.\gradlew.bat run --args="--mode printMissingTranslations"
 .\gradlew.bat build shadowJar
 ```
 
-Expected: every command exits 0, all tests pass, translation output contains no missing key, and `shadowJar` completes successfully.
+Expected: every command exits 0, all tests pass, `printMissingTranslations` produces no missing-key lines, and `shadowJar` completes successfully.
 
 ### Task 4: User-run UI acceptance and commit
 

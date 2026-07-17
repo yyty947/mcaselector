@@ -31,8 +31,8 @@ Implemented:
 - Phase 2: ReplaceBlocks-specific validation diagnostics and error messages.
 - Phase 3: non-mutating preview/dry-run for modern 1.18+ chunk formats.
 - Phase 4: exact source block-state SNBT matching.
-- Phase 4A: Java 1.21.9 block-state catalog data foundation.
-- Phase 4B: property-aware rule builder UI using the Java 1.21.9 catalog.
+- Phase 4A: Java 1.21.9 block-state catalogue data foundation, expanded to bundled Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2 catalogues.
+- Phase 4B: property-aware rule builder UI using the indexed catalogues, newest-by-default manual selection, and no automatic world-version/ID migration.
 - Gate A: source matching design for Phase 4C/4D is decided in `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.
 - Phase 4C/4D: explicit source modes and selected-property matching using `regex(...)`, `literal(...)`, and `props(...)`.
 - Phase 4E: tile/block entity source safety controls using `tile(...)` and `no_tile(...)`, with duplicate target tile cleanup, preview add/remove/update estimates, Extra NBT Builder labels, and copied-world in-game validation reported complete on 2026-06-28.
@@ -41,20 +41,25 @@ Implemented:
 - Phase 4F-2: biome restrictions using `biome(<biome>[;<biome>...], source)`, with Builder source biome input, parser/diagnostic coverage, preview filtering, and modern 1.18+ execution filtering. Matching is block-position aware using the candidate block's biome value; in modern chunks one stored biome value covers a 4x4x4 block cell.
 - Phase 4G: Builder presets for Air to stone, Fluids to air, Logs/leaves to air, Ores to stone, and Containers with Extra NBT to air. Built-ins fill visible inputs and warnings. Custom save precedence is selected rule, valid draft, then all table rules; loading appends non-duplicate rules without replacing current work.
 - UI polish: ReplaceBlocks field-row validation waits for a short typing pause, the default NBT Changer width shows the Builder button, empty Builder From/To inputs start blank, Builder validation stays quiet until user action creates a real diagnostic, and Builder From/To inputs have auto-opening A-Z filtered suggestions with blue match highlights, Tab/click completion, boundary-only keyboard scrolling, explicit empty-arrow full-catalog expansion, stronger Builder-only dropdown highlights, pre-input helper text that hides after manual typing or selection, Builder-local Preview beside Help, and a Help dialog for Builder-specific explanations.
+- B-class hardening and the five-catalogue Builder are implemented. Empty catalogue switches are direct; a non-empty switch asks first, with Cancel preserving all work and Confirm selecting the new catalogue then fully resetting Builder state. Presets remain versionless; switching never deletes saved presets, and determinable exact custom-preset IDs outside the active catalogue produce non-blocking advisories.
 
-Not implemented yet:
+Completed release validation:
 
 - Phase 6 is complete. Automated tests, translation completeness, `build shadowJar`, Zulu JDK FX packaging, DataVersion 2860/4671 and 26.3 snapshot checks, real biome boundaries, game load/save/reload, game-log review, adjacent-ring relight, copied-world game loading, and the fresh-Builder From/To/Biome popup-anchor rerun all have evidence.
 
+Pending:
+
+- The new focused catalogue-switch reset UI rerun is still pending user validation; historical Phase 6/B-class evidence does not mark it passed.
+
 ## Next Recommended Task
 
-Next best target: begin B-class release hardening: share ReplaceBlocks parsing, make Builder catalog input forward-compatible, then address runtime safety, hot-path performance, and Builder responsibility boundaries.
+Next best target: complete the focused catalogue-switch reset UI acceptance and record the result in `docs/TEST_PLAN.md`.
 
 Goal:
 
-- Complete dual-locale Builder interaction, real-biome-boundary behavior, Minecraft rendering/load/save/reload, and game-log checks using the prepared disposable copies.
-- Preserve Phase 4E tile eligibility, Phase 4F-1 Y filtering, Phase 4F-2 biome filtering, Phase 4G presets, and per-rule preview counts.
-- Keep preview checks non-mutating and only execute on fresh copied worlds.
+- Verify an empty switch is direct, Cancel preserves the old catalogue and every Builder state, and Confirm selects the new catalogue then fully resets fields, rules, selections, result, validation, and popups.
+- Verify catalogue switching clears current preset selection/content without deleting saved presets, and that an exact out-of-catalogue ID loaded from a custom preset remains accepted with a non-blocking warning.
+- Keep automatic world-version selection and cross-version ID migration out of scope.
 
 Current builder/UI manual validation checklist:
 
@@ -73,7 +78,8 @@ Current builder/UI manual validation checklist:
 - Builder source min/max Y fields default to empty; filling either field wraps the source as `y(min..max, source)`, for example `y(-64..64, literal(minecraft:stone))=minecraft:dirt`.
 - Builder source Biome input is searchable like the From/To block selectors. It suggests known vanilla biome IDs, completes the current semicolon-separated biome token with Tab or mouse click, and shows the complete A-Z biome catalog only when the user explicitly clicks the empty dropdown arrow.
 - Builder presets fill visible, editable From/To and source condition controls instead of adding hidden behavior. Air and container presets show warning text before the user adds a rule.
-- Builder custom presets save one selected rule first, otherwise a valid draft, otherwise all table rules. Loading appends non-duplicate rules and preserves current table rules and draft input.
+- Builder custom presets save one selected rule first, otherwise a valid draft, otherwise all table rules. Presets remain versionless ReplaceBlocks text; loading appends non-duplicate rules and preserves current table rules and draft input, with non-blocking current-catalogue advisories for determinable exact IDs.
+- The catalogue selector offers Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2 and defaults to the newest. Empty switches are direct. For a non-empty Builder, Cancel preserves all work; Confirm selects the new catalogue and fully resets the Builder without deleting saved presets.
 - Builder Preview is next to Help in the Builder button bar. It uses the generated Builder value, respects the selection-only state captured when the Builder was opened, and must remain non-mutating.
 
 ## Important Files
@@ -125,7 +131,7 @@ Tests:
 - Y range source wrapper is `y(min..max, source)`; either boundary may be omitted, but at least one integer boundary is required.
 - Biome source wrapper is `biome(<biome>[;<biome>...], source)`. Biomes may omit the `minecraft:` namespace in Builder/parser input, but serialized values use full IDs. Modern preview and execution use block-position-aware biome matching at the stored 4x4x4 biome-cell granularity.
 - Target tile SNBT still uses the existing `target;{tile SNBT}` syntax; rich target tile NBT editing is not in the builder yet.
-- Phase 4A/4B catalog data is UI/help data. The builder consumes it to generate `literal(...)` and `props(...)` text.
+- Phase 4A/4B catalogue data is UI/help data. The builder consumes the manually selected catalogue to generate `literal(...)` and `props(...)` text; it does not detect world versions or migrate IDs.
 - `BlockRegistry` validates block IDs but does not provide per-block property schema.
 - Modern colored wool blocks are separate IDs, for example `minecraft:yellow_wool=minecraft:blue_wool`, not a color property replacement.
 - Preview must stay non-mutating: do not call `replaceBlocks(...)`, do not save regions, and do not enqueue save jobs.

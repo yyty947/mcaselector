@@ -22,9 +22,13 @@ Legacy bare or quoted sources remain Java regular expressions for compatibility.
 
 ## Catalogue compatibility
 
-The Builder's block-state catalogue supplies suggestions and property values only. The displayed Java/DataVersion label identifies the selected catalogue. If multiple catalogues are bundled in a future build, the Builder allows manual selection and defaults to the newest one.
+The Builder bundles block-state catalogues for Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2. The newest catalogue is selected by default; selection remains manual. Catalogues supply suggestions and property values only, and the displayed Java/DataVersion label identifies the active catalogue.
 
-Changing the catalogue does not alter draft text or existing rules. A syntactically valid future or modded resource ID remains accepted even when it is absent from the catalogue; the Builder shows a non-blocking warning and provides no property suggestions for it. Target warnings are stronger because an unsupported target ID can produce a world that Minecraft cannot load as intended.
+An empty Builder switches catalogue immediately. A non-empty Builder asks first: Cancel keeps the old catalogue and all current work, while Confirm selects the new catalogue and fully resets fields, properties, Extra NBT, Y/biome filters, rules, selections, generated text, validation, and open popups.
+
+A syntactically valid future or modded resource ID remains accepted even when it is absent from the active catalogue; the Builder shows a non-blocking warning and provides no property suggestions for it. Target warnings are stronger because an unsupported target ID can produce a world that Minecraft cannot load as intended.
+
+Built-in and custom presets remain versionless ReplaceBlocks text. Switching catalogue clears the current preset selection and Builder content but never deletes saved presets. Applying a custom preset still appends valid rules; an exact source or target ID outside the active catalogue produces a non-blocking advisory, while regex sources are not guessed.
 
 The catalogue is not world-version detection and does not guarantee that an ID exists in the target world. MCA Selector does not rename or migrate block IDs between Minecraft versions. Verify renamed/removed IDs yourself.
 

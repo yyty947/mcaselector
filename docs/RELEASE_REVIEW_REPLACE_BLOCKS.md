@@ -26,8 +26,8 @@ The previously blocking risks now have explicit controls: parsing is syntax-only
 ## C. Follow-up items
 
 - The Builder Dialog is still large because the concrete From/To control owns substantial JavaFX property-editor wiring. The reusable compatibility base and autocomplete service reduce risk, but a future UI-only PR could move the remaining concrete control after adding component-level JavaFX tests. This should not be mixed with world-processing code.
-- Only the latest catalogue is currently bundled. Add older/newer catalogue JSON through `catalogs.json` as needed; the selector model already supports multiple versions. Do not add automatic ID conversion without a separately reviewed migration design.
-- Non-English locales currently use clear English fallback text for the four new release-hardening messages except Chinese. Native translations can follow without blocking behavior.
+- Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2 catalogues are bundled. The newest is selected by default and selection is manual; automatic world-version selection and cross-version ID conversion remain outside this release.
+- The catalogue-switch title/message/note use native English and Simplified Chinese; every other locale has the English fallback. Additional native translations can follow without blocking behavior.
 - Add an integration test that forces a real filesystem-level global-config write failure if the configuration path becomes injectable. Current repository tests deterministically cover false and thrown writer outcomes.
 - If profiling shows tile-heavy rules are hot, packed-long block-entity coordinates can replace the current string index in a focused performance PR. Do not change this without preview/execution parity tests.
 
@@ -35,4 +35,4 @@ The previously blocking risks now have explicit controls: parsing is syntax-only
 
 The feature is technically credible and substantially safer than the earlier Builder-only implementation. It preserves the existing ReplaceBlocks text contract and legacy matching semantics, keeps catalogue data advisory, and treats world mutation failures conservatively. The implementation is larger than a typical MCA Selector UI PR, so upstream submission should be split along the boundaries above and should carry the copied-world evidence plus the concise user documentation.
 
-Recommendation: acceptable for merge after the final automated gate and the narrow manual Builder catalogue/warning smoke check. No remaining issue justifies reopening parser semantics, adding version-ID conversion, or upgrading JavaFX as part of this release.
+Recommendation: acceptable for merge after the final automated gate and the pending focused catalogue-switch reset UI check. That check must prove direct empty switching, Cancel preservation, Confirm full reset, and non-blocking custom-preset compatibility warnings; earlier B-class/Phase 6 UI evidence is historical and does not mark this new behavior passed. No remaining issue justifies reopening parser semantics, adding version-ID conversion, or upgrading JavaFX as part of this release.

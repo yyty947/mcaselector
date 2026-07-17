@@ -28,6 +28,7 @@ Required gates:
 | `PKG-02` | Windows `jpackage` | Successful package output, or a recorded environment blocker that is resolved before PR |
 | `UI-01` | Chinese Builder regression pass | Completed checklist, screenshot, and clean console |
 | `UI-02` | English Builder regression pass | Completed checklist, screenshot, and clean console |
+| `UI-CATALOG` | Focused catalogue-switch reset | Direct empty switch, Cancel preservation, Confirm full reset, and custom-preset advisory verified by the user |
 | `WORLD-18` | Disposable Java 1.18.x world | Preview/execution comparison, world reload, and log check |
 | `WORLD-21` | Disposable Java 1.21.x world | Preview/execution comparison, world reload, and log check |
 | `WORLD-LATEST` | Disposable latest snapshot world | Preview non-mutation, conditional execution, Change/Force parity, and selection boundary |
@@ -60,6 +61,7 @@ Phase 6 execution record:
 | `WORLD-18` / `WORLD-21` game checks | Passed | User game pass and log review, 2026-07-12/13 | Selected chunks and the adjacent one-chunk ring relit correctly after execution saved existing ring chunks with the version-specific relight flag cleared |
 | `WORLD-LATEST` | Passed | 26.3 snapshot 3 disposable copies, 2026-07-12/13 | File checks passed and the user completed the copied-world game load/reload; source world remained read-only |
 | B-class release hardening | Passed | Windows 11, Adoptium Java 21, 2026-07-17 | 134 tests passed; translation check produced no missing keys; `build shadowJar` succeeded with parser/diagnostic unification, catalogue compatibility, preset rollback, ReplaceBlocks-only region abort, and context-read call-count regressions |
+| `UI-CATALOG` | **Pending** | User-run Builder check | New five-catalogue switch/reset behavior has automated coverage but has not yet received the focused user-run UI acceptance; do not reuse the historical Phase 6/B-class pass |
 
 ### Phase 6 copied-world evidence
 
@@ -92,7 +94,7 @@ Automated checks:
 
 Expected coverage:
 
-- Java 1.21.9 catalog loads.
+- Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2 catalogues load in DataVersion order; the newest is the Builder default.
 - `minecraft:acacia_trapdoor` exists.
 - `facing`, `half`, `open`, `powered`, and `waterlogged` are exposed with allowed values.
 - default trapdoor properties match the Mojang report default state.
@@ -114,7 +116,9 @@ Manual checks:
 - Change several trapdoor properties and add the rule; the generated target text should use block-state SNBT with `Name` and the selected `Properties`, then parse successfully.
 - Search/select `minecraft:blue_ice`; no property rows should appear, and the generated rule should still parse.
 - Enter an unknown/modded ID such as `example:custom_block`; no property rows should appear, and manual entry should remain possible.
-- Confirm the Builder displays the active Java/DataVersion catalogue. If more than one catalogue is bundled, switching it must update suggestions without changing draft text or rule rows.
+- Confirm the Builder displays the active Java/DataVersion catalogue and offers Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2, with the newest selected by default. Selection is manual; no world version or ID migration is inferred.
+- With an empty Builder, switch catalogue and confirm it changes directly. With a non-empty Builder, Cancel must keep the old catalogue plus every draft/rule/selection/status/popup; Confirm must select the new catalogue and reset fields, properties, Extra NBT, Y/biome filters, rules, selections, result, validation, preset selection, and popups.
+- Confirm a catalogue switch never deletes built-in or saved presets. Apply a versionless custom preset containing an exact ID outside the active catalogue: the rule must remain appended with a non-blocking advisory. A regex source must not be guessed as an exact catalogue ID.
 - Enter `minecraft:future_block` as source and target. Both remain addable with warnings; the target warning must explicitly ask the user to verify world support.
 - Paste or type block-state SNBT with `Name` directly in a from/to input; the builder should still accept it through existing validation.
 - Copy the generated value into the advanced text workflow and confirm it remains accepted there.
@@ -180,6 +184,7 @@ Execution matrix:
 | `UI-01E` / `UI-02E` | Built-in and custom presets | Fill, save draft, overwrite, load, and delete preserve parser-equivalent rules |
 | `UI-01F` / `UI-02F` | Help and Preview | Correct enablement, non-mutating preview, per-rule/tile/overlap output |
 | `UI-01G` / `UI-02G` | Resize and console | No overlap/clipping at default and resized layouts; no JavaFX exception |
+| `UI-CATALOG` | Five-catalogue switch/reset | Empty switches directly; Cancel preserves all work; Confirm selects the new catalogue and fully resets; saved presets remain and exact out-of-catalogue preset IDs warn without blocking |
 
 Manual checks:
 

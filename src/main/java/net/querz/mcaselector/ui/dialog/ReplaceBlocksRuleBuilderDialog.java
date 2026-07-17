@@ -345,11 +345,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private boolean confirmCatalogSwitch(BlockStateCatalog newCatalog) {
-		String message = catalogModel.label(catalog) + " → " + catalogModel.label(newCatalog)
-				+ "\n\n" + Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_NOTE;
+		String message = Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_SWITCH_MESSAGE.format(
+				catalogModel.label(catalog), catalogModel.label(newCatalog));
 		Alert alert = new Alert(Alert.AlertType.CONFIRMATION, message, ButtonType.OK, ButtonType.CANCEL);
 		alert.initOwner(getDialogPane().getScene().getWindow());
-		alert.titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_TITLE.getProperty());
+		alert.titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_SWITCH_TITLE.getProperty());
 		alert.setHeaderText(null);
 		alert.getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
 		return alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;

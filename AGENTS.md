@@ -90,6 +90,9 @@ Then manually inspect the relevant dialog. Do not claim world mutation behavior 
 - Treat source name values carefully because execution uses Java regex matching.
 - Source block state SNBT uses exact `CompoundTag` matching; do not silently change it to subset matching without updating parser, preview, tests, and docs.
 - Phase 4A/4B block-state catalog data is UI/help data only; the builder may generate text from it, but do not treat it as a parser or replacement behavior change.
+- Bundled Builder catalogues are Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2. Keep selection manual and newest-by-default; automatic world-version selection and cross-version ID migration are out of scope.
+- Preserve catalogue-switch behavior: empty Builders switch directly; non-empty Builders confirm before changing state; Cancel preserves the old catalogue and all work; Confirm selects the new catalogue and fully resets fields, rules, selections, result, validation, preset selection, and popups.
+- Presets remain versionless ReplaceBlocks text. Switching may clear current preset selection/content but must never delete saved presets; custom-preset exact IDs outside the active catalogue remain accepted with non-blocking advisories, and regex sources are not guessed.
 - Phase 4C/4D source modes are implemented; do not change `regex(...)`, `literal(...)`, or `props(...)` semantics without updating parser tests, preview expectations, and docs together.
 - Keep legacy bare/quoted sources as regex compatibility syntax.
 - Keep bare source SNBT as exact-state matching.
@@ -107,8 +110,8 @@ Then manually inspect the relevant dialog. Do not claim world mutation behavior 
 - Phase 2 validation diagnostics are implemented.
 - Phase 3 preview/dry-run is implemented for modern 1.18+ chunk formats.
 - Phase 4 exact source block-state matching is implemented.
-- Phase 4A Java 1.21.9 block-state catalog foundation is implemented.
-- Phase 4B property-aware rule builder UI is implemented.
+- Phase 4A Java 1.21.9 block-state catalogue foundation is implemented and expanded to five bundled catalogues: Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2.
+- Phase 4B property-aware rule builder UI and manual catalogue selection are implemented.
 - Gate A source matching design is completed.
 - Phase 4C/4D explicit source modes are implemented.
 - Phase 4E tile/block entity source safety controls are implemented with `tile(...)` and `no_tile(...)`, clearer Extra NBT Builder labels/help, preview add/remove/update estimates, duplicate target tile cleanup in modern 1.18+ paths, and user-reported copied-world in-game validation.
@@ -118,4 +121,5 @@ Then manually inspect the relevant dialog. Do not claim world mutation behavior 
 - Phase 4G presets are implemented as visible Builder input fillers for common replacements, with warning text for air and container/data-block cases.
 - ReplaceBlocks UI polish is implemented: debounced field-row diagnostics, visible default Builder button, and addable empty-builder example defaults.
 - Phase 6 release hardening is complete, including semantic preset normalization, Builder restoration, Change/Force parity, selection relight-ring expansion, pre-1.18 fail-closed execution, modern preview/execution parity, heightmaps, and Builder popup navigation regressions. Translation completeness and `build shadowJar` pass.
+- Catalogue-switch reset and custom-preset catalogue advisories are implemented with automated coverage; the focused user-run switch/reset UI row remains pending in `docs/TEST_PLAN.md`.
 - Packaging, DataVersion 2860/4671 and 26.3 snapshot checks, real biome boundaries, Minecraft load/save/reload, game-log review, the 1.21 adjacent-ring relight rerun, the 26.3 copied-world game load, and the final Builder dropdown/first-popup UX rerun all have evidence.

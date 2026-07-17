@@ -203,6 +203,8 @@ public enum Translation {
 	DIALOG_REPLACE_BLOCKS_BUILDER_BIOME("dialog.replace_blocks.builder.biome"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_BIOME_PROMPT("dialog.replace_blocks.builder.biome.prompt"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG("dialog.replace_blocks.builder.catalog"),
+	DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_SWITCH_TITLE("dialog.replace_blocks.builder.catalog_switch.title"),
+	DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_SWITCH_MESSAGE("dialog.replace_blocks.builder.catalog_switch.message"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_NOTE("dialog.replace_blocks.builder.catalog.note"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_SOURCE_UNKNOWN("dialog.replace_blocks.builder.catalog.source_unknown"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_TARGET_UNKNOWN("dialog.replace_blocks.builder.catalog.target_unknown"),

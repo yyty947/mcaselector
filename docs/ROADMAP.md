@@ -13,15 +13,15 @@ Implemented:
 - Phase 2: ReplaceBlocks-specific diagnostics and validation messages.
 - Phase 3: non-mutating preview/dry-run for modern 1.18+ chunk formats; unsupported older preview chunks are reported instead of guessed.
 - Phase 4: exact source block-state SNBT matching.
-- Phase 4A: Java 1.21.9 block-state catalog foundation.
-- Phase 4B: property-aware builder UI backed by an indexed, version-labelled block-state catalogue. The latest catalogue is selected by default and future multi-catalogue bundles support manual selection.
+- Phase 4A: Java 1.21.9 block-state catalogue foundation, later expanded to bundled Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2 catalogues.
+- Phase 4B: property-aware builder UI backed by indexed, version-labelled block-state catalogues. The newest catalogue is selected by default and users select another catalogue manually.
 - Gate A: source matching design for Phase 4C/4D is decided in `docs/NEXT_DEVELOPMENT_REPLACE_BLOCKS.md`.
 - Phase 4C/4D: explicit source modes implemented with `regex(...)`, `literal(...)`, and `props(...)`.
 - Phase 4E: tile/block entity source safety controls implemented with `tile(...)` and `no_tile(...)`; target tile replacement now removes existing block entities at the target coordinates before adding replacement tile SNBT. The Builder labels this as an "Extra NBT" source condition and includes an extensible Help dialog for this and future Builder explanations.
 - Phase 5A: per-rule preview counts, source-mode rows, and overlap warning in the ReplaceBlocks preview dialog.
 - Phase 4F-1: Y range restrictions implemented with `y(min..max, source)`, Builder min/max Y fields, parser diagnostics, preview counts, and modern 1.18+ execution filtering.
 - Phase 4F-2: biome restrictions implemented with `biome(<biome>[;<biome>...], source)`, Builder source biome input, parser diagnostics, preview counts, and modern 1.18+ execution filtering. Matching is block-position aware using the chunk biome value for the candidate block position; in modern chunks that value covers a 4x4x4 block cell.
-- Phase 4G: Builder presets implemented for common replacement starting points. Built-in presets fill visible From/To and source condition controls, keep the generated rules editable before adding, and show warnings for air and container/data-block cases. Custom presets save the selected rule, otherwise the current valid draft, otherwise all table rules; loading appends non-duplicate rules without replacing current work.
+- Phase 4G: Builder presets implemented for common replacement starting points. Built-in presets fill visible From/To and source condition controls, keep the generated rules editable before adding, and show warnings for air and container/data-block cases. Custom presets remain versionless ReplaceBlocks text; loading appends non-duplicate rules without replacing current work and gives advisory catalogue warnings for determinable exact IDs.
 - UI polish: ReplaceBlocks field-row diagnostics are debounced, the main dialog defaults wide enough to show `Builder`, empty Builder inputs start blank without immediate empty-rule errors or empty-query full-list popups, Builder lists support mouse/Tab completion plus focused Up/Down/PageUp/PageDown/Enter/Esc navigation, property dropdowns support an `all`/`全部` option, the rules table supports Ctrl/Shift and empty-area marquee multi-selection for subset preset saving/deletion, and Preview now lives beside Help in the Builder.
 - Phase 6 release hardening: shared syntax parsing, parser-time regex rejection, cached regex patterns, forward-compatible catalogue warnings, ReplaceBlocks-only region aborts, preset persistence rollback, modern context fast paths, JavaFX autocomplete isolation, translations, packaging, and copied-world/game gates.
 
@@ -239,7 +239,7 @@ Release gates:
 - Passed: real 1.18/1.21 stored-biome boundary checks on disposable normal-terrain copies; preview hashes stayed unchanged, selected-biome matches reached zero after execution, and control-biome counts were unchanged.
 - User game pass completed load/save/reload, state, container, heightmap, log checks, and the focused 1.21 adjacent-ring relight rerun after execution began saving the existing one-chunk square ring solely for relight invalidation.
 - Passed at file level and by user game load on disposable Minecraft 26.3 snapshot 3 copies: biome + Y preview, preview non-mutation, Change/Force parity, selection-only block boundaries, and game load/reload.
-- Phase 6 release gate is complete. B-class release hardening is the next work stream.
+- Phase 6 and B-class release hardening are complete. The new focused catalogue-switch reset UI rerun is pending user validation and is not covered by the earlier historical pass evidence.
 
 Any failed gate is fixed on the feature branch, receives the narrowest practical automated regression, and reruns both its focused checks and the final full gate. Phase 6 must not be marked complete while a required UI or copied-world gate remains blocked.
 
@@ -266,6 +266,7 @@ When a future phase lands, update these docs in the same turn:
 - Current ReplaceBlocks field-row diagnostics wait for a short typing pause before showing valid/invalid feedback.
 - Current preview is implemented for modern 1.18+ paths, reports unsupported older chunks instead of guessing, and shows per-rule counts plus overlap warnings.
 - Current source-state support remains exact matching; selected-property subset matching is explicit through `props(...)`.
-- Current catalog support exposes Java 1.21.9 block IDs, properties, allowed values, and defaults; the builder consumes it for dropdowns.
+- Current catalogue support exposes Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2 block IDs, properties, allowed values, and defaults. The newest is selected by default; selection is manual, with no world-version detection or ID migration.
+- Empty Builder catalogue switches are direct. A non-empty switch confirms first: Cancel preserves the old catalogue and all work; Confirm selects the new catalogue and resets all fields, rules, selections, result, validation, preset selection, and popups without deleting saved presets.
 - `BlockRegistry` validates IDs but does not provide per-block property schema.
 - Do not mutate real Minecraft worlds while developing or testing this feature.

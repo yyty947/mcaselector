@@ -10,7 +10,8 @@ Purpose: prevent rework during the remaining ReplaceBlocks phases by separating 
 Implemented behavior:
 
 - The builder can create simple block rules.
-- The builder uses `BlockStateCatalog.latestJava()` for searchable block IDs and property dropdowns.
+- The builder uses the indexed Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2 catalogues for searchable block IDs and property dropdowns; it defaults to the newest and keeps selection manual.
+- Empty Builder catalogue switches are direct. Non-empty switches confirm before changing state: Cancel preserves the old catalogue and all work; Confirm selects the new catalogue and fully resets the Builder.
 - Builder-generated target property rules produce block-state SNBT containing the properties not left at `all`.
 - Builder-generated simple source block IDs produce `literal(...)`.
 - Builder-generated source property rules produce `props(...)` when at least one property is not left at `all`; all-source-properties `all` produces `literal(...)`.
@@ -227,7 +228,7 @@ Biome restriction is implemented through `biome(<biome>[;<biome>...], source)`. 
 
 Presets are implemented after source modes, preview, tile safety, Y range, and biome restrictions stabilized.
 
-The current preset row fills visible Builder fields rather than adding hidden rules. Air and container/data-block presets show warnings, and the container preset sets Extra NBT to present. User custom presets store ReplaceBlocks text, not widget state. Saving prefers a selected rule, then a valid draft, then all table rules; loading appends non-duplicate rules and preserves current work.
+The current preset row fills visible Builder fields rather than adding hidden rules. Air and container/data-block presets show warnings, and the container preset sets Extra NBT to present. User custom presets store versionless ReplaceBlocks text, not widget state. Saving prefers a selected rule, then a valid draft, then all table rules; loading appends non-duplicate rules and preserves current work. Applying newly appended custom-preset rules reports a non-blocking warning for determinable exact source/target IDs outside the active catalogue and does not guess regex sources. A confirmed catalogue switch clears current preset selection/content but never deletes saved presets.
 
 ## Testing Rhythm
 
