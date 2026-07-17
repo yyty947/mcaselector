@@ -13,12 +13,37 @@ class BlockStateCatalogTest {
 
 	@Test
 	void loadsJavaOneTwentyOneNineCatalog() {
-		BlockStateCatalog catalog = BlockStateCatalog.latestJava();
+		BlockStateCatalog catalog = BlockStateCatalog.findByVersion("1.21.9").orElseThrow();
 
 		assertEquals("1.21.9", catalog.version());
 		assertEquals(4554, catalog.dataVersion());
 		assertTrue(catalog.blockNames().contains("minecraft:acacia_trapdoor"));
 		assertTrue(catalog.blockNames().contains("minecraft:blue_ice"));
+	}
+
+	@Test
+	void bundlesReleaseMilestoneCatalogsAndDefaultsToTheNewest() {
+		List<BlockStateCatalog> catalogs = BlockStateCatalog.available();
+
+		assertEquals(List.of("1.18.2", "1.20.6", "1.21.9", "1.21.11", "26.2"),
+				catalogs.stream().map(BlockStateCatalog::version).toList());
+		assertEquals(List.of(2975, 3839, 4554, 4671, 4903),
+				catalogs.stream().map(BlockStateCatalog::dataVersion).toList());
+		assertEquals("26.2", BlockStateCatalog.latestJava().version());
+	}
+
+	@Test
+	void milestoneCatalogsExposeVersionSpecificBlocks() {
+		BlockStateCatalog oneEighteen = BlockStateCatalog.findByVersion("1.18.2").orElseThrow();
+		BlockStateCatalog oneTwenty = BlockStateCatalog.findByVersion("1.20.6").orElseThrow();
+		BlockStateCatalog oneTwentyOne = BlockStateCatalog.findByVersion("1.21.9").orElseThrow();
+		BlockStateCatalog twentySix = BlockStateCatalog.findByVersion("26.2").orElseThrow();
+
+		assertFalse(oneEighteen.containsBlock("minecraft:mangrove_planks"));
+		assertTrue(oneTwenty.containsBlock("minecraft:mangrove_planks"));
+		assertFalse(oneTwenty.containsBlock("minecraft:resin_block"));
+		assertTrue(oneTwentyOne.containsBlock("minecraft:resin_block"));
+		assertTrue(twentySix.containsBlock("minecraft:sulfur"));
 	}
 
 	@Test

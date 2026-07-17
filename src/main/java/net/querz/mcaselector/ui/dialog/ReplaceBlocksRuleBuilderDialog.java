@@ -291,7 +291,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		if (catalogModel.catalogs().size() <= 1) {
 			Label version = new Label(catalogModel.label(catalog));
 			version.getStyleClass().add("replace-blocks-builder-catalog-version");
-			return new HBox(8, label, version);
+			return wrapCatalogControl(new HBox(8, label, version));
 		}
 		ComboBox<BlockStateCatalog> selector = new ComboBox<>(FXCollections.observableArrayList(catalogModel.catalogs()));
 		selector.setConverter(new javafx.util.StringConverter<>() {
@@ -312,7 +312,15 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				to.catalogChanged();
 			}
 		});
-		return new HBox(8, label, selector);
+		return wrapCatalogControl(new HBox(8, label, selector));
+	}
+
+	private static Node wrapCatalogControl(Node control) {
+		Label note = new Label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CATALOG_NOTE.toString());
+		note.getStyleClass().add("replace-blocks-builder-catalog-note");
+		note.setMaxWidth(Double.MAX_VALUE);
+		note.setWrapText(true);
+		return new VBox(2, control, note);
 	}
 
 	private void applyPreset(ActionEvent event) {

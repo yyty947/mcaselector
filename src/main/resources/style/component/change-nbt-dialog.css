@@ -75,6 +75,10 @@
     -fx-text-fill: #8fd694;
 }
 
+.replace-blocks-builder-pane .replace-blocks-builder-catalog-note {
+    -fx-opacity: 0.75;
+}
+
 .replace-blocks-builder-pane .replace-blocks-builder-block {
     -fx-min-width: 300;
 }

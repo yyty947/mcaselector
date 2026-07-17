@@ -9,6 +9,7 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ComboBoxBase;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.skin.ComboBoxListViewSkin;
 import javafx.scene.input.KeyCode;
@@ -337,6 +338,23 @@ class ReplaceBlocksRuleBuilderModelTest {
 			comboBox.setSkin(new ComboBoxListViewSkin<>(comboBox));
 			ListView<?> replacementPopup = (ListView<?>) ((ComboBoxListViewSkin<?>) comboBox.getSkin()).getPopupContent();
 			assertTrue(replacementPopup.getStyleClass().contains("replace-blocks-builder-dropdown"));
+		});
+	}
+
+	@Test
+	void catalogControlExplainsThatItDoesNotMigrateIds() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = new Stage();
+			primaryStage.setScene(new Scene(new StackPane()));
+			try {
+				ReplaceBlocksRuleBuilderDialog dialog = new ReplaceBlocksRuleBuilderDialog(primaryStage, "");
+				Label note = (Label) dialog.getDialogPane().lookup(".replace-blocks-builder-catalog-note");
+
+				assertNotNull(note);
+				assertTrue(note.isWrapText());
+			} finally {
+				primaryStage.close();
+			}
 		});
 	}
 
