@@ -24,7 +24,11 @@ import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -543,7 +547,7 @@ class ReplaceBlocksRuleBuilderModelTest {
 
 				assertNotNull(note);
 				assertTrue(note.isWrapText());
-				assertTrue(note.getText().contains("does not convert IDs"));
+				assertTrue(note.getText().contains("IDs are not converted"));
 				assertTrue(note.getText().contains("clears its contents after confirmation"));
 			} finally {
 				primaryStage.close();
@@ -989,6 +993,89 @@ class ReplaceBlocksRuleBuilderModelTest {
 			assertTrue(css.contains("-fx-stroke: #4aa3ff;"));
 			assertTrue(css.contains("-fx-stroke-width: 1;"));
 		}
+	}
+
+	@Test
+	void builderPrimaryActionUsesTheSharedButtonStyle() throws Exception {
+		InputStream resource = ReplaceBlocksRuleBuilderDialog.class.getClassLoader()
+				.getResourceAsStream("style/component/change-nbt-dialog.css");
+		assertNotNull(resource);
+		try (InputStream input = resource) {
+			String css = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+			assertFalse(css.contains("replace-blocks-builder-add-rule"));
+			assertTrue(css.contains(".replace-blocks-builder-preset-action:disabled"));
+			assertTrue(css.contains("-fx-opacity: 0.55;"));
+		}
+	}
+
+	@Test
+	void emptyBuilderUsesCompactEmptyStateAndReadablePrimaryAction() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				TableView<?> rules = fieldValue(dialog, "rules", TableView.class);
+				StackPane rulesArea = (StackPane) dialog.getDialogPane().lookup(".replace-blocks-builder-rules-area");
+				Label placeholder = (Label) rules.getPlaceholder();
+				TextArea result = fieldValue(dialog, "result", TextArea.class);
+				Node sourceConstraints = dialog.getDialogPane().lookup(".replace-blocks-builder-source-constraints");
+				boolean hasAddRuleButton = dialog.getDialogPane().lookupAll(".button").stream()
+						.filter(Button.class::isInstance)
+						.map(Button.class::cast)
+						.anyMatch(button -> button.getText().equals(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_ADD_RULE.toString()));
+
+				assertNotNull(rulesArea);
+				assertEquals(Priority.NEVER, VBox.getVgrow(rulesArea));
+				assertEquals(160, rules.getMaxHeight());
+				assertEquals("No rules have been added yet. Fill in the source and target blocks, then click Add rule.", placeholder.getText());
+				assertTrue(result.isWrapText());
+				assertEquals(40, result.getMinHeight());
+				assertNotNull(sourceConstraints);
+				assertEquals(2, GridPane.getColumnSpan(sourceConstraints));
+				assertTrue(hasAddRuleButton);
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void sourceYLabelsKeepTheirPreferredWidth() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				List<Label> labels = dialog.getDialogPane().lookupAll(".replace-blocks-builder-y-range .label").stream()
+						.filter(Label.class::isInstance)
+						.map(Label.class::cast)
+						.toList();
+				assertEquals(2, labels.size());
+				assertTrue(labels.stream().allMatch(label -> label.getMinWidth() == Region.USE_PREF_SIZE));
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void populatedBuilderExpandsRulesAndResultAreas() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "minecraft:stone=minecraft:dirt");
+			try {
+				TableView<?> rules = fieldValue(dialog, "rules", TableView.class);
+				StackPane rulesArea = (StackPane) dialog.getDialogPane().lookup(".replace-blocks-builder-rules-area");
+				TextArea result = fieldValue(dialog, "result", TextArea.class);
+
+				assertEquals(Priority.ALWAYS, VBox.getVgrow(rulesArea));
+				assertEquals(Double.MAX_VALUE, rules.getMaxHeight());
+				assertEquals(52, result.getMinHeight());
+				assertEquals(68, result.getPrefHeight());
+				assertEquals(92, result.getMaxHeight());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
 	}
 
 	@Test

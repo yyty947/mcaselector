@@ -45,6 +45,10 @@ final class ReplaceBlocksCatalogModel {
 		return "Java " + catalog.version() + " (DataVersion " + catalog.dataVersion() + ")";
 	}
 
+	String shortLabel(BlockStateCatalog catalog) {
+		return "Java " + catalog.version();
+	}
+
 	enum Compatibility {
 		KNOWN,
 		UNKNOWN_SOURCE,

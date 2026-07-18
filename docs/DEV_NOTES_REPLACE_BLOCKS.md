@@ -111,6 +111,11 @@ CLI path:
 - The default NBT Changer dialog width keeps the ReplaceBlocks `Builder` button visible without horizontal scrolling.
 - When opened without an existing value, the builder starts with blank From/To inputs and does not immediately show an empty-rule validation error.
 - The builder helper text below the generated value is only a pre-input hint; it hides after the user manually types non-empty From/To text.
+- The Builder's preset and catalogue controls share a compact top toolbar. The catalogue button uses a short Java version for the closed state and keeps the full DataVersion label available through its tooltip and popup cells.
+- Source-only Extra NBT, Y-range, and biome controls live in a full-width optional restrictions strip below the two From/To columns, so they are visually grouped without changing generated syntax or validation.
+- The Min Y and Max Y labels keep their preferred width in the compact restrictions strip; the two editable fields absorb remaining space, so the labels do not collapse into JavaFX ellipses after values are entered.
+- An empty rules table shows a localized empty-state prompt at a compact height; once rules are present the table expands with the dialog. The generated ReplaceBlocks value follows the same compact-to-expanded behavior, wraps long values, and uses a monospace result style for readable syntax inspection.
+- The Add rule action keeps the shared button treatment used by the surrounding Builder controls. Disabled preset actions retain enough opacity to remain legible.
 - The Builder offers ReplaceBlocks preview/dry-run counts for modern 1.18+ formats, including per-rule rows and overlap warnings. Light-section and heightmap warnings now use actual affected sections/chunks rather than all scanned candidates. Selection-only preview also reports the geometric upper bound of adjacent chunks outside the selection whose relight flags may be updated, and explicitly states that no blocks are replaced there. The Preview button sits in the Builder button bar beside Help and uses the generated Builder value. Cancelling this preview stops only its worker at a chunk boundary and never flushes unrelated process/save/parse queues.
 - `BlockStateCatalog.available()` loads the indexed catalogue set; the Builder defaults to the newest catalogue and exposes manual selection.
 - For modern versions, replacement iterates all 4096 blocks per section.
@@ -184,6 +189,7 @@ The current From/To block inputs use editable JavaFX `ComboBox` controls backed 
 - Normalize custom preset rules through `ReplaceBlocksField` before storing or comparing them. Raw SNBT ordering and whitespace are not rule identity, and equivalent rules must not be appended twice.
 - Clicking empty space in the rule table clears its selection so the documented all-rules preset fallback remains reachable. Closing a nonempty Builder through the window close control requires discard confirmation.
 - The rule-table marquee rectangle is an unmanaged overlay node. Its changing width and height must never participate in `StackPane`/`Pane` preferred-size calculation or move the table, headers, or surrounding controls while dragging.
+- Keep the Builder's compact/expanded layout states stable when changing focus, opening a popup, selecting a preset, or switching catalogues; the content region and native dialog button bar should share the same horizontal inset, and layout polish must not change the existing reset, popup-anchor, keyboard-navigation, or advanced-text round-trip behavior.
 
 Recommended next work:
 

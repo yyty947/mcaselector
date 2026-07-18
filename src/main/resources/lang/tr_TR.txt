@@ -221,6 +221,7 @@ dialog.replace_blocks.builder.to;To block
 dialog.replace_blocks.builder.add_rule;Add rule
 dialog.replace_blocks.builder.delete_rule;Delete rule
 dialog.replace_blocks.builder.rules;Rules
+dialog.replace_blocks.builder.rules.empty;Henüz kural eklenmedi. Kaynak ve hedef blokları doldurup Kural ekle düğmesine tıklayın.
 dialog.replace_blocks.builder.result;Generated ReplaceBlocks
 dialog.replace_blocks.builder.invalid;Invalid block id or generated rule.
 dialog.replace_blocks.builder.duplicate;This rule already exists.
@@ -233,10 +234,11 @@ dialog.replace_blocks.builder.y_min;Min Y
 dialog.replace_blocks.builder.y_max;Max Y
 dialog.replace_blocks.builder.biome;Biome
 dialog.replace_blocks.builder.biome.prompt;minecraft:plains;minecraft:forest
+dialog.replace_blocks.builder.source_constraints;Kaynak kısıtlamaları (isteğe bağlı)
 dialog.replace_blocks.builder.catalog;Block catalogue
 dialog.replace_blocks.builder.catalog_switch.title;Switch block catalogue
 dialog.replace_blocks.builder.catalog_switch.message;Switching from %s to %s will discard all Builder rules, drafts, and selections. Continue?
-dialog.replace_blocks.builder.catalog.note;Controls block suggestions and properties only; it does not convert IDs. Switching a non-empty Builder clears its contents after confirmation.
+dialog.replace_blocks.builder.catalog.note;Yalnızca blok önerilerini ve özellikleri denetler; kimlikleri dönüştürmez. Boş olmayan bir Builder değiştirildiğinde içerik onaydan sonra temizlenir.
 dialog.replace_blocks.builder.catalog.source_unknown;Source "%s" is not in the Java %s catalogue; it will still be accepted as entered.
 dialog.replace_blocks.builder.catalog.target_unknown;Target "%s" is not in the Java %s catalogue; it will still be accepted, but verify that the target world supports this ID.
 dialog.replace_blocks.builder.preset.persist_failed;Could not write the configuration; the preset change was rolled back.

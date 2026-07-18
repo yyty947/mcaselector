@@ -221,6 +221,7 @@ dialog.replace_blocks.builder.to;Целевой блок
 dialog.replace_blocks.builder.add_rule;Добавить правило
 dialog.replace_blocks.builder.delete_rule;Удалить правило
 dialog.replace_blocks.builder.rules;Правила
+dialog.replace_blocks.builder.rules.empty;Правила ещё не добавлены. Заполните исходный и целевой блоки, затем нажмите «Добавить правило».
 dialog.replace_blocks.builder.result;Сгенерированный ReplaceBlocks
 dialog.replace_blocks.builder.invalid;Неверный ID блока или сгенерированное правило.
 dialog.replace_blocks.builder.duplicate;Это правило уже существует.
@@ -233,10 +234,11 @@ dialog.replace_blocks.builder.y_min;Мин. Y
 dialog.replace_blocks.builder.y_max;Макс. Y
 dialog.replace_blocks.builder.biome;Биом
 dialog.replace_blocks.builder.biome.prompt;minecraft:plains;minecraft:forest
+dialog.replace_blocks.builder.source_constraints;Ограничения источника (необязательно)
 dialog.replace_blocks.builder.catalog;Block catalogue
 dialog.replace_blocks.builder.catalog_switch.title;Switch block catalogue
 dialog.replace_blocks.builder.catalog_switch.message;Switching from %s to %s will discard all Builder rules, drafts, and selections. Continue?
-dialog.replace_blocks.builder.catalog.note;Controls block suggestions and properties only; it does not convert IDs. Switching a non-empty Builder clears its contents after confirmation.
+dialog.replace_blocks.builder.catalog.note;Управляет только подсказками блоков и свойствами; идентификаторы не преобразуются. Переключение непустого Builder после подтверждения очистит его содержимое.
 dialog.replace_blocks.builder.catalog.source_unknown;Source "%s" is not in the Java %s catalogue; it will still be accepted as entered.
 dialog.replace_blocks.builder.catalog.target_unknown;Target "%s" is not in the Java %s catalogue; it will still be accepted, but verify that the target world supports this ID.
 dialog.replace_blocks.builder.preset.persist_failed;Could not write the configuration; the preset change was rolled back.

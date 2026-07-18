@@ -33,6 +33,15 @@ class ReplaceBlocksCatalogModelTest {
 				model.compatibility("example:custom_block", false));
 	}
 
+	@Test
+	void exposesCompactCatalogLabelForTheBuilderToolbar() {
+		BlockStateCatalog catalog = catalog("26.2", 4671, "minecraft:stone");
+		ReplaceBlocksCatalogModel model = new ReplaceBlocksCatalogModel(List.of(catalog));
+
+		assertEquals("Java 26.2", model.shortLabel(catalog));
+		assertEquals("Java 26.2 (DataVersion 4671)", model.label(catalog));
+	}
+
 	private BlockStateCatalog catalog(String version, int dataVersion, String... names) {
 		StringBuilder blocks = new StringBuilder();
 		for (String name : names) {

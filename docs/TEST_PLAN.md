@@ -185,6 +185,7 @@ Execution matrix:
 | `UI-01F` / `UI-02F` | Help and Preview | Correct enablement, non-mutating preview, per-rule/tile/overlap output |
 | `UI-01G` / `UI-02G` | Resize and console | No overlap/clipping at default and resized layouts; no JavaFX exception |
 | `UI-CATALOG` | Five-catalogue switch/reset | Empty switches directly; Cancel preserves all work; Confirm selects the new catalogue and fully resets; saved presets remain and exact out-of-catalogue preset IDs warn without blocking |
+| `UI-01H` / `UI-02H` | Builder layout polish | Compact toolbar, full-width source restrictions, localized empty-state placeholders, content-driven table/result sizing, shared Add Rule button treatment, readable disabled preset actions, aligned dialog insets, and wrapped monospace output |
 
 Manual checks:
 
@@ -193,6 +194,12 @@ Manual checks:
 - Open an empty builder and confirm the From/To fields are blank, the generated value is empty, and no `Add at least one rule` error is shown before user action.
 - Before typing in an empty Builder From/To field, click the dropdown arrow. The complete A-Z block catalog should open; it must not open automatically when the Builder first appears.
 - Open a fresh Builder, click once inside an empty From, To, or Biome editor, then click that field's arrow as the next action. On this first show the full catalog must stay attached directly above or below its field instead of jumping away from it; repeat all three fields after reopening the Builder.
+- In a fresh empty Builder, confirm the preset and catalogue controls form a compact top toolbar; the closed catalogue control shows a short Java version while hovering it exposes the full DataVersion.
+- Confirm Extra NBT, Min Y, Max Y, and Biome appear together in one full-width optional source-restrictions strip below From/To, without changing the From/To widths or the generated syntax.
+- Confirm the Y-range labels remain fully visible as `最低 Y`/`最高 Y` (or the localized equivalent) before and after entering values; neither label should render as `...`.
+- With no rules, confirm the rules area is compact and shows its localized empty-state prompt. Add one or more rules and confirm the table grows to use available space; delete them all and confirm it returns to the compact empty state.
+- With no generated value, confirm the result area is compact. Add a rule with a long source/target expression and confirm the result wraps cleanly, remains readable in monospace, and grows only as needed.
+- Confirm Add Rule uses the same button treatment as the surrounding controls. Disabled Fill/Save/Delete preset buttons must remain readable. Confirm the left edge of Help/Preview aligns with the upper content and the right edge of Cancel aligns with the result area. Resize the Builder and verify these states do not cause overlap or layout jumps.
 - In the builder From/To fields, type `oak` or `sto`. The candidate list should open automatically, show every matching block ID in A-Z order, highlight the typed substring in blue, allow mouse scrolling, and collapse after Tab completion.
 - Narrow the suggestion list from many matches to two or three and drag its scrollbar repeatedly. The popup must shrink to the actual result count, show no empty rows, and log no `VirtualFlow index exceeds maxCellCount` warning.
 - With a Chinese IME active, select part of a completed block ID, enter two Latin letters, and confirm neither letter is swallowed and no `TextInputControl.replaceText` exception is logged.

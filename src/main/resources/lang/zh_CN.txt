@@ -221,6 +221,7 @@ dialog.replace_blocks.builder.to;目标方块
 dialog.replace_blocks.builder.add_rule;添加规则
 dialog.replace_blocks.builder.delete_rule;删除规则
 dialog.replace_blocks.builder.rules;规则
+dialog.replace_blocks.builder.rules.empty;尚未添加规则。填写来源方块和目标方块，然后点击“添加规则”。
 dialog.replace_blocks.builder.result;生成的 ReplaceBlocks
 dialog.replace_blocks.builder.invalid;方块 ID 或生成规则无效。
 dialog.replace_blocks.builder.duplicate;这条规则已存在。
@@ -233,10 +234,11 @@ dialog.replace_blocks.builder.y_min;最低 Y
 dialog.replace_blocks.builder.y_max;最高 Y
 dialog.replace_blocks.builder.biome;生物群系
 dialog.replace_blocks.builder.biome.prompt;minecraft:plains;minecraft:forest
+dialog.replace_blocks.builder.source_constraints;来源限制（可选）
 dialog.replace_blocks.builder.catalog;方块目录
 dialog.replace_blocks.builder.catalog_switch.title;切换方块目录
 dialog.replace_blocks.builder.catalog_switch.message;从 %s 切换到 %s 将丢失构建器中的所有规则、草稿和选择。是否继续？
-dialog.replace_blocks.builder.catalog.note;仅控制方块候选和属性，不会转换 ID。切换非空构建器的版本时，确认后会清空其中的全部内容。
+dialog.replace_blocks.builder.catalog.note;仅控制方块候选和属性，不会转换 ID；切换非空 Builder 前会确认，确认后清空内容。
 dialog.replace_blocks.builder.catalog.source_unknown;来源“%s”不在 Java %s 目录中；仍会接受并按原样保存。
 dialog.replace_blocks.builder.catalog.target_unknown;目标“%s”不在 Java %s 目录中；仍会接受，但请确认目标世界版本支持该 ID。
 dialog.replace_blocks.builder.preset.persist_failed;无法写入配置，预设更改已回滚。
