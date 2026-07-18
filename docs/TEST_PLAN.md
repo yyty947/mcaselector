@@ -185,7 +185,7 @@ Execution matrix:
 | `UI-01F` / `UI-02F` | Help and Preview | Correct enablement, non-mutating preview, per-rule/tile/overlap output |
 | `UI-01G` / `UI-02G` | Resize and console | No overlap/clipping at default and resized layouts; no JavaFX exception |
 | `UI-CATALOG` | Five-catalogue switch/reset | Empty switches directly; Cancel preserves all work; Confirm selects the new catalogue and fully resets; saved presets remain and exact out-of-catalogue preset IDs warn without blocking |
-| `UI-01H` / `UI-02H` | Builder layout polish | Compact toolbar, full-width source restrictions, localized empty-state placeholders, content-driven table/result sizing, shared Add Rule button treatment, readable disabled preset actions, aligned dialog insets, and wrapped monospace output |
+| `UI-01H` / `UI-02H` | Builder layout polish | Compact toolbar, full-width source restrictions, localized empty-state placeholders, content-driven table/result sizing, shared Add Rule button treatment, readable disabled preset actions, aligned dialog insets, bounded autocomplete popups, and wrapped monospace output |
 
 Manual checks:
 
@@ -197,6 +197,7 @@ Manual checks:
 - In a fresh empty Builder, confirm the preset and catalogue controls form a compact top toolbar; the closed catalogue control shows a short Java version while hovering it exposes the full DataVersion.
 - Confirm Extra NBT, Min Y, Max Y, and Biome appear together in one full-width optional source-restrictions strip below From/To, without changing the From/To widths or the generated syntax.
 - Confirm the Y-range labels remain fully visible as `最低 Y`/`最高 Y` (or the localized equivalent) before and after entering values; neither label should render as `...`.
+- Open the Biome and From/To autocomplete lists near the Builder's right side. Their right edge must stay inside the Builder window; long entries may use the available width, and the popup must remain attached below or above the field. Ordinary property/preset dropdowns should retain their existing native width behavior.
 - With no rules, confirm the rules area is compact and shows its localized empty-state prompt. Add one or more rules and confirm the table grows to use available space; delete them all and confirm it returns to the compact empty state.
 - With no generated value, confirm the result area is compact. Add a rule with a long source/target expression and confirm the result wraps cleanly, remains readable in monospace, and grows only as needed.
 - Confirm Add Rule uses the same button treatment as the surrounding controls. Disabled Fill/Save/Delete preset buttons must remain readable. Confirm the left edge of Help/Preview aligns with the upper content and the right edge of Cancel aligns with the result area. Resize the Builder and verify these states do not cause overlap or layout jumps.

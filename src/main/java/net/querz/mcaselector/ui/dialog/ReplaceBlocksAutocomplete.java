@@ -33,6 +33,30 @@ final class ReplaceBlocksAutocomplete {
 				|| code == KeyCode.PAGE_DOWN || code == KeyCode.ENTER || code == KeyCode.TAB;
 	}
 
+	record HorizontalPopupBounds(double x, double width) {}
+
+	static HorizontalPopupBounds constrainHorizontalBounds(double popupX, double popupWidth,
+			double comboX, double comboWidth, double ownerX, double ownerWidth, double margin) {
+		double safeMargin = Math.max(0, margin);
+		double safeLeft = ownerX + safeMargin;
+		double safeRight = ownerX + ownerWidth - safeMargin;
+		if (safeRight <= safeLeft) {
+			return new HorizontalPopupBounds(safeLeft, 0);
+		}
+
+		double width = Math.min(Math.max(popupWidth, comboWidth), safeRight - safeLeft);
+		double x = popupX;
+		boolean comboFits = comboX >= safeLeft && comboX + comboWidth <= safeRight;
+		if (comboFits) {
+			x = comboX;
+			width = Math.min(width, safeRight - comboX);
+		} else {
+			x = Math.max(safeLeft, safeRight - width);
+		}
+		x = Math.max(safeLeft, Math.min(x, safeRight - width));
+		return new HorizontalPopupBounds(x, width);
+	}
+
 	static int selectionTarget(KeyCode code, int selectedIndex, int itemCount, int visibleRows) {
 		if (itemCount <= 0) {
 			return -1;
@@ -221,10 +245,12 @@ final class ReplaceBlocksAutocomplete {
 
 	private static final class PopupPositionTracker {
 		private static final double EPSILON = 0.5;
+		private static final double WINDOW_MARGIN = 4;
 		private final ComboBox<?> comboBox;
 		private final InvalidationListener geometryListener = observable -> stabilize();
 		private ListView<?> popupContent;
 		private Window popupWindow;
+		private Window ownerWindow;
 		private boolean stabilizing;
 		private boolean stabilizationPending;
 
@@ -244,20 +270,38 @@ final class ReplaceBlocksAutocomplete {
 				popupContent = null;
 				return;
 			}
+			ownerWindow = comboBox.getScene() == null ? null : comboBox.getScene().getWindow();
 			popupContent.heightProperty().addListener(geometryListener);
+			popupContent.widthProperty().addListener(geometryListener);
 			popupWindow.heightProperty().addListener(geometryListener);
+			popupWindow.widthProperty().addListener(geometryListener);
+			popupWindow.xProperty().addListener(geometryListener);
 			popupWindow.yProperty().addListener(geometryListener);
+			if (ownerWindow != null) {
+				ownerWindow.xProperty().addListener(geometryListener);
+				ownerWindow.yProperty().addListener(geometryListener);
+				ownerWindow.widthProperty().addListener(geometryListener);
+			}
 			stabilize();
 		}
 
 		private void detach() {
 			if (popupContent != null) popupContent.heightProperty().removeListener(geometryListener);
+			if (popupContent != null) popupContent.widthProperty().removeListener(geometryListener);
 			if (popupWindow != null) {
 				popupWindow.heightProperty().removeListener(geometryListener);
+				popupWindow.widthProperty().removeListener(geometryListener);
+				popupWindow.xProperty().removeListener(geometryListener);
 				popupWindow.yProperty().removeListener(geometryListener);
+			}
+			if (ownerWindow != null) {
+				ownerWindow.xProperty().removeListener(geometryListener);
+				ownerWindow.yProperty().removeListener(geometryListener);
+				ownerWindow.widthProperty().removeListener(geometryListener);
 			}
 			popupContent = null;
 			popupWindow = null;
+			ownerWindow = null;
 			stabilizationPending = false;
 		}
 
@@ -270,8 +314,10 @@ final class ReplaceBlocksAutocomplete {
 				stabilizationPending = false;
 				if (popupWindow == null || popupContent == null || !comboBox.isShowing()) return;
 				Bounds comboBounds = comboBox.localToScreen(comboBox.getBoundsInLocal());
+				if (comboBounds == null) return;
+				stabilizeHorizontal(comboBounds);
 				Bounds popupBounds = popupContent.localToScreen(popupContent.getLayoutBounds());
-				if (comboBounds == null || popupBounds == null || popupBounds.getMinY() >= comboBounds.getMinY()) return;
+				if (popupBounds == null || popupBounds.getMinY() >= comboBounds.getMinY()) continue;
 				double correction = comboBounds.getMinY() - popupBounds.getMaxY();
 				if (Math.abs(correction) <= EPSILON) continue;
 				stabilizing = true;
@@ -281,6 +327,26 @@ final class ReplaceBlocksAutocomplete {
 					stabilizing = false;
 				}
 			} while (stabilizationPending);
+		}
+
+		private void stabilizeHorizontal(Bounds comboBounds) {
+			if (ownerWindow == null || ownerWindow.getWidth() <= 0 || popupWindow.getWidth() <= 0) return;
+			HorizontalPopupBounds constrained = constrainHorizontalBounds(
+					popupWindow.getX(), popupWindow.getWidth(), comboBounds.getMinX(), comboBounds.getWidth(),
+					ownerWindow.getX(), ownerWindow.getWidth(), WINDOW_MARGIN);
+			if (Math.abs(constrained.width() - popupWindow.getWidth()) <= EPSILON
+					&& Math.abs(constrained.x() - popupWindow.getX()) <= EPSILON) return;
+			stabilizing = true;
+			try {
+				if (Math.abs(constrained.width() - popupWindow.getWidth()) > EPSILON) {
+					popupWindow.setWidth(constrained.width());
+				}
+				if (Math.abs(constrained.x() - popupWindow.getX()) > EPSILON) {
+					popupWindow.setX(constrained.x());
+				}
+			} finally {
+				stabilizing = false;
+			}
 		}
 	}
 

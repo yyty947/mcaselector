@@ -864,6 +864,19 @@ class ReplaceBlocksRuleBuilderModelTest {
 		}
 	}
 
+	@Test
+	void popupHorizontalBoundsStayInsideTheBuilderWindow() {
+		ReplaceBlocksAutocomplete.HorizontalPopupBounds constrained = ReplaceBlocksAutocomplete.constrainHorizontalBounds(
+				333, 460, 333, 270, 0, 706, 4);
+		assertEquals(333, constrained.x(), 0.01);
+		assertEquals(369, constrained.width(), 0.01);
+
+		constrained = ReplaceBlocksAutocomplete.constrainHorizontalBounds(
+				650, 460, 650, 100, 0, 706, 4);
+		assertEquals(242, constrained.x(), 0.01);
+		assertEquals(460, constrained.width(), 0.01);
+	}
+
 	private static void assertFirstFocusedEmptyCatalogPopupStaysAttachedAfterLateResize(
 			String inputFieldName, String comboBoxFieldName) throws Throwable {
 		AtomicReference<Stage> primaryStageReference = new AtomicReference<>();
