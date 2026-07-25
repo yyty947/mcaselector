@@ -259,7 +259,9 @@ dialog.replace_blocks.builder.preset.replace_confirm;载入这个预设会替换
 dialog.replace_blocks.builder.preset.saved;预设“%s”已保存。
 dialog.replace_blocks.builder.preset.already_filled;这个预设已经填入规则区。
 dialog.replace_blocks.builder.discard.title;放弃 Builder 更改？
-dialog.replace_blocks.builder.discard.header;Builder 中的全部规则和正在编辑的输入都会丢失。
+dialog.replace_blocks.builder.discard.header;要放弃本次 Builder 更改吗？ReplaceBlocks 输入框将保持打开 Builder 前的内容。
+dialog.replace_blocks.builder.discard.action;放弃更改
+dialog.replace_blocks.builder.continue_editing.action;继续编辑
 dialog.replace_blocks.builder.preset.air_to_stone;空气 -> 石头
 dialog.replace_blocks.builder.preset.fluids_to_air;流体 -> 空气
 dialog.replace_blocks.builder.preset.logs_leaves_to_air;原木/树叶 -> 空气

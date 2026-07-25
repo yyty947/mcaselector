@@ -259,7 +259,9 @@ dialog.replace_blocks.builder.preset.replace_confirm;載入這個預設會取代
 dialog.replace_blocks.builder.preset.saved;預設「%s」已儲存。
 dialog.replace_blocks.builder.preset.already_filled;此預設已加入規則清單。
 dialog.replace_blocks.builder.discard.title;捨棄 Builder 變更？
-dialog.replace_blocks.builder.discard.header;Builder 中的所有規則與正在編輯的輸入都會遺失。
+dialog.replace_blocks.builder.discard.header;要捨棄本次 Builder 變更嗎？ReplaceBlocks 輸入框將保留開啟 Builder 前的內容。
+dialog.replace_blocks.builder.discard.action;捨棄變更
+dialog.replace_blocks.builder.continue_editing.action;繼續編輯
 dialog.replace_blocks.builder.preset.air_to_stone;空氣 -> 石頭
 dialog.replace_blocks.builder.preset.fluids_to_air;流體 -> 空氣
 dialog.replace_blocks.builder.preset.logs_leaves_to_air;原木／樹葉 -> 空氣

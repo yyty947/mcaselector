@@ -259,7 +259,9 @@ dialog.replace_blocks.builder.preset.replace_confirm;이 프리셋을 불러오�
 dialog.replace_blocks.builder.preset.saved;프리셋 "%s"이(가) 저장되었습니다.
 dialog.replace_blocks.builder.preset.already_filled;이 프리셋은 이미 규칙 목록에 있습니다.
 dialog.replace_blocks.builder.discard.title;빌더 변경 사항을 취소하시겠습니까?
-dialog.replace_blocks.builder.discard.header;빌더의 모든 규칙과 작성 중인 입력이 손실됩니다.
+dialog.replace_blocks.builder.discard.header;이 빌더에서 변경한 내용을 버리시겠습니까? ReplaceBlocks 입력란은 빌더를 열기 전 값을 유지합니다.
+dialog.replace_blocks.builder.discard.action;변경 사항 버리기
+dialog.replace_blocks.builder.continue_editing.action;계속 편집
 dialog.replace_blocks.builder.preset.air_to_stone;공기 -> 돌
 dialog.replace_blocks.builder.preset.fluids_to_air;액체 -> 공기
 dialog.replace_blocks.builder.preset.logs_leaves_to_air;원목/잎 -> 공기

@@ -259,7 +259,9 @@ dialog.replace_blocks.builder.preset.replace_confirm;Carregar esta predefiniçã
 dialog.replace_blocks.builder.preset.saved;Predefinição "%s" salva.
 dialog.replace_blocks.builder.preset.already_filled;Esta predefinição já está presente na lista de regras.
 dialog.replace_blocks.builder.discard.title;Descartar alterações do Construtor?
-dialog.replace_blocks.builder.discard.header;Todas as regras e a entrada em edição neste Construtor serão perdidas.
+dialog.replace_blocks.builder.discard.header;Descartar as alterações feitas neste Construtor? O campo ReplaceBlocks manterá o valor anterior à abertura.
+dialog.replace_blocks.builder.discard.action;Descartar alterações
+dialog.replace_blocks.builder.continue_editing.action;Continuar editando
 dialog.replace_blocks.builder.preset.air_to_stone;Ar -> pedra
 dialog.replace_blocks.builder.preset.fluids_to_air;Fluidos -> ar
 dialog.replace_blocks.builder.preset.logs_leaves_to_air;Troncos/folhas -> ar

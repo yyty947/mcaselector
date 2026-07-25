@@ -259,7 +259,9 @@ dialog.replace_blocks.builder.preset.replace_confirm;Das Laden dieser Voreinstel
 dialog.replace_blocks.builder.preset.saved;Voreinstellung „%s" gespeichert.
 dialog.replace_blocks.builder.preset.already_filled;Diese Voreinstellung ist bereits in der Regelliste vorhanden.
 dialog.replace_blocks.builder.discard.title;Builder-Änderungen verwerfen?
-dialog.replace_blocks.builder.discard.header;Alle Regeln und Eingaben in diesem Builder gehen verloren.
+dialog.replace_blocks.builder.discard.header;Die Änderungen in diesem Builder verwerfen? Das ReplaceBlocks-Feld behält den Wert von vor dem Öffnen des Builders.
+dialog.replace_blocks.builder.discard.action;Änderungen verwerfen
+dialog.replace_blocks.builder.continue_editing.action;Weiter bearbeiten
 dialog.replace_blocks.builder.preset.air_to_stone;Luft -> Stein
 dialog.replace_blocks.builder.preset.fluids_to_air;Flüssigkeiten -> Luft
 dialog.replace_blocks.builder.preset.logs_leaves_to_air;Stämme/Blätter -> Luft

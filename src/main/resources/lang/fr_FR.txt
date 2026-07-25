@@ -259,7 +259,9 @@ dialog.replace_blocks.builder.preset.replace_confirm;Le chargement de ce préré
 dialog.replace_blocks.builder.preset.saved;Préréglage « %s » enregistré.
 dialog.replace_blocks.builder.preset.already_filled;Ce préréglage est déjà présent dans la liste des règles.
 dialog.replace_blocks.builder.discard.title;Abandonner les modifications du constructeur ?
-dialog.replace_blocks.builder.discard.header;Toutes les règles et la saisie en cours dans ce constructeur seront perdues.
+dialog.replace_blocks.builder.discard.header;Abandonner les modifications effectuées dans ce constructeur ? Le champ ReplaceBlocks conservera sa valeur antérieure à l'ouverture.
+dialog.replace_blocks.builder.discard.action;Abandonner les modifications
+dialog.replace_blocks.builder.continue_editing.action;Continuer la modification
 dialog.replace_blocks.builder.preset.air_to_stone;Air -> pierre
 dialog.replace_blocks.builder.preset.fluids_to_air;Fluides -> air
 dialog.replace_blocks.builder.preset.logs_leaves_to_air;Bûches/feuilles -> air

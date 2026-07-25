@@ -26,10 +26,12 @@ Required gates:
 | `AUTO-02` | Translation completeness | No missing ReplaceBlocks translation keys |
 | `AUTO-LOG` | Uncaught-exception logging | Exception reaches both the Log4j callback and standard error |
 | `AUTO-PERF` | Builder performance regressions | Popup feedback is bounded, later geometry changes recover, long autocomplete width scans are capped, empty-query cells stay lightweight, and catalogue preload completes off the UI thread |
+| `AUTO-CLOSE` | Transactional Builder closing | Opening baseline, dirty reset, real window close, confirmation close, explicit discard, and Builder Cancel paths are covered |
 | `PKG-01` | `build shadowJar` | Successful build output |
 | `PKG-02` | Windows `jpackage` | Successful package output, or a recorded environment blocker that is resolved before PR |
 | `UI-01` | Chinese Builder regression pass | Completed checklist, screenshot, and clean console |
 | `UI-02` | English Builder regression pass | Completed checklist, screenshot, and clean console |
+| `UI-CLOSE` | Builder discard interaction | Cancel/X/Continue preserve the session, Discard closes, and the outer ReplaceBlocks value changes only through Builder OK |
 | `UI-CATALOG` | Focused catalogue-switch reset | Direct empty switch, Cancel preservation, Confirm full reset, and custom-preset advisory verified by the user |
 | `WORLD-18` | Disposable Java 1.18.x world | Preview/execution comparison, world reload, and log check |
 | `WORLD-21` | Disposable Java 1.21.x world | Preview/execution comparison, world reload, and log check |
@@ -67,6 +69,8 @@ Phase 6 execution record:
 | `AUTO-LOG` | Passed | Windows 11, Adoptium Java 21, 2026-07-24 | `LoggingTest` verifies that an uncaught Java exception reaches the fatal-log callback and standard error |
 | `AUTO-PERF` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-25 | Builder model regressions cover bounded popup geometry feedback with later recovery, From/To/Biome width-measurement limits, empty-query plain-text cells, and daemon-thread catalogue preload; `compileJava`, full `test`, `build`, and `shadowJar` succeeded |
 | `UI-PERF` | Passed | Low-end physical Dell Inspiron 5498, Java 21, 2026-07-25 | Previous first popup was about 1 s and first `a` 1-3 s; optimized operations felt below 200 ms, empty Biome no longer hung, and prewarmed first Builder open was below 0.5 s. The user completed the final keyboard, popup, style, preset, rule-editing, and advanced-text regression without finding an issue |
+| `AUTO-CLOSE` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-25 | JavaFX tests cover clean restored content, reversible drafts, dirty catalogue reset, title-bar close with declined/closed/accepted confirmation, Builder Cancel, explicit action labels, and outer-field explanatory copy |
+| `UI-CLOSE` | Pending | User-run local UI check | Verify the transactional close paths below after building or launching the committed candidate |
 
 ### Phase 6 copied-world evidence
 
@@ -192,6 +196,7 @@ Execution matrix:
 | `UI-CATALOG` | Five-catalogue switch/reset | Empty switches directly; Cancel preserves all work; Confirm selects the new catalogue and fully resets; saved presets remain and exact out-of-catalogue preset IDs warn without blocking |
 | `UI-01H` / `UI-02H` | Builder layout polish | Compact toolbar, full-width source restrictions, localized empty-state placeholders, content-driven table/result sizing, shared Add Rule button treatment, readable disabled preset actions, aligned dialog insets, bounded autocomplete popups, and wrapped monospace output |
 | `UI-PERF` | Low-end Builder responsiveness | No empty-Biome hang; first/repeated long-list popup and first-character filtering remain responsive without keyboard, completion, layout, or style regressions |
+| `UI-CLOSE` | Transactional Builder closing | Unchanged content closes silently; dirty Cancel/X/Continue keep editing; Discard preserves outer text; OK applies the generated value |
 
 Manual checks:
 
@@ -231,6 +236,10 @@ Manual checks:
 - With two rules selected, `Save preset` / `存为预设` should store exactly those two rules in table order, leaving the unselected rule out. `Edit rule` / `载入编辑` should be disabled for that multi-selection; `Delete rule` / `删除规则` and the table's Delete key should remove every selected row.
 - When the rules table has a selection, Esc should clear only the rule selection. In From/To, biome, and property controls, Ctrl+Enter should follow the same valid/invalid outcome as `Add rule` / `添加规则`; Delete must continue to edit text normally while an input owns focus.
 - In every open From/To, biome, property, Extra NBT, and preset list, verify Up/Down, PageUp/PageDown, Enter, and Esc. On the first Builder opening, the first arrow key must produce an immediate visible navigation response rather than being absorbed by JavaFX's initial popup focus. For From/To and biome autocomplete, moving within the currently fully visible rows must leave the list stationary; crossing a boundary should reveal only the next row, while PageUp/PageDown should move by one actual visible page. Type and then clear a query, close an explicit empty catalog with Esc, and confirm the next closed Up/Down key does not write a block or biome; reopening without another explicit empty-arrow click must not retain the full catalog. Repeat the middle-of-text caret and selection test with the popup closed to confirm that ordinary editing remains native. Check the JavaFX console for exceptions after both keyboard and marquee interaction.
+- Enter `literal(minecraft:stone)=minecraft:dirt` directly in the Change NBT ReplaceBlocks field, open Builder, make no changes, and close with the title-bar X. No discard prompt should appear and the outer text must remain unchanged.
+- Reopen that rule, change a draft or rule, then try Builder Cancel, Esc, and the title-bar X. Each path should show explicit `Discard changes` / `Continue editing` actions. `Continue editing` and the confirmation window's X must keep the same Builder session open; `Discard changes` must close it and leave the outer text as `literal(minecraft:stone)=minecraft:dirt`.
+- Reopen the outer rule, confirm switching to another block catalogue so the Builder becomes empty, and close it. The discard prompt must still appear because opening content was removed. Discarding must preserve the outer rule; rebuilding a valid rule and pressing Builder OK must replace it.
+- Open an initially empty Builder, type and then erase a draft back to the opening state, and close it. No discard prompt should appear. Merely switching catalogues while the Builder remains otherwise empty should also close silently.
 - On the low-end physical device, fully close MCA Selector, restart the optimized package, open Change NBT and immediately open a fresh Builder without an artificial wait. The Builder should become interactive without a multi-second pause; record the approximate first-open time.
 - In that fresh Builder, explicitly open empty From, To, and Biome catalogues, then close and reopen each once. All six expansions must remain responsive, attached immediately above or below the field, and inside the Builder horizontally. Repeat the empty Biome expansion at least 20 times; the application must never stop repainting or responding.
 - Type `aca` in From and To and a common prefix such as `a` or `b` in Biome. The first character must not produce the previous 1-3 second stall, results must remain complete and sorted, and the matching text must still use the dark-theme blue highlight.

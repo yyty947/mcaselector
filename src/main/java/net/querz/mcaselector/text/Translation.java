@@ -230,6 +230,8 @@ public enum Translation {
 	DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_ALREADY_FILLED("dialog.replace_blocks.builder.preset.already_filled"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_DISCARD_TITLE("dialog.replace_blocks.builder.discard.title"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_DISCARD_HEADER("dialog.replace_blocks.builder.discard.header"),
+	DIALOG_REPLACE_BLOCKS_BUILDER_DISCARD_ACTION("dialog.replace_blocks.builder.discard.action"),
+	DIALOG_REPLACE_BLOCKS_BUILDER_CONTINUE_EDITING_ACTION("dialog.replace_blocks.builder.continue_editing.action"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_AIR_TO_STONE("dialog.replace_blocks.builder.preset.air_to_stone"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_FLUIDS_TO_AIR("dialog.replace_blocks.builder.preset.fluids_to_air"),
 	DIALOG_REPLACE_BLOCKS_BUILDER_PRESET_LOGS_LEAVES_TO_AIR("dialog.replace_blocks.builder.preset.logs_leaves_to_air"),

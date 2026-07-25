@@ -4,6 +4,7 @@ import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
+import javafx.event.Event;
 import javafx.geometry.Bounds;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Rectangle2D;
@@ -12,6 +13,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ComboBoxBase;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonBar;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
@@ -36,6 +38,7 @@ import javafx.scene.text.TextFlow;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import javafx.stage.WindowEvent;
 import net.querz.mcaselector.config.GlobalConfig;
 import net.querz.mcaselector.text.Translation;
 import net.querz.mcaselector.version.ChunkFilter;
@@ -630,6 +633,172 @@ class ReplaceBlocksRuleBuilderModelTest {
 		loader.join(TimeUnit.SECONDS.toMillis(10));
 		assertFalse(loader.isAlive());
 		assertFalse(BlockStateCatalog.available().isEmpty());
+	}
+
+	@Test
+	void restoredBuilderContentIsACleanBaselineUntilTheDraftChanges() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage,
+					"literal(minecraft:stone)=minecraft:dirt");
+			try {
+				assertFalse(invokeBoolean(dialog, "isBuilderDirty"));
+
+				Object from = fieldValue(dialog, "from", Object.class);
+				ComboBox<String> block = fieldValue(from, "block", ComboBox.class);
+				block.getEditor().setText("minecraft:acacia_log");
+
+				assertTrue(invokeBoolean(dialog, "isBuilderDirty"));
+
+				block.getEditor().clear();
+
+				assertFalse(invokeBoolean(dialog, "isBuilderDirty"),
+						"reverting the draft to the opening state should make the session clean");
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void resettingRestoredRulesRemainsDirtyAfterTheBuilderBecomesEmpty() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage,
+					"literal(minecraft:stone)=minecraft:dirt");
+			try {
+				assertFalse(invokeBoolean(dialog, "isBuilderDirty"));
+
+				declaredMethod(dialog, "resetBuilder").invoke(dialog);
+
+				assertTrue(fieldValue(dialog, "ruleItems", List.class).isEmpty());
+				assertTrue(invokeBoolean(dialog, "isBuilderDirty"),
+						"clearing restored rules must not erase the session's dirty state");
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void unchangedRestoredBuilderClosesWithoutDiscardConfirmation() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage,
+					"literal(minecraft:stone)=minecraft:dirt");
+			try {
+				AtomicInteger confirmations = autoRespondToDiscardConfirmation(dialog, false);
+
+				fireWindowCloseRequest(dialog);
+
+				assertEquals(0, confirmations.get());
+				assertFalse(dialog.isShowing());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void titleBarCloseStaysOpenWhenDiscardIsDeclined() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				setFromText(dialog, "minecraft:stone");
+				AtomicInteger confirmations = autoRespondToDiscardConfirmation(dialog, false);
+
+				WindowEvent closeRequest = fireWindowCloseRequest(dialog);
+
+				assertEquals(1, confirmations.get());
+				assertTrue(closeRequest.isConsumed());
+				assertTrue(dialog.isShowing());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void titleBarCloseStaysOpenWhenDiscardConfirmationIsClosed() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				setFromText(dialog, "minecraft:stone");
+				AtomicInteger confirmations = autoCloseConfirmation(dialog);
+
+				WindowEvent closeRequest = fireWindowCloseRequest(dialog);
+
+				assertEquals(1, confirmations.get());
+				assertTrue(closeRequest.isConsumed());
+				assertTrue(dialog.isShowing());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void titleBarCloseDiscardsDirtyBuilderWhenConfirmed() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				setFromText(dialog, "minecraft:stone");
+				AtomicInteger confirmations = autoRespondToDiscardConfirmation(dialog, true);
+
+				fireWindowCloseRequest(dialog);
+
+				assertEquals(1, confirmations.get());
+				assertFalse(dialog.isShowing());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void builderCancelStaysOpenWhenDiscardIsDeclined() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				setFromText(dialog, "minecraft:stone");
+				AtomicInteger confirmations = autoRespondToDiscardConfirmation(dialog, false);
+
+				((Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL)).fire();
+
+				assertEquals(1, confirmations.get());
+				assertTrue(dialog.isShowing());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void discardConfirmationExplainsTheTransactionAndUsesExplicitActions() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Translation.load(Locale.UK);
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				setFromText(dialog, "minecraft:stone");
+				AtomicReference<Throwable> alertStateFailure = new AtomicReference<>();
+				AtomicInteger confirmations = autoRespondToDiscardConfirmation(dialog, false,
+						() -> assertTransactionalDiscardConfirmation(dialog), alertStateFailure);
+
+				WindowEvent closeRequest = fireWindowCloseRequest(dialog);
+
+				assertNull(alertStateFailure.get());
+				assertEquals(1, confirmations.get());
+				assertTrue(closeRequest.isConsumed());
+				assertTrue(dialog.isShowing());
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
 	}
 
 	@Test
@@ -1356,6 +1525,102 @@ class ReplaceBlocksRuleBuilderModelTest {
 		return requests;
 	}
 
+	private static AtomicInteger autoRespondToDiscardConfirmation(
+			ReplaceBlocksRuleBuilderDialog dialog, boolean discard) {
+		return autoRespondToDiscardConfirmation(dialog, discard, () -> {}, new AtomicReference<>());
+	}
+
+	private static AtomicInteger autoRespondToDiscardConfirmation(
+			ReplaceBlocksRuleBuilderDialog dialog, boolean discard,
+			ThrowingRunnable beforeClick, AtomicReference<Throwable> beforeClickFailure) {
+		AtomicInteger requests = new AtomicInteger();
+		Window owner = dialog.getDialogPane().getScene().getWindow();
+		Platform.runLater(() -> {
+			for (Window window : Window.getWindows()) {
+				if (window == owner || !window.isShowing() || window.getScene() == null) {
+					continue;
+				}
+				Node node = window.getScene().lookup(".dialog-pane");
+				if (!(node instanceof DialogPane pane)) {
+					continue;
+				}
+				ButtonType action = pane.getButtonTypes().stream()
+						.filter(button -> discard
+								? button.getButtonData() == ButtonBar.ButtonData.OK_DONE
+								: button.getButtonData() == ButtonBar.ButtonData.CANCEL_CLOSE)
+						.findFirst()
+						.orElse(null);
+				Node button = action == null ? null : pane.lookupButton(action);
+				if (button instanceof Button alertButton) {
+					requests.incrementAndGet();
+					try {
+						beforeClick.run();
+					} catch (Throwable ex) {
+						beforeClickFailure.set(ex);
+					}
+					alertButton.fire();
+					return;
+				}
+			}
+		});
+		return requests;
+	}
+
+	private static void assertTransactionalDiscardConfirmation(
+			ReplaceBlocksRuleBuilderDialog dialog) {
+		Window owner = dialog.getDialogPane().getScene().getWindow();
+		DialogPane pane = Window.getWindows().stream()
+				.filter(window -> window != owner && window.isShowing() && window.getScene() != null)
+				.map(window -> window.getScene().lookup(".dialog-pane"))
+				.filter(DialogPane.class::isInstance)
+				.map(DialogPane.class::cast)
+				.findFirst()
+				.orElseThrow();
+		ButtonType discard = pane.getButtonTypes().stream()
+				.filter(button -> button.getButtonData() == ButtonBar.ButtonData.OK_DONE)
+				.findFirst()
+				.orElseThrow();
+		ButtonType continueEditing = pane.getButtonTypes().stream()
+				.filter(button -> button.getButtonData() == ButtonBar.ButtonData.CANCEL_CLOSE)
+				.findFirst()
+				.orElseThrow();
+
+		assertEquals("Discard changes", ((Button) pane.lookupButton(discard)).getText());
+		assertEquals("Continue editing", ((Button) pane.lookupButton(continueEditing)).getText());
+		assertTrue(pane.getContentText().contains("ReplaceBlocks field"));
+		assertTrue(pane.getContentText().contains("before the Builder opened"));
+	}
+
+	private static AtomicInteger autoCloseConfirmation(ReplaceBlocksRuleBuilderDialog dialog) {
+		AtomicInteger requests = new AtomicInteger();
+		Window owner = dialog.getDialogPane().getScene().getWindow();
+		Platform.runLater(() -> {
+			for (Window window : Window.getWindows()) {
+				if (window == owner || !window.isShowing() || window.getScene() == null
+						|| !(window.getScene().lookup(".dialog-pane") instanceof DialogPane)) {
+					continue;
+				}
+				requests.incrementAndGet();
+				Event.fireEvent(window, new WindowEvent(window, WindowEvent.WINDOW_CLOSE_REQUEST));
+				return;
+			}
+		});
+		return requests;
+	}
+
+	private static WindowEvent fireWindowCloseRequest(ReplaceBlocksRuleBuilderDialog dialog) {
+		Window window = dialog.getDialogPane().getScene().getWindow();
+		WindowEvent closeRequest = new WindowEvent(window, WindowEvent.WINDOW_CLOSE_REQUEST);
+		Event.fireEvent(window, closeRequest);
+		return closeRequest;
+	}
+
+	private static void setFromText(ReplaceBlocksRuleBuilderDialog dialog, String text)
+			throws ReflectiveOperationException {
+		Object from = fieldValue(dialog, "from", Object.class);
+		fieldValue(from, "block", ComboBox.class).getEditor().setText(text);
+	}
+
 	private static void assertCatalogConfirmationText(ReplaceBlocksRuleBuilderDialog dialog,
 			BlockStateCatalog oldCatalog, BlockStateCatalog newCatalog)
 			throws ReflectiveOperationException {
@@ -1542,6 +1807,10 @@ class ReplaceBlocksRuleBuilderModelTest {
 			}
 		}
 		throw new NoSuchMethodException(name);
+	}
+
+	private static boolean invokeBoolean(Object target, String method) throws ReflectiveOperationException {
+		return (boolean) declaredMethod(target, method).invoke(target);
 	}
 
 	private record FullBuilderState(

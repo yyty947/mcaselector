@@ -36,6 +36,8 @@ import javafx.scene.text.Text;
 import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+import javafx.stage.Window;
+import javafx.stage.WindowEvent;
 import net.querz.mcaselector.changer.fields.ReplaceBlocksField;
 import net.querz.mcaselector.config.ConfigProvider;
 import net.querz.mcaselector.config.GlobalConfig;
@@ -82,6 +84,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private final Stage primaryStage;
 	private final TileMap tileMap;
 	private final boolean selectionOnly;
+	private final EventHandler<WindowEvent> windowCloseFilter = this::handleWindowCloseRequest;
 	private final ReplaceBlocksCatalogModel catalogModel = new ReplaceBlocksCatalogModel(BlockStateCatalog.available());
 	private BlockStateCatalog catalog = catalogModel.selected();
 	private final ObservableList<String> blockNames = FXCollections.observableArrayList(catalog.blockNames().stream().sorted().collect(Collectors.toList()));
@@ -99,11 +102,13 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private final Label validation = new Label();
 	private final StackPane contentLayer = new StackPane();
 	private final Rectangle ruleMarquee = new Rectangle();
+	private BuilderContentState initialBuilderContent;
 	private Node previewButton;
 	private Button savePreset;
 	private Button deletePreset;
 	private boolean applyingPreset;
-	private boolean dialogButtonClose;
+	private boolean allowNextDialogClose;
+	private Window builderWindow;
 	private boolean updatingCatalogSelector;
 	private Point2D ruleMarqueeAnchor;
 	private boolean ruleMarqueeAdditive;
@@ -144,15 +149,27 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		}
 		Node ok = getDialogPane().lookupButton(ButtonType.OK);
 		ok.setDisable(true);
-		ok.addEventFilter(ActionEvent.ACTION, event -> dialogButtonClose = true);
+		ok.addEventFilter(ActionEvent.ACTION, event -> allowNextDialogClose = true);
 		getDialogPane().lookupButton(ButtonType.CANCEL)
-				.addEventFilter(ActionEvent.ACTION, event -> dialogButtonClose = true);
+				.addEventFilter(ActionEvent.ACTION, this::handleCancelAction);
 		setPreviewDisabled(true);
 
 		setResultConverter(p -> p == ButtonType.OK ? result.getText() : null);
 		setOnCloseRequest(event -> {
-			if (!dialogButtonClose && hasBuilderContent() && !confirmDiscardBuilder()) {
+			if (allowNextDialogClose) {
+				allowNextDialogClose = false;
+			} else if (!requestDiscardBuilder()) {
 				event.consume();
+			}
+		});
+		setOnShown(event -> {
+			builderWindow = getDialogPane().getScene().getWindow();
+			builderWindow.addEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST, windowCloseFilter);
+		});
+		setOnHidden(event -> {
+			if (builderWindow != null) {
+				builderWindow.removeEventFilter(WindowEvent.WINDOW_CLOSE_REQUEST, windowCloseFilter);
+				builderWindow = null;
 			}
 		});
 
@@ -290,6 +307,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 		loadSimpleRules(initialValue);
 		updateResult();
+		initialBuilderContent = builderContentState();
 	}
 
 	private static ColumnConstraints builderColumn() {
@@ -684,14 +702,40 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	}
 
 	private boolean confirmDiscardBuilder() {
+		ButtonType discard = new ButtonType(
+				Translation.DIALOG_REPLACE_BLOCKS_BUILDER_DISCARD_ACTION.toString(),
+				ButtonBar.ButtonData.OK_DONE);
+		ButtonType continueEditing = new ButtonType(
+				Translation.DIALOG_REPLACE_BLOCKS_BUILDER_CONTINUE_EDITING_ACTION.toString(),
+				ButtonBar.ButtonData.CANCEL_CLOSE);
 		Alert alert = new Alert(Alert.AlertType.CONFIRMATION,
 				Translation.DIALOG_REPLACE_BLOCKS_BUILDER_DISCARD_HEADER.toString(),
-				ButtonType.OK, ButtonType.CANCEL);
+				discard, continueEditing);
 		alert.initOwner(getDialogPane().getScene().getWindow());
 		alert.titleProperty().bind(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_DISCARD_TITLE.getProperty());
 		alert.setHeaderText(null);
 		alert.getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
-		return alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
+		return alert.showAndWait().orElse(continueEditing) == discard;
+	}
+
+	private boolean requestDiscardBuilder() {
+		return !isBuilderDirty() || confirmDiscardBuilder();
+	}
+
+	private void handleCancelAction(ActionEvent event) {
+		if (requestDiscardBuilder()) {
+			allowNextDialogClose = true;
+		} else {
+			event.consume();
+		}
+	}
+
+	private void handleWindowCloseRequest(WindowEvent event) {
+		if (requestDiscardBuilder()) {
+			allowNextDialogClose = true;
+		} else {
+			event.consume();
+		}
 	}
 
 	private boolean confirmPresetAction(String message) {
@@ -729,6 +773,18 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 
 	private boolean hasBuilderContent() {
 		return !ruleItems.isEmpty() || from.hasMeaningfulContent() || to.hasMeaningfulContent();
+	}
+
+	private boolean isBuilderDirty() {
+		return initialBuilderContent != null && !initialBuilderContent.equals(builderContentState());
+	}
+
+	private BuilderContentState builderContentState() {
+		return new BuilderContentState(List.copyOf(ruleItems), from.contentState(), to.contentState());
+	}
+
+	private static String valueOrEmpty(String value) {
+		return value == null ? "" : value;
 	}
 
 	private boolean isFilledRuleRow(Object target) {
@@ -1502,6 +1558,19 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					|| propertyEditors.values().stream()
 							.map(ComboBox::getValue)
 							.anyMatch(choice -> choice != null && !choice.all());
+		}
+
+		private BlockInputState contentState() {
+			List<PropertyState> propertyStates = propertyEditors.entrySet().stream()
+					.map(entry -> new PropertyState(entry.getKey(), entry.getValue().getValue()))
+					.toList();
+			return new BlockInputState(
+					valueOrEmpty(block.getEditor().getText()),
+					source ? tileEntityMode.getValue() : null,
+					source ? valueOrEmpty(minY.getText()) : "",
+					source ? valueOrEmpty(maxY.getText()) : "",
+					source ? valueOrEmpty(biomeNames.getEditor().getText()) : "",
+					propertyStates);
 		}
 
 		private String generatedValue() {
@@ -2304,6 +2373,18 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private record PresetValue(String value, ReplaceBlocksDiagnostics.Diagnostic diagnostic) {}
 
 	private record ParsedPresetRule(Rule rule, ParsedRule parsed) {}
+
+	private record BuilderContentState(List<Rule> rules, BlockInputState from, BlockInputState to) {}
+
+	private record BlockInputState(
+			String text,
+			SourceTileMode tileMode,
+			String minY,
+			String maxY,
+			String biome,
+			List<PropertyState> properties) {}
+
+	private record PropertyState(String name, PropertyChoice choice) {}
 
 	record ParsedRule(ChunkFilter.BlockReplaceSource source, ChunkFilter.BlockReplaceData target) {}
 
