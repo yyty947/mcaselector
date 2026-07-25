@@ -246,6 +246,7 @@ final class ReplaceBlocksAutocomplete {
 	private static final class PopupPositionTracker {
 		private static final double EPSILON = 0.5;
 		private static final double WINDOW_MARGIN = 4;
+		private static final int MAX_STABILIZATION_PASSES = 4;
 		private final ComboBox<?> comboBox;
 		private final InvalidationListener geometryListener = observable -> stabilize();
 		private ListView<?> popupContent;
@@ -310,6 +311,7 @@ final class ReplaceBlocksAutocomplete {
 				stabilizationPending = true;
 				return;
 			}
+			int remainingPasses = MAX_STABILIZATION_PASSES;
 			do {
 				stabilizationPending = false;
 				if (popupWindow == null || popupContent == null || !comboBox.isShowing()) return;
@@ -326,7 +328,7 @@ final class ReplaceBlocksAutocomplete {
 				} finally {
 					stabilizing = false;
 				}
-			} while (stabilizationPending);
+			} while (stabilizationPending && --remainingPasses > 0);
 		}
 
 		private void stabilizeHorizontal(Bounds comboBounds) {

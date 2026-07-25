@@ -1,7 +1,7 @@
 # ReplaceBlocks Development Notes
 
 Date: 2026-06-04
-Last updated: 2026-07-17
+Last updated: 2026-07-25
 
 Scope: ReplaceBlocks reconnaissance plus implemented phases 1-6 and B-class hardening. Java source now includes a rule builder, validation diagnostics, modern preview/dry-run with per-rule counts, exact source block-state matching, five bundled block-state catalogues, a property-aware catalogue-backed builder UI, explicit source modes, tile/block entity source safety controls, source-side Y/biome restrictions, presets, and deterministic catalogue-switch reset behavior. Gradle build logic and Minecraft world data were not modified by these development notes.
 
@@ -33,11 +33,14 @@ CLI mode includes `change`, with `--fields` and `--force` options. The exact wor
 
 - `Main.main(...)`
 - initializes logging
+- installs the process-wide uncaught-exception handler so Java exceptions reach both Log4j and standard error
 - calls `VersionHandler.init()`
 - runs `ParamExecutor`
 - checks JavaFX availability
 - loads config and translations
 - launches `Window`
+
+The Windows Log4j file is under `%LOCALAPPDATA%\mcaselector\log`. `OnStartupTriggeringPolicy` rolls the preceding `mcaselector.log` into a timestamped `mcaselector-*.log`, so diagnostics must inspect both the current and rolled files. The settings checkbox changes the normal log level; FATAL uncaught exceptions are recorded even when debug logging is disabled. Native JVM crashes and thread hangs remain outside the Java exception handler and require JVM fatal-error output or a thread dump.
 
 ## ReplaceBlocks call chain
 
@@ -183,6 +186,9 @@ The current From/To block inputs use editable JavaFX `ComboBox` controls backed 
 - Do not synchronously clear selection, clear value, or refilter items from inside the ComboBox popup mouse-selection event path. That produced JavaFX `ListViewBehavior` `IndexOutOfBoundsException` errors when users clicked suggestions, while Tab completion could still appear fine.
 - Editable block and biome popups clear JavaFX's native `ListView` focus/selection when the popup opens, before custom autocomplete navigation starts. Otherwise the first arrow key only converts the already-highlighted first row into the custom highlight and appears to do nothing.
 - JavaFX 21 can leave an auto-fixed ComboBox popup at a stale Y position after its first post-show resize (`JDK-8338145`). While Builder block and biome autocomplete popups are visible, they track the visible `ListView` height plus the popup window's height/Y changes, and anchor the list's actual layout bottom to the field after late peer geometry updates; listeners are removed when the popup hides. Ordinary property, Extra NBT, and preset dropdown behavior is unchanged.
+- Popup geometry listeners can synchronously re-enter through `Window.setY(...)`. Do not drain a persistent feedback signal with an unbounded in-method loop: the low-end-device empty-Biome hang kept the JavaFX Application Thread RUNNABLE in `PopupPositionTracker.stabilize(...)` while consuming one core. The tracker now bounds each synchronous stabilization burst and allows a later external geometry event to perform another correction.
+- JavaFX 21 measures candidate rows to choose a ComboBox popup width. The Builder's long From/To/Biome catalogues set the supported `comboBoxRowsToMeasureWidth` developer property to 32; short preset/property/Extra NBT dropdowns retain native behavior. Empty-query catalogues render visible cells as plain text and only allocate `TextFlow` match-highlighting graphics for a non-empty query. JavaFX `VirtualFlow` remains in use; do not replace it with pagination or a custom incremental list without new measurements.
+- `ChangeNBTDialog` starts daemon-thread initialization of the immutable `BlockStateCatalog`. On the low-end physical test device, seven fresh Java processes measured the first `BlockStateCatalog.available()` at about 450-494 ms and subsequent calls at effectively zero. Preloading removes that cold parse from the JavaFX Application Thread without changing the selected catalogue, candidate data, or Builder behavior.
 - Mouse-click completion and Tab completion both need explicit manual tests. They can travel different JavaFX event paths even though they look like the same feature to the user.
 - Candidate hover/focus/selected styles should stay visible in dark theme and should match the main menu hover tone closely enough that dropdowns feel interactive.
 - Property dropdown cells use graphic `Text` nodes; set both CSS `-fx-text-fill` on list cells and explicit `Text#setFill`/`.text {-fx-fill: ...}` styles, otherwise hover/focus can leave some options rendered black on the dark popup.
@@ -197,6 +203,19 @@ Recommended next work:
 - Biome restriction granularity is block-position aware at the modern chunk 4x4x4 biome-cell level. Do not change this to chunk/selection-wide matching without updating parser tests, preview expectations, execution tests, and docs.
 - Keep rich target tile NBT editing out of the builder until the remaining Minecraft tile load/reload gate has passed.
 - Preserve duplicate block-entity coordinate checks in future copied-world release runs.
+
+## Builder performance evidence (2026-07-25)
+
+The performance investigation used a physical Dell Inspiron 5498 (Intel i7-10510U, integrated Intel UHD plus MX250, about 20 GiB RAM, Windows 11, Java 21), connected over SSH. It was not a virtual machine. UI actions were performed by the user; thread dumps, JFR capture, hashes, and source/test analysis were performed remotely.
+
+- Previous build: first From and To expansion were each about one second; repeats were below one second. The first `a` in `aca` took 1-3 seconds, while the next two characters were immediate.
+- Previous hang: an explicit empty-Biome expansion left the JavaFX Application Thread RUNNABLE in `Window.setY(...) -> PopupPositionTracker.stabilize(...)`. Three dumps had the same stack and the process CPU time rose continuously, confirming an event-feedback busy loop rather than I/O, deadlock, or a single long task.
+- Previous-build JFR: 174 of 191 execution samples were on the JavaFX thread. Samples included 54 in `getMaxCellWidth`, 124 in CSS-related stacks, 50 in `setAll`, 11 in `TextFlow`, and 70 in `VirtualFlow`.
+- Optimized-build JFR: 48 of 60 execution samples were on the JavaFX thread. `getMaxCellWidth`, `setAll`, and `TextFlow` fell to 3, 3, and 2 samples respectively. Measured popup/filter operation windows were about 27-137 ms, including roughly 96 ms for the first `a`; the user reported From/To/Biome first/repeated expansion and `aca` input as immediate, approximately below 200 ms.
+- Catalogue prewarm: the preload thread was present in JFR allocation data and there were no JavaFX-thread stacks containing `BlockStateCatalog`. Without deliberate waiting after opening Change NBT, the user reported the first Builder open below 0.5 seconds.
+- Final UI regression: the user completed the low-end-device From/To/Biome expansion, repeated empty-Biome, keyboard, completion, style, property, preset, rule-editing, and advanced-text checks on 2026-07-25 without finding a regression.
+
+These results do not justify incremental loading, pagination, a replacement list implementation, or background filtering. The remaining full-list update is below the current response-time target, and those alternatives would add ordering, selection, popup-lifecycle, and cancellation risk without measured benefit.
 
 ## Risks
 

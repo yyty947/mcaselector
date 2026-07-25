@@ -30,6 +30,7 @@ import net.querz.mcaselector.tile.TileMap;
 import net.querz.mcaselector.ui.UIFactory;
 import net.querz.mcaselector.ui.component.PersistentDialogProperties;
 import net.querz.mcaselector.util.validation.BeforeAfterCallback;
+import net.querz.mcaselector.version.mapping.blockstate.BlockStateCatalog;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import java.io.File;
@@ -75,6 +76,7 @@ public class ChangeNBTDialog extends Dialog<ChangeNBTDialog.Result> implements P
 	public ChangeNBTDialog(TileMap tileMap, Stage primaryStage) {
 		this.primaryStage = primaryStage;
 		this.tileMap = tileMap;
+		preloadBlockStateCatalog();
 		titleProperty().bind(Translation.DIALOG_CHANGE_NBT_TITLE.getProperty());
 
 		initStyle(StageStyle.UTILITY);
@@ -194,6 +196,13 @@ public class ChangeNBTDialog extends Dialog<ChangeNBTDialog.Result> implements P
 
 		initPersistentLocationOnOpen(this);
 		Platform.runLater(() -> tabs.getSelectionModel().select(lastSelectedTab));
+	}
+
+	static Thread preloadBlockStateCatalog() {
+		Thread loader = new Thread(BlockStateCatalog::available, "replace-blocks-catalog-preload");
+		loader.setDaemon(true);
+		loader.start();
+		return loader;
 	}
 
 	private void showChangeQueryValidation(String message) {

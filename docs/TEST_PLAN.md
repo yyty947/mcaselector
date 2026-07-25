@@ -1,7 +1,7 @@
 # ReplaceBlocks Test Plan
 
 Date: 2026-06-04
-Last updated: 2026-07-17
+Last updated: 2026-07-25
 
 Safety rule: never test on a real world save. Always copy a small test world and keep an untouched backup.
 
@@ -24,6 +24,8 @@ Required gates:
 |---|---|---|
 | `AUTO-01` | Java compile and all JUnit tests | Successful command output and test count |
 | `AUTO-02` | Translation completeness | No missing ReplaceBlocks translation keys |
+| `AUTO-LOG` | Uncaught-exception logging | Exception reaches both the Log4j callback and standard error |
+| `AUTO-PERF` | Builder performance regressions | Popup feedback is bounded, later geometry changes recover, long autocomplete width scans are capped, empty-query cells stay lightweight, and catalogue preload completes off the UI thread |
 | `PKG-01` | `build shadowJar` | Successful build output |
 | `PKG-02` | Windows `jpackage` | Successful package output, or a recorded environment blocker that is resolved before PR |
 | `UI-01` | Chinese Builder regression pass | Completed checklist, screenshot, and clean console |
@@ -62,6 +64,9 @@ Phase 6 execution record:
 | `WORLD-LATEST` | Passed | 26.3 snapshot 3 disposable copies, 2026-07-12/13 | File checks passed and the user completed the copied-world game load/reload; source world remained read-only |
 | B-class release hardening | Passed | Windows 11, Adoptium Java 21, 2026-07-17 | 134 tests passed; translation check produced no missing keys; `build shadowJar` succeeded with parser/diagnostic unification, catalogue compatibility, preset rollback, ReplaceBlocks-only region abort, and context-read call-count regressions |
 | `UI-CATALOG` | Passed | User report, 2026-07-17 | Five-catalogue checks passed: empty switching was direct; Cancel preserved the old catalogue and all work; Confirm selected the new catalogue and fully reset the Builder; saved presets survived; exact out-of-catalogue custom-preset IDs warned without blocking; regex sources were not misclassified |
+| `AUTO-LOG` | Passed | Windows 11, Adoptium Java 21, 2026-07-24 | `LoggingTest` verifies that an uncaught Java exception reaches the fatal-log callback and standard error |
+| `AUTO-PERF` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-25 | Builder model regressions cover bounded popup geometry feedback with later recovery, From/To/Biome width-measurement limits, empty-query plain-text cells, and daemon-thread catalogue preload; `compileJava`, full `test`, `build`, and `shadowJar` succeeded |
+| `UI-PERF` | Passed | Low-end physical Dell Inspiron 5498, Java 21, 2026-07-25 | Previous first popup was about 1 s and first `a` 1-3 s; optimized operations felt below 200 ms, empty Biome no longer hung, and prewarmed first Builder open was below 0.5 s. The user completed the final keyboard, popup, style, preset, rule-editing, and advanced-text regression without finding an issue |
 
 ### Phase 6 copied-world evidence
 
@@ -186,6 +191,7 @@ Execution matrix:
 | `UI-01G` / `UI-02G` | Resize and console | No overlap/clipping at default and resized layouts; no JavaFX exception |
 | `UI-CATALOG` | Five-catalogue switch/reset | Empty switches directly; Cancel preserves all work; Confirm selects the new catalogue and fully resets; saved presets remain and exact out-of-catalogue preset IDs warn without blocking |
 | `UI-01H` / `UI-02H` | Builder layout polish | Compact toolbar, full-width source restrictions, localized empty-state placeholders, content-driven table/result sizing, shared Add Rule button treatment, readable disabled preset actions, aligned dialog insets, bounded autocomplete popups, and wrapped monospace output |
+| `UI-PERF` | Low-end Builder responsiveness | No empty-Biome hang; first/repeated long-list popup and first-character filtering remain responsive without keyboard, completion, layout, or style regressions |
 
 Manual checks:
 
@@ -225,6 +231,11 @@ Manual checks:
 - With two rules selected, `Save preset` / `存为预设` should store exactly those two rules in table order, leaving the unselected rule out. `Edit rule` / `载入编辑` should be disabled for that multi-selection; `Delete rule` / `删除规则` and the table's Delete key should remove every selected row.
 - When the rules table has a selection, Esc should clear only the rule selection. In From/To, biome, and property controls, Ctrl+Enter should follow the same valid/invalid outcome as `Add rule` / `添加规则`; Delete must continue to edit text normally while an input owns focus.
 - In every open From/To, biome, property, Extra NBT, and preset list, verify Up/Down, PageUp/PageDown, Enter, and Esc. On the first Builder opening, the first arrow key must produce an immediate visible navigation response rather than being absorbed by JavaFX's initial popup focus. For From/To and biome autocomplete, moving within the currently fully visible rows must leave the list stationary; crossing a boundary should reveal only the next row, while PageUp/PageDown should move by one actual visible page. Type and then clear a query, close an explicit empty catalog with Esc, and confirm the next closed Up/Down key does not write a block or biome; reopening without another explicit empty-arrow click must not retain the full catalog. Repeat the middle-of-text caret and selection test with the popup closed to confirm that ordinary editing remains native. Check the JavaFX console for exceptions after both keyboard and marquee interaction.
+- On the low-end physical device, fully close MCA Selector, restart the optimized package, open Change NBT and immediately open a fresh Builder without an artificial wait. The Builder should become interactive without a multi-second pause; record the approximate first-open time.
+- In that fresh Builder, explicitly open empty From, To, and Biome catalogues, then close and reopen each once. All six expansions must remain responsive, attached immediately above or below the field, and inside the Builder horizontally. Repeat the empty Biome expansion at least 20 times; the application must never stop repainting or responding.
+- Type `aca` in From and To and a common prefix such as `a` or `b` in Biome. The first character must not produce the previous 1-3 second stall, results must remain complete and sorted, and the matching text must still use the dark-theme blue highlight.
+- In the same run, verify mouse selection, Tab, Up/Down, PageUp/PageDown, Enter, and Esc for From/To/Biome. The first key press must respond; visible-row boundary scrolling and popup attachment must match the existing keyboard checklist. Select a stateful block and confirm its property rows update normally.
+- Load a built-in preset, add/edit/delete a rule, reopen the Builder from generated text, and perform one advanced-text round trip. Candidate lists and generated ReplaceBlocks text must remain unchanged from the non-performance build.
 - Applying a custom preset should append all non-duplicate preset rules to the current rule table without clearing the existing rules or draft. The save success message should appear in the Builder validation/status area, not as a separate modal dialog.
 - With no rules added yet, entering a valid From/To draft, including selected source/target properties, should enable `Save preset` / `存为预设`. Saving should validate that draft, store it as one ReplaceBlocks rule, and not require pressing `Add rule` first.
 - With no rules added yet, incomplete or invalid From/To draft input should keep `Save preset` / `存为预设` disabled or produce the existing Builder validation message rather than saving.

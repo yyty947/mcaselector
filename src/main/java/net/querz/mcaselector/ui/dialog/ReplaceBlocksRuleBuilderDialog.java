@@ -67,6 +67,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 	private static final PseudoClass success = PseudoClass.getPseudoClass("success");
 	private static final PseudoClass autocompleteHighlighted = PseudoClass.getPseudoClass("autocomplete-highlighted");
 	private static final String AUTOCOMPLETE_HIGHLIGHT_INDEX = "replace-blocks-autocomplete-highlight-index";
+	private static final String COMBO_BOX_ROWS_TO_MEASURE_WIDTH = "comboBoxRowsToMeasureWidth";
+	private static final int AUTOCOMPLETE_ROWS_TO_MEASURE_WIDTH = 32;
 	private static final double EMPTY_RULES_HEIGHT = 160;
 	private static final double EMPTY_RESULT_HEIGHT = 40;
 	private static final double POPULATED_RESULT_MIN_HEIGHT = 52;
@@ -1057,6 +1059,11 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		ReplaceBlocksAutocomplete.configure(comboBox);
 	}
 
+	private static void configureAutocompleteComboBox(ComboBox<?> comboBox) {
+		comboBox.getProperties().put(COMBO_BOX_ROWS_TO_MEASURE_WIDTH, AUTOCOMPLETE_ROWS_TO_MEASURE_WIDTH);
+		configureBuilderComboBox(comboBox);
+	}
+
 	static List<Integer> intersectingRuleIndices(Rectangle2D marquee, List<VisibleRuleBounds> rows) {
 		if (marquee.getWidth() <= 0 || marquee.getHeight() <= 0) {
 			return List.of();
@@ -1332,7 +1339,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 			block.setMaxWidth(Double.MAX_VALUE);
 			block.setVisibleRowCount(12);
 			block.setItems(blockSuggestions);
-			configureBuilderComboBox(block);
+			configureAutocompleteComboBox(block);
 			block.setCellFactory(v -> new HighlightedBlockCell());
 			installAutocompletePopupKeyFilter(block, this::handleKeyPressed);
 			block.addEventHandler(ComboBoxBase.ON_SHOWN, event -> blockSuggestionHighlight = -1);
@@ -1418,7 +1425,7 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				biomeNames.setMaxWidth(Double.MAX_VALUE);
 				biomeNames.setVisibleRowCount(12);
 				biomeNames.setItems(biomeSuggestions);
-				configureBuilderComboBox(biomeNames);
+				configureAutocompleteComboBox(biomeNames);
 				biomeNames.setCellFactory(v -> new HighlightedBiomeCell());
 				installAutocompletePopupKeyFilter(biomeNames, this::handleBiomeKeyPressed);
 				biomeNames.addEventHandler(ComboBoxBase.ON_SHOWN, event -> biomeSuggestionHighlight = -1);
@@ -2178,8 +2185,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					setGraphic(null);
 					return;
 				}
+				String query = currentText();
+				if (query.isEmpty()) {
+					setText(item);
+					setGraphic(null);
+					return;
+				}
 				setText(null);
-				setGraphic(highlightedText(item, currentText()));
+				setGraphic(highlightedText(item, query));
 			}
 
 			private TextFlow highlightedText(String item, String query) {
@@ -2239,8 +2252,14 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 					setGraphic(null);
 					return;
 				}
+				String query = currentBiomeQuery();
+				if (query.isEmpty()) {
+					setText(item);
+					setGraphic(null);
+					return;
+				}
 				setText(null);
-				setGraphic(highlightedText(item, currentBiomeQuery()));
+				setGraphic(highlightedText(item, query));
 			}
 
 			private TextFlow highlightedText(String item, String query) {

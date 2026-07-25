@@ -1,6 +1,7 @@
 package net.querz.mcaselector.ui.dialog;
 
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.geometry.Bounds;
@@ -14,6 +15,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.DialogPane;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
@@ -30,6 +32,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.TextFlow;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -536,6 +539,64 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
+	void autocompleteComboBoxesLimitPopupWidthMeasurement() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = new Stage();
+			primaryStage.setScene(new Scene(new StackPane()));
+			try {
+				ReplaceBlocksRuleBuilderDialog dialog = new ReplaceBlocksRuleBuilderDialog(primaryStage, "");
+				Object from = fieldValue(dialog, "from", Object.class);
+				Object to = fieldValue(dialog, "to", Object.class);
+
+				assertEquals(32, fieldValue(from, "block", ComboBox.class).getProperties()
+						.get("comboBoxRowsToMeasureWidth"));
+				assertEquals(32, fieldValue(to, "block", ComboBox.class).getProperties()
+						.get("comboBoxRowsToMeasureWidth"));
+				assertEquals(32, fieldValue(from, "biomeNames", ComboBox.class).getProperties()
+						.get("comboBoxRowsToMeasureWidth"));
+				assertNull(fieldValue(dialog, "presets", ComboBox.class).getProperties()
+						.get("comboBoxRowsToMeasureWidth"));
+			} finally {
+				primaryStage.close();
+			}
+		});
+	}
+
+	@Test
+	void emptyAutocompleteCatalogCellsUsePlainText() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = new Stage();
+			primaryStage.setScene(new Scene(new StackPane()));
+			try {
+				ReplaceBlocksRuleBuilderDialog dialog = new ReplaceBlocksRuleBuilderDialog(primaryStage, "");
+				Object from = fieldValue(dialog, "from", Object.class);
+				assertEmptyQueryCellUsesPlainText(fieldValue(from, "block", ComboBox.class),
+						"minecraft:acacia_button");
+				assertEmptyQueryCellUsesPlainText(fieldValue(from, "biomeNames", ComboBox.class),
+						"minecraft:badlands");
+			} finally {
+				primaryStage.close();
+			}
+		});
+	}
+
+	private static void assertEmptyQueryCellUsesPlainText(ComboBox<String> comboBox, String item)
+			throws Exception {
+		ListCell<String> cell = comboBox.getCellFactory().call(new ListView<>());
+		Method updateItem = declaredMethod(cell, "updateItem", Object.class, boolean.class);
+
+		comboBox.getEditor().clear();
+		updateItem.invoke(cell, item, false);
+		assertEquals(item, cell.getText());
+		assertNull(cell.getGraphic());
+
+		comboBox.getEditor().setText("a");
+		updateItem.invoke(cell, item, false);
+		assertNull(cell.getText());
+		assertInstanceOf(TextFlow.class, cell.getGraphic());
+	}
+
+	@Test
 	void catalogControlExplainsThatItDoesNotMigrateIds() throws Throwable {
 		runOnJavaFxThread(() -> {
 			Translation.load(Locale.UK);
@@ -553,6 +614,22 @@ class ReplaceBlocksRuleBuilderModelTest {
 				primaryStage.close();
 			}
 		});
+	}
+
+	@Test
+	void changeDialogPreloadsBlockCatalogOnADaemonThread() throws Exception {
+		initializeJavaFx();
+		Method preload = assertDoesNotThrow(
+				() -> ChangeNBTDialog.class.getDeclaredMethod("preloadBlockStateCatalog"));
+		preload.setAccessible(true);
+
+		Thread loader = assertInstanceOf(Thread.class, preload.invoke(null));
+
+		assertTrue(loader.isDaemon());
+		assertEquals("replace-blocks-catalog-preload", loader.getName());
+		loader.join(TimeUnit.SECONDS.toMillis(10));
+		assertFalse(loader.isAlive());
+		assertFalse(BlockStateCatalog.available().isEmpty());
 	}
 
 	@Test
@@ -851,6 +928,78 @@ class ReplaceBlocksRuleBuilderModelTest {
 				popupWindow.setY(belowY);
 				popupWindow.setHeight(popupWindow.getHeight() + 32);
 				assertEquals(belowY, popupWindow.getY(), 0.5);
+			});
+		} finally {
+			runOnJavaFxThread(() -> {
+				if (comboBoxReference.get() != null) {
+					comboBoxReference.get().hide();
+				}
+				if (stageReference.get() != null) {
+					stageReference.get().close();
+				}
+			});
+		}
+	}
+
+	@Test
+	void popupPositionTrackingBoundsSynchronousGeometryFeedback() throws Throwable {
+		AtomicReference<Stage> stageReference = new AtomicReference<>();
+		AtomicReference<ComboBox<String>> comboBoxReference = new AtomicReference<>();
+		try {
+			runOnJavaFxThread(() -> {
+				ComboBox<String> comboBox = new ComboBox<>(FXCollections.observableArrayList("a", "b", "c"));
+				comboBox.setEditable(true);
+				comboBox.setVisibleRowCount(3);
+				ReplaceBlocksRuleBuilderDialog.installAutocompletePopupKeyFilter(comboBox, event -> {});
+				Stage stage = new Stage();
+				stage.setX(100);
+				stage.setY(Screen.getPrimary().getVisualBounds().getMaxY() - 100);
+				stage.setScene(new Scene(new StackPane(comboBox), 400, 100));
+				stage.show();
+				stage.getScene().getRoot().applyCss();
+				stage.getScene().getRoot().layout();
+				comboBox.show();
+				assertTrue(comboBox.isShowing());
+				stageReference.set(stage);
+				comboBoxReference.set(comboBox);
+			});
+
+			runOnJavaFxThread(() -> {});
+
+			runOnJavaFxThread(() -> {
+				ComboBox<String> comboBox = comboBoxReference.get();
+				Bounds comboBounds = comboBox.localToScreen(comboBox.getBoundsInLocal());
+				Window popupWindow = popupWindow(comboBox);
+				double detachedY = comboBounds.getMinY() - popupWindow.getHeight() - 40;
+
+				AtomicInteger feedbackCount = new AtomicInteger();
+				boolean[] resetting = {false};
+				ChangeListener<Number> feedback = (observable, oldY, newY) -> {
+					if (!resetting[0] && feedbackCount.get() < 10
+							&& Math.abs(newY.doubleValue() - detachedY) > 0.5) {
+						feedbackCount.incrementAndGet();
+						resetting[0] = true;
+						try {
+							popupWindow.setY(detachedY);
+						} finally {
+							resetting[0] = false;
+						}
+					}
+				};
+				popupWindow.yProperty().addListener(feedback);
+				try {
+					popupWindow.setY(detachedY);
+				} finally {
+					popupWindow.yProperty().removeListener(feedback);
+				}
+
+				assertTrue(feedbackCount.get() <= 4,
+						"popup positioning must not spin synchronously on persistent geometry feedback");
+
+				popupWindow.setHeight(popupWindow.getHeight() + 1);
+				Bounds popupBounds = popupContent(comboBox).localToScreen(popupContent(comboBox).getLayoutBounds());
+				assertEquals(comboBounds.getMinY(), popupBounds.getMaxY(), 0.5,
+						"the tracker must still recover on a later external geometry change");
 			});
 		} finally {
 			runOnJavaFxThread(() -> {
