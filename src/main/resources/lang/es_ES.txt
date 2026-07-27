@@ -237,8 +237,8 @@ dialog.replace_blocks.builder.biome.prompt;minecraft:plains;minecraft:forest
 dialog.replace_blocks.builder.source_constraints;Restricciones del origen (opcional)
 dialog.replace_blocks.builder.catalog;Block catalogue
 dialog.replace_blocks.builder.catalog_switch.title;Switch block catalogue
-dialog.replace_blocks.builder.catalog_switch.message;Switching from %s to %s will discard all Builder rules, drafts, and selections. Continue?
-dialog.replace_blocks.builder.catalog.note;Solo controla sugerencias y propiedades; no convierte ID. Si el Builder tiene contenido, el cambio pide confirmación y después borra el contenido.
+dialog.replace_blocks.builder.catalog_switch.message;Cambiar de %s a %s descartará todas las reglas, borradores y selecciones del constructor. ¿Continuar?
+dialog.replace_blocks.builder.catalog.note;Solo controla sugerencias y propiedades; no convierte ID. Si el constructor tiene contenido, el cambio pide confirmación y después borra el contenido.
 dialog.replace_blocks.builder.catalog.source_unknown;Source "%s" is not in the Java %s catalogue; it will still be accepted as entered.
 dialog.replace_blocks.builder.catalog.target_unknown;Target "%s" is not in the Java %s catalogue; it will still be accepted, but verify that the target world supports this ID.
 dialog.replace_blocks.builder.preset.persist_failed;Could not write the configuration; the preset change was rolled back.

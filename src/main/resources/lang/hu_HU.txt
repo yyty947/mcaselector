@@ -214,8 +214,8 @@ dialog.request_number.title.array_length;A tömb hossza
 dialog.request_number.title.enter_number;Érték
 button.cancel;Visszavonás
 button.ok;OK
-dialog.replace_blocks.builder.button;Builder
-dialog.replace_blocks.builder.title;ReplaceBlocks Builder
+dialog.replace_blocks.builder.button;Szerkesztő
+dialog.replace_blocks.builder.title;ReplaceBlocks-szerkesztő
 dialog.replace_blocks.builder.from;From block
 dialog.replace_blocks.builder.to;To block
 dialog.replace_blocks.builder.add_rule;Add rule
@@ -237,8 +237,8 @@ dialog.replace_blocks.builder.biome.prompt;minecraft:plains;minecraft:forest
 dialog.replace_blocks.builder.source_constraints;Forráskorlátozások (opcionális)
 dialog.replace_blocks.builder.catalog;Block catalogue
 dialog.replace_blocks.builder.catalog_switch.title;Switch block catalogue
-dialog.replace_blocks.builder.catalog_switch.message;Switching from %s to %s will discard all Builder rules, drafts, and selections. Continue?
-dialog.replace_blocks.builder.catalog.note;Csak a blokkjavaslatokat és tulajdonságokat vezérli; az azonosítókat nem alakítja át. Ha a Builder tartalmaz adatot, a váltás megerősítést kér, majd törli a tartalmat.
+dialog.replace_blocks.builder.catalog_switch.message;A(z) %s katalógusról %s katalógusra váltás elveti a szerkesztő összes szabályát, piszkozatát és kijelölését. Folytatja?
+dialog.replace_blocks.builder.catalog.note;Csak a blokkjavaslatokat és tulajdonságokat vezérli; az azonosítókat nem alakítja át. Ha a szerkesztő tartalmaz adatot, a váltás megerősítést kér, majd törli a tartalmat.
 dialog.replace_blocks.builder.catalog.source_unknown;Source "%s" is not in the Java %s catalogue; it will still be accepted as entered.
 dialog.replace_blocks.builder.catalog.target_unknown;Target "%s" is not in the Java %s catalogue; it will still be accepted, but verify that the target world supports this ID.
 dialog.replace_blocks.builder.preset.persist_failed;Could not write the configuration; the preset change was rolled back.
@@ -249,17 +249,17 @@ dialog.replace_blocks.builder.preset.save;Save preset
 dialog.replace_blocks.builder.preset.delete;Delete preset
 dialog.replace_blocks.builder.preset.title;ReplaceBlocks presets
 dialog.replace_blocks.builder.preset.save.title;Save ReplaceBlocks preset
-dialog.replace_blocks.builder.preset.save.header;Save the generated rules as a reusable Builder preset.
+dialog.replace_blocks.builder.preset.save.header;A létrehozott szabályok mentése újra felhasználható szerkesztői előbeállításként.
 dialog.replace_blocks.builder.preset.save.name;Preset name
 dialog.replace_blocks.builder.preset.name_empty;Enter a preset name.
 dialog.replace_blocks.builder.preset.builtin_locked;Built-in preset names cannot be overwritten.
 dialog.replace_blocks.builder.preset.overwrite_confirm;A preset named "%s" already exists. Overwrite it?
 dialog.replace_blocks.builder.preset.delete_confirm;Delete preset "%s"?
-dialog.replace_blocks.builder.preset.replace_confirm;Loading this preset will replace the current Builder rules and draft inputs.
+dialog.replace_blocks.builder.preset.replace_confirm;Az előbeállítás betöltése lecseréli a szerkesztő jelenlegi szabályait és piszkozatként megadott értékeit.
 dialog.replace_blocks.builder.preset.saved;Preset "%s" saved.
 dialog.replace_blocks.builder.preset.already_filled;This preset is already present in the rule list.
-dialog.replace_blocks.builder.discard.title;Discard Builder changes?
-dialog.replace_blocks.builder.discard.header;Discard the changes made in this Builder? The ReplaceBlocks field will keep the value it had before the Builder opened.
+dialog.replace_blocks.builder.discard.title;Elveti a szerkesztő módosításait?
+dialog.replace_blocks.builder.discard.header;Elveti a szerkesztőben végzett módosításokat? A ReplaceBlocks mező megtartja a szerkesztő megnyitása előtti értékét.
 dialog.replace_blocks.builder.discard.action;Discard changes
 dialog.replace_blocks.builder.continue_editing.action;Continue editing
 dialog.replace_blocks.builder.preset.air_to_stone;Air -> stone
@@ -272,7 +272,7 @@ dialog.replace_blocks.builder.preset.warning_containers;The container preset mat
 dialog.replace_blocks.builder.edit_rule;Load rule
 dialog.replace_blocks.builder.property.all;all
 dialog.replace_blocks.builder.help.button;Help
-dialog.replace_blocks.builder.help.title;ReplaceBlocks Builder Help
+dialog.replace_blocks.builder.help.title;A ReplaceBlocks-szerkesztő súgója
 dialog.replace_blocks.builder.help.nbt.title;Extra NBT source condition
 dialog.replace_blocks.builder.help.nbt.intro;Extra NBT is block entity data stored at a block position, such as sign text, container items, furnace progress, or command block commands. This option only checks whether the source position has that data; it does not inspect the contents.
 dialog.replace_blocks.builder.help.nbt.any;Extra NBT: any - match by block name and properties regardless of block entity data. Use this for normal blocks, or when replacing and discarding existing extra data is acceptable.
@@ -281,7 +281,7 @@ dialog.replace_blocks.builder.help.nbt.absent;Extra NBT: absent - match only pos
 dialog.replace_blocks.builder.help.nbt.note;This setting filters only the source side. If the target needs block entity SNBT, continue using advanced text input.
 dialog.replace_blocks.builder.help.biome.title;Biome condition
 dialog.replace_blocks.builder.help.biome.intro;Biome filtering checks the biome at each candidate block position. In modern 1.18+ chunks, one biome value covers a 4x4x4 block area, so nearby blocks in that cell share the same biome condition.
-dialog.replace_blocks.builder.help.biome.syntax;Leave the Builder biome field empty for no biome restriction. Enter one biome id or multiple ids separated by semicolons; generated rules use biome(..., source).
+dialog.replace_blocks.builder.help.biome.syntax;Ha nem szeretne biomkorlátozást, hagyja üresen a szerkesztő biom mezőjét. Adjon meg egy biomazonosítót vagy több, pontosvesszővel elválasztott azonosítót; a létrehozott szabályok a biome(..., source) alakot használják.
 dialog.replace_blocks.validation.source_empty;Enter a source block id.
 dialog.replace_blocks.validation.target_empty;Enter a target block id.
 dialog.replace_blocks.validation.source_unknown;Unknown source block "%s".

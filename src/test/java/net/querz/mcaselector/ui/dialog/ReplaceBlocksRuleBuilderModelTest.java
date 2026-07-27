@@ -1341,6 +1341,28 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
+	void builderWorkflowMessagesDoNotFallBackToEnglishInOtherLanguages() throws Exception {
+		List<String> locales = List.of(
+				"cs_CZ", "de_DE", "es_ES", "fr_FR", "hu_HU", "it_IT", "ja_JP", "ko_KR",
+				"nl_NL", "pl_PL", "pt_BR", "pt_PT", "ru_RU", "sv_SE", "tr_TR", "uk_UA",
+				"zh_CN", "zh_TW");
+		List<String> keys = List.of(
+				"dialog.replace_blocks.builder.catalog_switch.message",
+				"dialog.replace_blocks.builder.preset.save.header",
+				"dialog.replace_blocks.builder.preset.replace_confirm",
+				"dialog.replace_blocks.builder.discard.title",
+				"dialog.replace_blocks.builder.discard.header",
+				"dialog.replace_blocks.builder.help.biome.syntax");
+
+		for (String locale : locales) {
+			for (String key : keys) {
+				assertNotEquals(builderTranslation("en_GB", key), builderTranslation(locale, key),
+						() -> locale + " still uses the English Builder text for " + key);
+			}
+		}
+	}
+
+	@Test
 	void emptyBuilderUsesCompactEmptyStateAndReadablePrimaryAction() throws Throwable {
 		runOnJavaFxThread(() -> {
 			Stage primaryStage = showPrimaryStage();
@@ -1388,6 +1410,19 @@ class ReplaceBlocksRuleBuilderModelTest {
 				closeDialog(dialog, primaryStage);
 			}
 		});
+	}
+
+	private static String builderTranslation(String locale, String key) throws Exception {
+		String resourceName = "lang/" + locale + ".txt";
+		try (InputStream input = ReplaceBlocksRuleBuilderDialog.class.getClassLoader()
+				.getResourceAsStream(resourceName)) {
+			assertNotNull(input, resourceName);
+			return new String(input.readAllBytes(), StandardCharsets.UTF_8).lines()
+					.filter(line -> line.startsWith(key + ";"))
+					.map(line -> line.substring(key.length() + 1))
+					.findFirst()
+					.orElseThrow(() -> new AssertionError("missing translation key " + key + " in " + resourceName));
+		}
 	}
 
 	@Test

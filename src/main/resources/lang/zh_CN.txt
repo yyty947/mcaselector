@@ -214,7 +214,7 @@ dialog.request_number.title.array_length;数组长度
 dialog.request_number.title.enter_number;输入数字
 button.cancel;取消
 button.ok;确定
-dialog.replace_blocks.builder.button;Builder
+dialog.replace_blocks.builder.button;构建器
 dialog.replace_blocks.builder.title;ReplaceBlocks 构建器
 dialog.replace_blocks.builder.from;来源方块
 dialog.replace_blocks.builder.to;目标方块
@@ -238,7 +238,7 @@ dialog.replace_blocks.builder.source_constraints;来源限制（可选）
 dialog.replace_blocks.builder.catalog;方块目录
 dialog.replace_blocks.builder.catalog_switch.title;切换方块目录
 dialog.replace_blocks.builder.catalog_switch.message;从 %s 切换到 %s 将丢失构建器中的所有规则、草稿和选择。是否继续？
-dialog.replace_blocks.builder.catalog.note;仅控制方块候选和属性，不会转换 ID；Builder 有内容时，切换前会确认，确认后清空内容。
+dialog.replace_blocks.builder.catalog.note;仅控制方块候选和属性，不会转换 ID；构建器有内容时，切换前会确认，确认后清空内容。
 dialog.replace_blocks.builder.catalog.source_unknown;来源“%s”不在 Java %s 目录中；仍会接受并按原样保存。
 dialog.replace_blocks.builder.catalog.target_unknown;目标“%s”不在 Java %s 目录中；仍会接受，但请确认目标世界版本支持该 ID。
 dialog.replace_blocks.builder.preset.persist_failed;无法写入配置，预设更改已回滚。
@@ -249,17 +249,17 @@ dialog.replace_blocks.builder.preset.save;存为预设
 dialog.replace_blocks.builder.preset.delete;删除预设
 dialog.replace_blocks.builder.preset.title;ReplaceBlocks 预设
 dialog.replace_blocks.builder.preset.save.title;保存 ReplaceBlocks 预设
-dialog.replace_blocks.builder.preset.save.header;将当前生成的规则保存为可重复使用的 Builder 预设。
+dialog.replace_blocks.builder.preset.save.header;将当前生成的规则保存为可重复使用的构建器预设。
 dialog.replace_blocks.builder.preset.save.name;预设名称
 dialog.replace_blocks.builder.preset.name_empty;请输入预设名称。
 dialog.replace_blocks.builder.preset.builtin_locked;不能覆盖内置预设名称。
 dialog.replace_blocks.builder.preset.overwrite_confirm;已存在名为“%s”的预设。要覆盖吗？
 dialog.replace_blocks.builder.preset.delete_confirm;删除预设“%s”？
-dialog.replace_blocks.builder.preset.replace_confirm;载入这个预设会替换当前 Builder 规则和正在编辑的输入。
+dialog.replace_blocks.builder.preset.replace_confirm;载入这个预设会替换当前构建器规则和正在编辑的输入。
 dialog.replace_blocks.builder.preset.saved;预设“%s”已保存。
 dialog.replace_blocks.builder.preset.already_filled;这个预设已经填入规则区。
-dialog.replace_blocks.builder.discard.title;放弃 Builder 更改？
-dialog.replace_blocks.builder.discard.header;要放弃本次 Builder 更改吗？ReplaceBlocks 输入框将保持打开 Builder 前的内容。
+dialog.replace_blocks.builder.discard.title;放弃构建器更改？
+dialog.replace_blocks.builder.discard.header;要放弃本次构建器更改吗？ReplaceBlocks 输入框将保持打开构建器前的内容。
 dialog.replace_blocks.builder.discard.action;放弃更改
 dialog.replace_blocks.builder.continue_editing.action;继续编辑
 dialog.replace_blocks.builder.preset.air_to_stone;空气 -> 石头
@@ -272,7 +272,7 @@ dialog.replace_blocks.builder.preset.warning_containers;容器预设只匹配存
 dialog.replace_blocks.builder.edit_rule;载入编辑
 dialog.replace_blocks.builder.property.all;全部
 dialog.replace_blocks.builder.help.button;帮助
-dialog.replace_blocks.builder.help.title;ReplaceBlocks Builder 帮助
+dialog.replace_blocks.builder.help.title;ReplaceBlocks 构建器帮助
 dialog.replace_blocks.builder.help.nbt.title;附加 NBT 条件
 dialog.replace_blocks.builder.help.nbt.intro;附加 NBT 是保存在方块位置上的额外数据，例如告示牌文字、箱子物品、熔炉进度或命令方块命令。这里的选项只判断来源方块位置是否有这类数据，不检查具体内容。
 dialog.replace_blocks.builder.help.nbt.any;附加NBT：不限 - 只按方块名称和属性匹配；有无附加数据都可以。适合普通方块，或你确定可以替换并丢弃原有附加数据的情况。
@@ -281,7 +281,7 @@ dialog.replace_blocks.builder.help.nbt.absent;附加NBT：无 - 只匹配没有�
 dialog.replace_blocks.builder.help.nbt.note;该设置只过滤来源方块。目标方块如果需要写入方块实体 SNBT，目前仍通过高级文本输入完成。
 dialog.replace_blocks.builder.help.biome.title;生物群系条件
 dialog.replace_blocks.builder.help.biome.intro;生物群系过滤会检查每个候选方块位置所属的生物群系。现代 1.18+ 区块中，一个生物群系值覆盖 4x4x4 方块区域，因此同一单元内的相邻方块会使用同一个生物群系判断。
-dialog.replace_blocks.builder.help.biome.syntax;Builder 的生物群系输入框留空表示不限制。可输入一个或多个生物群系 ID，多个用分号分隔；生成规则使用 biome(..., source)。
+dialog.replace_blocks.builder.help.biome.syntax;构建器的生物群系输入框留空表示不限制。可输入一个或多个生物群系 ID，多个用分号分隔；生成规则使用 biome(..., source)。
 dialog.replace_blocks.validation.source_empty;请输入来源方块 ID。
 dialog.replace_blocks.validation.target_empty;请输入目标方块 ID。
 dialog.replace_blocks.validation.source_unknown;未知来源方块 "%s"。
