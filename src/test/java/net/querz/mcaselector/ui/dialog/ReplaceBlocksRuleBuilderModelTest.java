@@ -612,7 +612,8 @@ class ReplaceBlocksRuleBuilderModelTest {
 				assertNotNull(note);
 				assertTrue(note.isWrapText());
 				assertTrue(note.getText().contains("IDs are not converted"));
-				assertTrue(note.getText().contains("clears its contents after confirmation"));
+				assertTrue(note.getText().contains("If the Builder has content"));
+				assertTrue(note.getText().contains("switching asks for confirmation"));
 			} finally {
 				primaryStage.close();
 			}
@@ -1364,6 +1365,25 @@ class ReplaceBlocksRuleBuilderModelTest {
 				assertNotNull(sourceConstraints);
 				assertEquals(2, GridPane.getColumnSpan(sourceConstraints));
 				assertTrue(hasAddRuleButton);
+			} finally {
+				closeDialog(dialog, primaryStage);
+			}
+		});
+	}
+
+	@Test
+	void builderKeepsAdvancedSyntaxGuidanceOutOfPersistentFooter() throws Throwable {
+		runOnJavaFxThread(() -> {
+			Stage primaryStage = showPrimaryStage();
+			ReplaceBlocksRuleBuilderDialog dialog = showDialog(primaryStage, "");
+			try {
+				boolean hasPersistentAdvancedGuidance = dialog.getDialogPane().lookupAll(".label").stream()
+						.filter(Label.class::isInstance)
+						.map(Label.class::cast)
+						.anyMatch(label -> label.getText().equals(
+								Translation.DIALOG_REPLACE_BLOCKS_BUILDER_ADVANCED.toString()));
+
+				assertFalse(hasPersistentAdvancedGuidance);
 			} finally {
 				closeDialog(dialog, primaryStage);
 			}

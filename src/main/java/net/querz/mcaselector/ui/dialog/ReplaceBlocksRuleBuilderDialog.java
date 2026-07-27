@@ -294,12 +294,9 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 		// Keep the Builder content at that baseline so the four native dialog buttons align
 		// with the controls above instead of receiving a second horizontal inset.
 		content.setPadding(new Insets(0));
-		Label advanced = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_ADVANCED);
-		advanced.visibleProperty().bind(from.userInputPresentProperty().or(to.userInputPresentProperty()).not());
-		advanced.managedProperty().bind(advanced.visibleProperty());
 		Label rulesLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_RULES);
 		Label resultLabel = UIFactory.label(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_RESULT);
-		content.getChildren().addAll(createBuilderToolbar(presetInput), input, rulesLabel, rulesArea, ruleActions, resultLabel, result, validation, advanced);
+		content.getChildren().addAll(createBuilderToolbar(presetInput), input, rulesLabel, rulesArea, ruleActions, resultLabel, result, validation);
 		VBox.setMargin(rulesLabel, new Insets(8, 0, 0, 0));
 		VBox.setVgrow(rulesArea, Priority.ALWAYS);
 		contentLayer.getChildren().setAll(content, ruleMarquee);
@@ -1229,7 +1226,8 @@ public class ReplaceBlocksRuleBuilderDialog extends Dialog<String> {
 				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_NBT_NOTE, "replace-blocks-builder-help-text"),
 				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_BIOME_TITLE, "replace-blocks-builder-help-heading"),
 				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_BIOME_INTRO, "replace-blocks-builder-help-text"),
-				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_BIOME_SYNTAX, "replace-blocks-builder-help-text")
+				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_HELP_BIOME_SYNTAX, "replace-blocks-builder-help-text"),
+				helpLabel(Translation.DIALOG_REPLACE_BLOCKS_BUILDER_ADVANCED, "replace-blocks-builder-help-text")
 		);
 
 		ScrollPane scroll = new ScrollPane(content);
