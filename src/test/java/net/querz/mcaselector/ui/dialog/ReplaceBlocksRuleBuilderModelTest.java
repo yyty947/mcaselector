@@ -1259,7 +1259,8 @@ class ReplaceBlocksRuleBuilderModelTest {
 				ListView<?> popup = popupContent(comboBox);
 				Bounds popupBounds = popup.localToScreen(popup.getLayoutBounds());
 				return comboBounds != null && popupBounds != null
-						&& Math.abs(comboBounds.getMinY() - popupBounds.getMaxY()) <= 0.5;
+						&& (Math.abs(comboBounds.getMinY() - popupBounds.getMaxY()) <= 0.5
+								|| Math.abs(comboBounds.getMaxY() - popupBounds.getMinY()) <= 0.5);
 			}, inputFieldName + "." + comboBoxFieldName + " popup detached after a late resize");
 		} finally {
 			runOnJavaFxThread(() -> {

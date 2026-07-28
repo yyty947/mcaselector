@@ -1,6 +1,5 @@
 package net.querz.mcaselector.ui.dialog;
 
-import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.event.EventHandler;
@@ -248,16 +247,13 @@ final class ReplaceBlocksAutocomplete {
 		private static final double EPSILON = 0.5;
 		private static final double WINDOW_MARGIN = 4;
 		private static final int MAX_STABILIZATION_PASSES = 4;
-		private static final int MAX_DEFERRED_PULSES = 4;
 		private final ComboBox<?> comboBox;
-		private final InvalidationListener geometryListener = observable -> geometryChanged();
+		private final InvalidationListener geometryListener = observable -> stabilize();
 		private ListView<?> popupContent;
 		private Window popupWindow;
 		private Window ownerWindow;
 		private boolean stabilizing;
 		private boolean stabilizationPending;
-		private AnimationTimer deferredStabilizer;
-		private int deferredPulsesRemaining;
 
 		private PopupPositionTracker(ComboBox<?> comboBox) {
 			this.comboBox = comboBox;
@@ -288,11 +284,9 @@ final class ReplaceBlocksAutocomplete {
 				ownerWindow.widthProperty().addListener(geometryListener);
 			}
 			stabilize();
-			scheduleDeferredStabilization();
 		}
 
 		private void detach() {
-			stopDeferredStabilization();
 			if (popupContent != null) popupContent.heightProperty().removeListener(geometryListener);
 			if (popupContent != null) popupContent.widthProperty().removeListener(geometryListener);
 			if (popupWindow != null) {
@@ -310,42 +304,6 @@ final class ReplaceBlocksAutocomplete {
 			popupWindow = null;
 			ownerWindow = null;
 			stabilizationPending = false;
-		}
-
-		private void geometryChanged() {
-			boolean externalChange = !stabilizing;
-			stabilize();
-			if (externalChange) {
-				scheduleDeferredStabilization();
-			}
-		}
-
-		private void scheduleDeferredStabilization() {
-			if (deferredPulsesRemaining > 0) return;
-			deferredPulsesRemaining = MAX_DEFERRED_PULSES;
-			if (deferredStabilizer == null) {
-				deferredStabilizer = new AnimationTimer() {
-					@Override
-					public void handle(long now) {
-						if (popupWindow == null || popupContent == null || !comboBox.isShowing()) {
-							stopDeferredStabilization();
-							return;
-						}
-						stabilize();
-						if (--deferredPulsesRemaining <= 0) {
-							stopDeferredStabilization();
-						}
-					}
-				};
-			}
-			deferredStabilizer.start();
-		}
-
-		private void stopDeferredStabilization() {
-			deferredPulsesRemaining = 0;
-			if (deferredStabilizer != null) {
-				deferredStabilizer.stop();
-			}
 		}
 
 		private void stabilize() {
