@@ -70,7 +70,7 @@ Phase 6 execution record:
 | `AUTO-PERF` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-25 | Builder model regressions cover bounded popup geometry feedback with later recovery, From/To/Biome width-measurement limits, empty-query plain-text cells, and daemon-thread catalogue preload; `compileJava`, full `test`, `build`, and `shadowJar` succeeded |
 | `UI-PERF` | Passed | Low-end physical Dell Inspiron 5498, Java 21, 2026-07-25 | Previous first popup was about 1 s and first `a` 1-3 s; optimized operations felt below 200 ms, empty Biome no longer hung, and prewarmed first Builder open was below 0.5 s. The user completed the final keyboard, popup, style, preset, rule-editing, and advanced-text regression without finding an issue |
 | `AUTO-CLOSE` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-25 | JavaFX tests cover clean restored content, reversible drafts, dirty catalogue reset, title-bar close with declined/closed/accepted confirmation, Builder Cancel, explicit action labels, and outer-field explanatory copy |
-| `UI-CLOSE` | Pending | User-run local UI check | Verify the transactional close paths below after building or launching the committed candidate |
+| `UI-CLOSE` | Passed | User report, 2026-07-25 | Unchanged close, dirty Cancel/Esc/title-bar close, confirmation Cancel/X, explicit discard, catalogue-reset dirty state, outer-text preservation, and Builder OK were accepted |
 
 ### Phase 6 copied-world evidence
 
@@ -217,7 +217,7 @@ Manual checks:
 - With a Chinese IME active, select part of a completed block ID, enter two Latin letters, and confirm neither letter is swallowed and no `TextInputControl.replaceText` exception is logged.
 - Repeat the same suggestion test with mouse-click completion. The chosen block ID should fill the editor, the matching property rows should appear when applicable, and the JavaFX console should not log `ListViewBehavior` or index errors.
 - Moving the mouse over preset, block, Extra NBT, biome, and property choices should show a clearly visible light-blue hover. Keyboard focus/current selection should use a solid blue background with readable white text.
-- The builder helper text below the generated value should be visible before manual From/To input, then hide once the user types non-empty text into either From/To field.
+- Open Builder Help and confirm it explains advanced text input and block-state SNBT support; the main Builder should not reserve a permanent guidance row below the generated value.
 - For stateful From/To blocks with matching properties such as stairs, property dropdown rows should appear directly below both block inputs, align vertically across the two columns, and use equal left/right column widths. Source-only Extra NBT, Y range, and Biome controls should appear below the source property rows.
 - In the builder From block area, leaving Min Y and Max Y empty should generate the same rule as before.
 - Filling only Min Y should generate `y(<min>.., source)`, filling only Max Y should generate `y(..<max>, source)`, and filling both should generate `y(<min>..<max>, source)`.

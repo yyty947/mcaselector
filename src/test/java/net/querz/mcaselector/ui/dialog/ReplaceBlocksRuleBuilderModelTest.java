@@ -1,5 +1,6 @@
 package net.querz.mcaselector.ui.dialog;
 
+import javafx.animation.AnimationTimer;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
@@ -622,7 +623,6 @@ class ReplaceBlocksRuleBuilderModelTest {
 
 	@Test
 	void changeDialogPreloadsBlockCatalogOnADaemonThread() throws Exception {
-		initializeJavaFx();
 		Method preload = assertDoesNotThrow(
 				() -> ChangeNBTDialog.class.getDeclaredMethod("preloadBlockStateCatalog"));
 		preload.setAccessible(true);
@@ -1254,6 +1254,8 @@ class ReplaceBlocksRuleBuilderModelTest {
 				popupWindow.setY(comboBounds.getMinY() - originalHeight);
 				popupWindow.setHeight(originalHeight + 32);
 			});
+
+			waitForNextJavaFxPulse();
 
 			runOnJavaFxThread(() -> {
 				ComboBox<?> comboBox = comboBoxReference.get();
@@ -1928,6 +1930,18 @@ class ReplaceBlocksRuleBuilderModelTest {
 			Platform.setImplicitExit(false);
 			javaFxStarted = true;
 		}
+	}
+
+	private static void waitForNextJavaFxPulse() throws InterruptedException {
+		CountDownLatch pulse = new CountDownLatch(1);
+		Platform.runLater(() -> new AnimationTimer() {
+			@Override
+			public void handle(long now) {
+				stop();
+				pulse.countDown();
+			}
+		}.start());
+		assertTrue(pulse.await(10, TimeUnit.SECONDS), "JavaFX pulse did not complete");
 	}
 
 	@FunctionalInterface

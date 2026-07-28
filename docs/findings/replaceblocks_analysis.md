@@ -273,7 +273,7 @@ Older 21w37a-era code uses `TileEntities`/level-style naming in some paths. The 
 
 For 21w43a+, `Heightmap.getHeightMap(...)` scans root `sections`, reads `block_states.palette` and `block_states.data`, walks x/z columns from highest section down, and writes packed height values based on matcher predicates loaded from version-specific heightmap config resources.
 
-Phase 6 confirmed and fixed three heightmap defects: packed values used the wrong entries-per-long loop bound, 21w37a read palette/data from the wrong section level, and 21w43a inherited a `Level.Heightmaps` writer even though its chunks store `Heightmaps` at root. Both early-flat and post-21w43a shapes now have automated scan/packing/writeback tests, including single-palette sections without a data array. DataVersion 2860/4671 copied files also retained all four 37-long heightmaps after ordinary, state, and bounded-air execution. Minecraft surface rendering, save/reload, and log validation remain release gates.
+Phase 6 confirmed and fixed three heightmap defects: packed values used the wrong entries-per-long loop bound, 21w37a read palette/data from the wrong section level, and 21w43a inherited a `Level.Heightmaps` writer even though its chunks store `Heightmaps` at root. Both early-flat and post-21w43a shapes now have automated scan/packing/writeback tests, including single-palette sections without a data array. DataVersion 2860/4671 copied files also retained all four 37-long heightmaps after ordinary, state, and bounded-air execution, and the later disposable-world surface rendering, save/reload, and log validation passed.
 
 ## Light data
 
@@ -282,7 +282,7 @@ For each changed section, the implementation removes:
 - `BlockLight`
 - `SkyLight`
 
-The first Phase 6 game pass confirmed that removing section light arrays while leaving root `isLightOn` set can preserve stale lighting in 1.21 chunks. Clearing the flag fixed selected chunks, but a follow-up exposed stale light in the immediately adjacent ring. Selection-only execution now retains the original replacement selection while loading and saving an expanded one-chunk square ring whose existing chunks receive the version-appropriate `isLightOn=0` / `LightPopulated=0` ByteTag. Expansion and cross-region behavior have automated tests; final visual confirmation remains required.
+The first Phase 6 game pass confirmed that removing section light arrays while leaving root `isLightOn` set can preserve stale lighting in 1.21 chunks. Clearing the flag fixed selected chunks, but a follow-up exposed stale light in the immediately adjacent ring. Selection-only execution now retains the original replacement selection while loading and saving an expanded one-chunk square ring whose existing chunks receive the version-appropriate `isLightOn=0` / `LightPopulated=0` ByteTag. Expansion and cross-region behavior have automated tests, and the final adjacent-ring visual rerun passed on a disposable world.
 
 ## Replacing air
 

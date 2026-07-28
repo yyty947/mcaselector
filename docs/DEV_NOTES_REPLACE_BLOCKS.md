@@ -113,7 +113,7 @@ CLI path:
 - The NBT Changer dialog shows ReplaceBlocks validation messages and warnings after a short typing pause, so incomplete in-progress input does not flash errors on every character.
 - The default NBT Changer dialog width keeps the ReplaceBlocks `Builder` button visible without horizontal scrolling.
 - When opened without an existing value, the builder starts with blank From/To inputs and does not immediately show an empty-rule validation error.
-- The builder helper text below the generated value is only a pre-input hint; it hides after the user manually types non-empty From/To text.
+- Advanced text and block-state SNBT guidance is kept in the Builder Help dialog; the main form no longer reserves a permanent helper row below the generated value.
 - The Builder's preset and catalogue controls share a compact top toolbar. The catalogue button uses a short Java version for the closed state and keeps the full DataVersion label available through its tooltip and popup cells.
 - Source-only Extra NBT, Y-range, and biome controls live in a full-width optional restrictions strip below the two From/To columns, so they are visually grouped without changing generated syntax or validation.
 - The Min Y and Max Y labels keep their preferred width in the compact restrictions strip; the two editable fields absorb remaining space, so the labels do not collapse into JavaFX ellipses after values are entered.
@@ -147,11 +147,11 @@ CLI path:
 - Selected-property matching is explicit through `props(...)`; existing source SNBT remains exact matching.
 - The builder now emits `props(...)` for catalog-backed source property rules, but it does not yet offer per-property enable/disable checkboxes or a dedicated source-mode selector.
 - Automatic world-version selection and cross-version block-ID migration remain intentionally out of scope; catalogue selection is manual and affects only suggestions/properties.
-- Quoted custom target names appear fragile when followed by another rule or tile entity SNBT; this needs a focused test.
+- Quoted custom target names followed by tile SNBT and another rule are covered by focused parser/field tests and preserve rule order.
 - Modern 1.18+ target tile replacement removes existing block entities at the same coordinates before adding the replacement tile. Phase 6 also made the 1.13 and 1.17 palette paths remove all existing entries at the target coordinate before adding replacement tile SNBT. DataVersion 4671 copied-world files passed remove 2 / add 11 / update 2 checks with zero duplicate block-entity coordinates; the user also completed Minecraft load/save/reload inspection on disposable copies.
 - Preview exists for modern 1.18+ paths, but unsupported older preview chunks are reported instead of estimated.
 - Replacing air can expand sparse sections across the existing section range, which is powerful but high risk.
-- Y-restricted air replacement reduces this risk by not completing sections outside the requested Y range. DataVersion 2860 and 4671 copied-world files matched and wrote exactly 20,736 and 20,479 Y=80 air blocks, with no remaining source matches; Minecraft rendering/reload validation is still required.
+- Y-restricted air replacement reduces this risk by not completing sections outside the requested Y range. DataVersion 2860 and 4671 copied-world files matched and wrote exactly 20,736 and 20,479 Y=80 air blocks, with no remaining source matches; the later disposable-world Minecraft rendering, save/reload, and log checks passed.
 - Replacing blocks removes section light data and marks the changed chunk lighting incomplete. Adjacent relighting now uses a two-stage save barrier: the primary stage processes only the original selection and publishes only ReplaceBlocks chunks whose region save succeeded; the second stage clears the relight flag in their exact eight-neighbor ring, excluding changed centers. It loads and saves only existing region MCA files, never creates missing chunks or region files, and never loads or writes adjacent POI/entities files. A zero-match ReplaceBlocks-only run queues no save at all.
 - Automated Phase 6 tests verify early-flat and post-21w43a heightmap scan, packing, and writeback shape. File-level copied-world checks found all four heightmaps present at 37 longs with no malformed arrays after ordinary, state, and bounded-air execution. Minecraft surface behavior and logs passed on disposable copied worlds.
 
@@ -204,7 +204,7 @@ The current From/To block inputs use editable JavaFX `ComboBox` controls backed 
 Recommended next work:
 
 - Biome restriction granularity is block-position aware at the modern chunk 4x4x4 biome-cell level. Do not change this to chunk/selection-wide matching without updating parser tests, preview expectations, execution tests, and docs.
-- Keep rich target tile NBT editing out of the builder until the remaining Minecraft tile load/reload gate has passed.
+- Keep rich target tile NBT editing out of the builder as a separate future feature; the current target-tile cleanup path already passed its copied-world Minecraft load/reload gate.
 - Preserve duplicate block-entity coordinate checks in future copied-world release runs.
 
 ## Builder performance evidence (2026-07-25)
@@ -227,10 +227,10 @@ These results do not justify incremental loading, pagination, a replacement list
 - Regex source matching can affect more blocks than the user expects.
 - Source-state matching requires the full stored block-state compound; partial property SNBT intentionally does not match.
 - `props(...)` can intentionally match more states than exact SNBT because unlisted properties are ignored.
-- Tile-target duplicate cleanup is covered by automated tests and DataVersion 4671 file-level copied-world checks; Minecraft load/reload remains required.
-- Y range parser, diagnostics, preview counts, modern execution, and bounded-air copied-world files pass; Minecraft rendering/reload remains required before release.
+- Tile-target duplicate cleanup is covered by automated tests, DataVersion 4671 file-level copied-world checks, and the completed Minecraft load/save/reload inspection.
+- Y range parser, diagnostics, preview counts, modern execution, bounded-air copied-world files, and the disposable-world Minecraft rendering/reload check pass.
 - Light arrays are removed and the chunk relight flag is cleared with a ByteTag; Minecraft is expected to recalculate on load.
-- Heightmap writeback shape passes file-level DataVersion 2860/4671 checks; Minecraft surface rendering and logs remain to be checked.
+- Heightmap writeback shape passes file-level DataVersion 2860/4671 checks; disposable-world Minecraft surface rendering, save/reload, and log inspection also passed.
 - Parser compatibility is important because CLI and UI share `ChangeParser` and `ReplaceBlocksField`.
 - Builder, preview, UI field, and advanced query must continue to round-trip through the ReplaceBlocks text format.
 - Catalog data must remain a UI/help source until a later phase explicitly changes matching semantics.

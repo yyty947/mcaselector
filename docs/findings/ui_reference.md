@@ -133,7 +133,7 @@ Implemented controls:
 
 - Existing advanced ReplaceBlocks text input remains available.
 - `Builder` dialog has searchable, editable `from` and `to` block selectors with auto-opening A-Z filtered suggestions, Tab/click completion, boundary-only keyboard scrolling, and complete A-Z catalogs on explicit empty-arrow expansion.
-- Builder helper text below the generated value is shown before manual From/To input and hidden after the user types non-empty text into either field.
+- Advanced text and block-state SNBT guidance is available from Builder Help instead of a permanent helper row below the generated value.
 - `Builder` dialog has add/load-for-edit/delete controls and a rule table.
 - The generated ReplaceBlocks string is shown and returned to the existing field row.
 - Generated values are validated through `ReplaceBlocksField.parseNewValue(...)`.
@@ -237,7 +237,7 @@ Current 4B usage:
 - Preserve per-rule preview counts before layering on more conditions.
 - Source tile entity eligibility is implemented and documented in the Builder Help dialog; keep future Builder help content in that dialog instead of adding more permanent helper text to the main form.
 - Rich target tile NBT editing is still pending.
-- Biome restrictions and presets are implemented. Phase 6 model regressions cover multi-rule parsing, current-token biome completion, semantic preset normalization, popup key routing, boundary scrolling, and transient empty-catalog cleanup. The main dual-locale interaction pass and screenshots are complete; only the focused dropdown UX rerun remains.
+- Biome restrictions and presets are implemented. Phase 6 model regressions cover multi-rule parsing, current-token biome completion, semantic preset normalization, popup key routing, boundary scrolling, and transient empty-catalog cleanup. The main dual-locale interaction pass, screenshots, and focused dropdown UX rerun are complete.
 
 ## Builder UI implementation notes
 

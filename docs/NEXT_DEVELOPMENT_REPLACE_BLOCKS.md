@@ -220,9 +220,9 @@ Implemented in two parts:
 - Done: Y range first.
 - Done: biome restriction after Y range stabilized.
 
-Y range is implemented through `y(min..max, source)`. It is source-side, uses world block Y, and can wrap `literal(...)`, `regex(...)`, `props(...)`, source SNBT, `tile(...)`, or `no_tile(...)`. Modern 1.18+ preview and execution use the same Y predicate. DataVersion 2860/4671 copied files passed bounded Y=80 air preview/execution counts and heightmap-shape checks; Minecraft rendering and reload still need manual validation because partial sections can grow sparse chunks.
+Y range is implemented through `y(min..max, source)`. It is source-side, uses world block Y, and can wrap `literal(...)`, `regex(...)`, `props(...)`, source SNBT, `tile(...)`, or `no_tile(...)`. Modern 1.18+ preview and execution use the same Y predicate. DataVersion 2860/4671 copied files passed bounded Y=80 air preview/execution counts and heightmap-shape checks, followed by disposable-world Minecraft rendering and reload validation.
 
-Biome restriction is implemented through `biome(<biome>[;<biome>...], source)`. The granularity decision is block-position aware: each candidate block position is checked against the biome value stored for that position, and in modern 1.18+ chunks that value covers a 4x4x4 block cell. Preview and execution use the same biome lookup. Automated modern tests cover a synthetic biome-cell boundary; copied-world validation should still cover at least one real biome transition and compare preview counts against execution on a fresh copy.
+Biome restriction is implemented through `biome(<biome>[;<biome>...], source)`. The granularity decision is block-position aware: each candidate block position is checked against the biome value stored for that position, and in modern 1.18+ chunks that value covers a 4x4x4 block cell. Preview and execution use the same biome lookup. Automated modern tests cover a synthetic biome-cell boundary, and disposable copied-world checks covered real 1.18/1.21 biome transitions with preview/execution comparison.
 
 ## Presets
 
