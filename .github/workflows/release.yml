@@ -183,10 +183,6 @@ jobs:
           ./gradlew jpackage -PmatrixType=${{ matrix.type }} --stacktrace --warning-mode all
           mv build/jpackage/*.${{ matrix.type }} build/jpackage/mcaselector-2.8-${{ matrix.arch }}.${{ matrix.type }}
 
-      - name: Print popup geometry diagnostic
-        if: failure() && matrix.os == 'macos-latest'
-        run: cat build/popup-geometry-diagnostic.txt || true
-
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
