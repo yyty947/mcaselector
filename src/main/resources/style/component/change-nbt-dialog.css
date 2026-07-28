@@ -236,6 +236,10 @@
     -fx-font-weight: bold;
 }
 
+.combo-box-popup .replace-blocks-builder-dropdown {
+    -fx-border-width: 0;
+}
+
 .combo-box-popup .replace-blocks-builder-dropdown .list-cell:filled:hover {
     -fx-background-color: rgba(74, 163, 255, 0.32);
     -fx-background-insets: 0;

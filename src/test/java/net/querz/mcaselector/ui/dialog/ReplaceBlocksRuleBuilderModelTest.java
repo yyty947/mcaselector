@@ -1341,6 +1341,19 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
+	void builderDropdownUsesTheNativePopupFrameInsteadOfTheGlobalBlackBorder() throws Exception {
+		InputStream resource = ReplaceBlocksRuleBuilderDialog.class.getClassLoader()
+				.getResourceAsStream("style/component/change-nbt-dialog.css");
+		assertNotNull(resource);
+		try (InputStream input = resource) {
+			String css = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+
+			assertTrue(css.contains(".combo-box-popup .replace-blocks-builder-dropdown {"));
+			assertTrue(css.contains("-fx-border-width: 0;"));
+		}
+	}
+
+	@Test
 	void builderPrimaryActionUsesTheSharedButtonStyle() throws Exception {
 		InputStream resource = ReplaceBlocksRuleBuilderDialog.class.getClassLoader()
 				.getResourceAsStream("style/component/change-nbt-dialog.css");
