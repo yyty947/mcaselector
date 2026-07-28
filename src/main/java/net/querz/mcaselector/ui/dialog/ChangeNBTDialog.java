@@ -76,7 +76,7 @@ public class ChangeNBTDialog extends Dialog<ChangeNBTDialog.Result> implements P
 	public ChangeNBTDialog(TileMap tileMap, Stage primaryStage) {
 		this.primaryStage = primaryStage;
 		this.tileMap = tileMap;
-		preloadBlockStateCatalog();
+		BlockCatalogPreloader.preload();
 		titleProperty().bind(Translation.DIALOG_CHANGE_NBT_TITLE.getProperty());
 
 		initStyle(StageStyle.UTILITY);
@@ -198,11 +198,16 @@ public class ChangeNBTDialog extends Dialog<ChangeNBTDialog.Result> implements P
 		Platform.runLater(() -> tabs.getSelectionModel().select(lastSelectedTab));
 	}
 
-	static Thread preloadBlockStateCatalog() {
-		Thread loader = new Thread(BlockStateCatalog::available, "replace-blocks-catalog-preload");
-		loader.setDaemon(true);
-		loader.start();
-		return loader;
+	static final class BlockCatalogPreloader {
+
+		private BlockCatalogPreloader() {}
+
+		static Thread preload() {
+			Thread loader = new Thread(BlockStateCatalog::available, "replace-blocks-catalog-preload");
+			loader.setDaemon(true);
+			loader.start();
+			return loader;
+		}
 	}
 
 	private void showChangeQueryValidation(String message) {

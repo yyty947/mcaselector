@@ -56,8 +56,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -623,11 +625,7 @@ class ReplaceBlocksRuleBuilderModelTest {
 
 	@Test
 	void changeDialogPreloadsBlockCatalogOnADaemonThread() throws Exception {
-		Method preload = assertDoesNotThrow(
-				() -> ChangeNBTDialog.class.getDeclaredMethod("preloadBlockStateCatalog"));
-		preload.setAccessible(true);
-
-		Thread loader = assertInstanceOf(Thread.class, preload.invoke(null));
+		Thread loader = ChangeNBTDialog.BlockCatalogPreloader.preload();
 
 		assertTrue(loader.isDaemon());
 		assertEquals("replace-blocks-catalog-preload", loader.getName());
@@ -1255,16 +1253,14 @@ class ReplaceBlocksRuleBuilderModelTest {
 				popupWindow.setHeight(originalHeight + 32);
 			});
 
-			waitForNextJavaFxPulse();
-
-			runOnJavaFxThread(() -> {
+			waitForJavaFxCondition(() -> {
 				ComboBox<?> comboBox = comboBoxReference.get();
 				Bounds comboBounds = comboBox.localToScreen(comboBox.getBoundsInLocal());
 				ListView<?> popup = popupContent(comboBox);
 				Bounds popupBounds = popup.localToScreen(popup.getLayoutBounds());
-				assertEquals(comboBounds.getMinY(), popupBounds.getMaxY(), 0.5,
-						inputFieldName + "." + comboBoxFieldName + " popup detached after a late resize");
-			});
+				return comboBounds != null && popupBounds != null
+						&& Math.abs(comboBounds.getMinY() - popupBounds.getMaxY()) <= 0.5;
+			}, inputFieldName + "." + comboBoxFieldName + " popup detached after a late resize");
 		} finally {
 			runOnJavaFxThread(() -> {
 				if (dialogReference.get() != null) {
@@ -1932,16 +1928,28 @@ class ReplaceBlocksRuleBuilderModelTest {
 		}
 	}
 
-	private static void waitForNextJavaFxPulse() throws InterruptedException {
-		CountDownLatch pulse = new CountDownLatch(1);
+	private static void waitForJavaFxCondition(BooleanSupplier condition, String message) throws InterruptedException {
+		AtomicBoolean satisfied = new AtomicBoolean();
+		CountDownLatch complete = new CountDownLatch(1);
 		Platform.runLater(() -> new AnimationTimer() {
+			private long deadline;
+
 			@Override
 			public void handle(long now) {
-				stop();
-				pulse.countDown();
+				if (deadline == 0) {
+					deadline = now + TimeUnit.SECONDS.toNanos(5);
+				}
+				if (condition.getAsBoolean()) {
+					satisfied.set(true);
+				}
+				if (satisfied.get() || now >= deadline) {
+					stop();
+					complete.countDown();
+				}
 			}
 		}.start());
-		assertTrue(pulse.await(10, TimeUnit.SECONDS), "JavaFX pulse did not complete");
+		assertTrue(complete.await(10, TimeUnit.SECONDS), "JavaFX condition wait did not complete: " + message);
+		assertTrue(satisfied.get(), message);
 	}
 
 	@FunctionalInterface
