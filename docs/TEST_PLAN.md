@@ -72,6 +72,7 @@ Phase 6 execution record:
 | `AUTO-CLOSE` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-25 | JavaFX tests cover clean restored content, reversible drafts, dirty catalogue reset, title-bar close with declined/closed/accepted confirmation, Builder Cancel, explicit action labels, and outer-field explanatory copy |
 | `UI-CLOSE` | Passed | User report, 2026-07-25 | Unchanged close, dirty Cancel/Esc/title-bar close, confirmation Cancel/X, explicit discard, catalogue-reset dirty state, outer-text preservation, and Builder OK were accepted |
 | `AUTO-PR-MATRIX` | Passed for code and packages | Commit `41d6a127`, GitHub-hosted Windows/macOS/Linux, 2026-07-28 | 172 tests plus Windows `build`/`shadowJar`/`jpackage`, macOS Intel/ARM DMG, and Linux x64/ARM64 DEB/RPM succeeded. The workflow is red only because the fork lacks a token accepted by the later Windows `Querz/build-tools` download step (HTTP 401); the Windows build and app-image package completed before it |
+| `UI-PR-FINAL` | Passed | Commit `ba6c74da`, packaged Windows app-image, user report, 2026-07-28 | Final candidate passed From/To/Biome first and repeated popup attachment, empty-Biome repetition without a hang, immediate `aca` keyboard navigation including PageUp/PageDown and boundary-only scrolling, dark-theme highlight and horizontal bounds, main-menu-consistent native popup framing across every Builder dropdown, catalogue switch/reset, and transactional close/apply checks |
 
 ### Phase 6 copied-world evidence
 

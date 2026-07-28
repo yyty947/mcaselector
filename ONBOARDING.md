@@ -47,7 +47,7 @@ Implemented:
 
 Completed release validation:
 
-- Phase 6 implementation and its world-safety gates are complete. Automated tests, translation completeness, `build shadowJar`, Zulu JDK FX packaging, DataVersion 2860/4671 and 26.3 snapshot checks, real biome boundaries, game load/save/reload, game-log review, adjacent-ring relight, and copied-world game loading have evidence. The 2026-07-25 fresh-Builder From/To/Biome popup rerun covered the preceding candidate; the exact final packaged candidate still needs the focused popup rerun documented in the release review before PR submission.
+- Phase 6 implementation and its world-safety gates are complete. Automated tests, translation completeness, `build shadowJar`, Zulu JDK FX packaging, DataVersion 2860/4671 and 26.3 snapshot checks, real biome boundaries, game load/save/reload, game-log review, adjacent-ring relight, copied-world game loading, and the exact final packaged-candidate Builder rerun all have evidence.
 - The focused five-catalogue `UI-CATALOG` rerun passed by user report on 2026-07-17: empty switching was direct, Cancel preserved all work, Confirm fully reset the Builder under the new catalogue, saved presets remained available, exact out-of-catalogue preset IDs warned without blocking, and regex sources were not misclassified.
 
 Current Builder performance evidence:
@@ -56,7 +56,7 @@ Current Builder performance evidence:
 - The previous empty-Biome hang was a JavaFX Application Thread busy loop: popup `Window.setY(...)` synchronously retriggered the Builder geometry listener and its unbounded stabilization loop. Three consecutive thread dumps showed the same stack and increasing CPU time.
 - With the bounded popup tracker and long-list cell/width changes, From/To/Biome first and repeated expansion plus `aca` input were reported as immediate, approximately below 200 ms, and the empty-Biome hang did not recur in the measured run.
 - A cold `BlockStateCatalog.available()` took about 450-494 ms across seven fresh Java processes. After daemon-thread preloading, the same low-end device reported the first Builder open below 0.5 seconds; JFR showed the preload thread and no catalogue-loading samples on the JavaFX Application Thread.
-- Automated compile, the complete test suite, `build`, and `shadowJar` pass. The low-end-device performance, keyboard, popup, style, preset, rule-editing, and advanced-text regression passed by user report on 2026-07-25; the later cross-platform popup attachment adjustment requires one focused packaged-candidate rerun before PR submission.
+- Automated compile, the complete test suite, `build`, and `shadowJar` pass. The low-end-device performance, keyboard, popup, style, preset, rule-editing, and advanced-text regression passed by user report on 2026-07-25. The final packaged candidate's bidirectional popup attachment, keyboard navigation, repeated empty-Biome expansion, native popup frame, catalogue/reset, and transactional-close checks passed by user report on 2026-07-28.
 
 ## Next Recommended Task
 
