@@ -319,8 +319,10 @@ final class ReplaceBlocksAutocomplete {
 				if (comboBounds == null) return;
 				stabilizeHorizontal(comboBounds);
 				Bounds popupBounds = popupContent.localToScreen(popupContent.getLayoutBounds());
-				if (popupBounds == null || popupBounds.getMinY() >= comboBounds.getMinY()) continue;
-				double correction = comboBounds.getMinY() - popupBounds.getMaxY();
+				if (popupBounds == null) continue;
+				double correction = popupBounds.getCenterY() < comboBounds.getCenterY()
+						? comboBounds.getMinY() - popupBounds.getMaxY()
+						: comboBounds.getMaxY() - popupBounds.getMinY();
 				if (Math.abs(correction) <= EPSILON) continue;
 				stabilizing = true;
 				try {

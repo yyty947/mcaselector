@@ -51,8 +51,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -62,7 +60,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -1067,7 +1064,7 @@ class ReplaceBlocksRuleBuilderModelTest {
 	}
 
 	@Test
-	void popupPositionTrackingDoesNotMoveAPopupBelowItsField() throws Throwable {
+	void popupPositionTrackingKeepsAPopupAttachedBelowItsField() throws Throwable {
 		AtomicReference<Stage> stageReference = new AtomicReference<>();
 		AtomicReference<ComboBox<String>> comboBoxReference = new AtomicReference<>();
 		try {
@@ -1099,7 +1096,10 @@ class ReplaceBlocksRuleBuilderModelTest {
 				double belowY = comboBounds.getMaxY();
 				popupWindow.setY(belowY);
 				popupWindow.setHeight(popupWindow.getHeight() + 32);
-				assertEquals(belowY, popupWindow.getY(), 0.5);
+				Bounds popupBounds = popupContent(comboBox).localToScreen(
+						popupContent(comboBox).getLayoutBounds());
+				assertEquals(comboBounds.getMaxY(), popupBounds.getMinY(), POPUP_ATTACHMENT_TOLERANCE);
+				assertTrue(popupBounds.getCenterY() > comboBounds.getCenterY());
 			});
 		} finally {
 			runOnJavaFxThread(() -> {
@@ -1247,9 +1247,7 @@ class ReplaceBlocksRuleBuilderModelTest {
 			runOnJavaFxThread(() -> {});
 
 			waitForJavaFxCondition(() -> popupIsAttached(comboBoxReference.get()),
-					() -> inputFieldName + "." + comboBoxFieldName
-							+ " popup was not initially attached; "
-							+ describePopupGeometry(comboBoxReference.get()));
+					inputFieldName + "." + comboBoxFieldName + " popup was not initially attached");
 
 			runOnJavaFxThread(() -> {
 				ComboBox<?> comboBox = comboBoxReference.get();
@@ -1277,9 +1275,7 @@ class ReplaceBlocksRuleBuilderModelTest {
 			});
 
 			waitForJavaFxCondition(() -> popupIsAttached(comboBoxReference.get()),
-					() -> inputFieldName + "." + comboBoxFieldName
-							+ " popup detached after a late resize; "
-							+ describePopupGeometry(comboBoxReference.get()));
+					inputFieldName + "." + comboBoxFieldName + " popup detached after a late resize");
 		} finally {
 			runOnJavaFxThread(() -> {
 				if (dialogReference.get() != null) {
@@ -1957,20 +1953,7 @@ class ReplaceBlocksRuleBuilderModelTest {
 						<= POPUP_ATTACHMENT_TOLERANCE);
 	}
 
-	private static String describePopupGeometry(ComboBox<?> comboBox) {
-		Bounds comboBounds = comboBox.localToScreen(comboBox.getBoundsInLocal());
-		ListView<?> popup = popupContent(comboBox);
-		Bounds popupBounds = popup.localToScreen(popup.getLayoutBounds());
-		Window popupWindow = popupWindow(comboBox);
-		return String.format(Locale.ROOT,
-				"combo=[%.2f..%.2f], content=[%.2f..%.2f], window=[%.2f..%.2f]",
-				comboBounds.getMinY(), comboBounds.getMaxY(),
-				popupBounds.getMinY(), popupBounds.getMaxY(),
-				popupWindow.getY(), popupWindow.getY() + popupWindow.getHeight());
-	}
-
-	private static void waitForJavaFxCondition(BooleanSupplier condition, Supplier<String> message)
-			throws InterruptedException {
+	private static void waitForJavaFxCondition(BooleanSupplier condition, String message) throws InterruptedException {
 		AtomicBoolean satisfied = new AtomicBoolean();
 		CountDownLatch complete = new CountDownLatch(1);
 		Platform.runLater(() -> new AnimationTimer() {
@@ -1990,16 +1973,7 @@ class ReplaceBlocksRuleBuilderModelTest {
 				}
 			}
 		}.start());
-		assertTrue(complete.await(10, TimeUnit.SECONDS),
-				() -> "JavaFX condition wait did not complete: " + message.get());
-		if (!satisfied.get()) {
-			try {
-				Files.createDirectories(Path.of("build"));
-				Files.writeString(Path.of("build", "popup-geometry-diagnostic.txt"), message.get());
-			} catch (Exception ignored) {
-				// Temporary release-diagnostic output must not replace the actual assertion.
-			}
-		}
+		assertTrue(complete.await(10, TimeUnit.SECONDS), "JavaFX condition wait did not complete: " + message);
 		assertTrue(satisfied.get(), message);
 	}
 
