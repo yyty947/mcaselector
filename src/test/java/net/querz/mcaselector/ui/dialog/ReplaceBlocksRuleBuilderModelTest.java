@@ -51,6 +51,8 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -60,6 +62,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -1200,6 +1203,7 @@ class ReplaceBlocksRuleBuilderModelTest {
 		AtomicReference<Stage> primaryStageReference = new AtomicReference<>();
 		AtomicReference<ReplaceBlocksRuleBuilderDialog> dialogReference = new AtomicReference<>();
 		AtomicReference<ComboBox<?>> comboBoxReference = new AtomicReference<>();
+		AtomicReference<String> lastGeometry = new AtomicReference<>("geometry not observed");
 		try {
 			runOnJavaFxThread(() -> {
 				Stage primaryStage = new Stage();
@@ -1259,12 +1263,19 @@ class ReplaceBlocksRuleBuilderModelTest {
 				Bounds comboBounds = comboBox.localToScreen(comboBox.getBoundsInLocal());
 				ListView<?> popup = popupContent(comboBox);
 				Bounds popupBounds = popup.localToScreen(popup.getLayoutBounds());
+				Window popupWindow = popupWindow(comboBox);
+				lastGeometry.set(String.format(Locale.ROOT,
+						"combo=[%.2f..%.2f], content=[%.2f..%.2f], window=[%.2f..%.2f]",
+						comboBounds.getMinY(), comboBounds.getMaxY(),
+						popupBounds.getMinY(), popupBounds.getMaxY(),
+						popupWindow.getY(), popupWindow.getY() + popupWindow.getHeight()));
 				return comboBounds != null && popupBounds != null
 						&& (Math.abs(comboBounds.getMinY() - popupBounds.getMaxY())
 								<= POPUP_ATTACHMENT_TOLERANCE
 								|| Math.abs(comboBounds.getMaxY() - popupBounds.getMinY())
 								<= POPUP_ATTACHMENT_TOLERANCE);
-			}, inputFieldName + "." + comboBoxFieldName + " popup detached after a late resize");
+			}, () -> inputFieldName + "." + comboBoxFieldName
+					+ " popup detached after a late resize; " + lastGeometry.get());
 		} finally {
 			runOnJavaFxThread(() -> {
 				if (dialogReference.get() != null) {
@@ -1932,7 +1943,8 @@ class ReplaceBlocksRuleBuilderModelTest {
 		}
 	}
 
-	private static void waitForJavaFxCondition(BooleanSupplier condition, String message) throws InterruptedException {
+	private static void waitForJavaFxCondition(BooleanSupplier condition, Supplier<String> message)
+			throws InterruptedException {
 		AtomicBoolean satisfied = new AtomicBoolean();
 		CountDownLatch complete = new CountDownLatch(1);
 		Platform.runLater(() -> new AnimationTimer() {
@@ -1952,7 +1964,16 @@ class ReplaceBlocksRuleBuilderModelTest {
 				}
 			}
 		}.start());
-		assertTrue(complete.await(10, TimeUnit.SECONDS), "JavaFX condition wait did not complete: " + message);
+		assertTrue(complete.await(10, TimeUnit.SECONDS),
+				() -> "JavaFX condition wait did not complete: " + message.get());
+		if (!satisfied.get()) {
+			try {
+				Files.createDirectories(Path.of("build"));
+				Files.writeString(Path.of("build", "popup-geometry-diagnostic.txt"), message.get());
+			} catch (Exception ignored) {
+				// Temporary release-diagnostic output must not replace the actual assertion.
+			}
+		}
 		assertTrue(satisfied.get(), message);
 	}
 
