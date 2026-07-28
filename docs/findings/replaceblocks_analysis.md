@@ -154,7 +154,7 @@ stone='custom:block', dirt=grass_block
 stone='custom:block';{id:"custom:tile"}
 ```
 
-The quoted-target parser appears to read to the end of the remaining string before checking for the closing quote. This needs a focused regression test before UI exposes quoted custom targets.
+Focused parser and field regressions cover a quoted custom target followed by tile SNBT and another rule; the closing quote, target tile, and following rule retain their boundaries and order.
 
 - Regex-like source values can match more than intended if quoted or otherwise accepted:
 

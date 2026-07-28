@@ -1,38 +1,46 @@
 # ReplaceBlocks Release Review
 
-Date: 2026-07-17
+Date: 2026-07-28
 
-Perspective: upstream MCA Selector maintainer/reviewer. Scope reviewed against `AGENTS.md`, `docs/ROADMAP.md`, `docs/DEV_NOTES_REPLACE_BLOCKS.md`, `docs/TEST_PLAN.md`, and the parser, Builder, preview, region-save, configuration, and modern version-specific implementations.
+Candidate reviewed: `41d6a127`
+
+Perspective: upstream MCA Selector maintainer/reviewer. Scope reviewed against `AGENTS.md`, `docs/ROADMAP.md`, `docs/DEV_NOTES_REPLACE_BLOCKS.md`, `docs/TEST_PLAN.md`, and the actual parser, Builder, preview, region-save, configuration, catalogue, translation, and version-specific implementations.
 
 ## A. Merge blockers
 
-None found in the reviewed candidate after the B-class hardening changes and automated release gates.
+No known source, compatibility, or data-safety blocker remains.
 
-The previously blocking risks now have explicit controls: parsing is syntax-only and shared by field/diagnostics/Builder restoration; invalid regex is rejected before execution; ReplaceBlocks-only chunk failure prevents that region from reaching the save/relight job; preset write failure rolls back memory; preview remains non-mutating; unsupported conditional execution fails closed; duplicate target block entities, lighting, heightmaps, and copied-world loads have recorded coverage.
+One release gate is still pending: the final packaged candidate needs a focused manual UI rerun because the cross-platform review changed downward popup attachment after the last user acceptance pass. This is not a known defect, but the PR should not be submitted until From, To, and Biome pass the documented first-popup and keyboard checks on that exact candidate.
+
+The previously blocking mutation risks have explicit controls: parsing is syntax-only and shared by field/diagnostics/Builder restoration; invalid regex is rejected before execution; ReplaceBlocks-only chunk failure prevents that region from reaching the save/relight job; preset write failure rolls back memory; preview remains non-mutating; unsupported conditional execution fails closed; duplicate target block entities, lighting, heightmaps, and copied-world loads have recorded coverage.
 
 ## B. Strong recommendations addressed
 
 - Architecture/style: parser, catalogue selection, preset persistence, preview formatting, autocomplete behavior, and block-input compatibility policy have dedicated package-private collaborators. The Dialog retains layout and event orchestration. Builder dropdown CSS remains scoped to the Builder.
-- Over-design: no automatic world detection, ID-renaming table, custom JavaFX Skin, new persistence format, or parser/catalogue coupling was introduced.
-- PR scope: the candidate can be reviewed as four logical commits/PRs upstream: parser/diagnostics; catalogue/Builder compatibility; region/config safety plus performance; UI isolation/docs/tests. Keeping those boundaries would make upstream review and revert safer than one feature-sized PR.
+- Over-design: no automatic world detection, ID-renaming table, custom JavaFX Skin, replacement list implementation, new persistence format, or parser/catalogue coupling was introduced.
+- PR scope: one complete Draft PR is acceptable because the grammar, Builder restoration, preview/execution parity, and safety tests form one contract. The PR body should give reviewers an explicit order: syntax/compatibility, execution safety, Builder/catalogues, then UI/performance/docs. Split only if the maintainer requests a smaller review unit; stacked PRs are not required.
 - Legacy behavior: bare/quoted regex sources, exact source SNBT, ordered overlap behavior, advanced text input, mixed-field per-chunk error handling, and version dispatch remain intact.
-- Data safety: ReplaceBlocks-only region exceptions are fail-stop with chunk coordinates and no save job; preset mutations roll back when persistence fails; preview paths do not call replacement/save APIs.
-- Tests: added parser error-code, future/modded ID, catalogue switching, preset rollback (false and exception), region abort, and biome/tile context call-count coverage. Existing preview/execution, popup, translation, packaging, and copied-world gates remain applicable.
+- Data safety: ReplaceBlocks-only region exceptions are fail-stop with chunk coordinates and no save job; preset mutations roll back when persistence fails; preview paths do not call replacement/save APIs; adjacent relighting touches only existing region files and does not write POI/entities sidecars.
+- Tests: 172 automated tests cover parser errors, future/modded IDs, catalogue switching, preset rollback, transactional Builder closing, region abort, preview/execution parity, popup navigation/geometry, performance safeguards, translations, lighting, heightmaps, and copied-world helpers.
 - Documentation: `docs/REPLACE_BLOCKS.md` documents syntax, catalogue limits, warnings, backups, preview, relighting, old-format behavior, and the lack of automatic ID migration.
-- JavaFX: popup/navigation logic is isolated and no longer depends on `.clipped-container`; the existing JavaFX 21 first-popup geometry tracker remains local to From/To/Biome autocomplete only.
-- Exceptions: configuration write results are observable; runtime write failures are handled; ReplaceBlocks region failures preserve the original cause and chunk coordinate.
-- Performance: regex patterns are cached. Modern ordinary rules skip biome reads, source tile-location indexes, and per-block `Point3i`; contextual rules retain preview/execution parity.
+- JavaFX: popup/navigation logic uses public JavaFX APIs and remains local to From/To/Biome autocomplete. Cross-platform checks now accept JavaFX's native up/down direction while requiring the content edge to attach on both paths; popup resize tests stay inside the current screen's usable bounds.
+- Exceptions: configuration write results are observable; runtime write failures are handled; ReplaceBlocks region failures preserve the original cause and chunk coordinate; uncaught Java exceptions reach the normal fatal log and standard error.
+- Performance: regex patterns are cached. Modern ordinary rules skip biome reads, source tile-location indexes, and per-block `Point3i`; long Builder lists retain JavaFX virtualization, bound width measurement, use plain empty-query cells, and preload the immutable catalogue on a daemon thread.
 
 ## C. Follow-up items
 
-- The Builder Dialog is still large because the concrete From/To control owns substantial JavaFX property-editor wiring. The reusable compatibility base and autocomplete service reduce risk, but a future UI-only PR could move the remaining concrete control after adding component-level JavaFX tests. This should not be mixed with world-processing code.
-- Java 1.18.2, 1.20.6, 1.21.9, 1.21.11, and 26.2 catalogues are bundled. The newest is selected by default and selection is manual; automatic world-version selection and cross-version ID conversion remain outside this release.
-- The catalogue-switch title/message/note use native English and Simplified Chinese; every other locale has the English fallback. Additional native translations can follow without blocking behavior.
-- Add an integration test that forces a real filesystem-level global-config write failure if the configuration path becomes injectable. Current repository tests deterministically cover false and thrown writer outcomes.
-- If profiling shows tile-heavy rules are hot, packed-long block-entity coordinates can replace the current string index in a focused performance PR. Do not change this without preview/execution parity tests.
+- `ReplaceBlocksRuleBuilderDialog` is still large because the concrete controls own substantial JavaFX property-editor wiring. A later UI-only PR may extract the remaining control code after adding component-level JavaFX tests; do not mix that refactor with world-processing changes.
+- The five catalogue files were generated from Mojang server reports and pass structural consistency checks, but the repository does not pin the source server-JAR hashes in a provenance manifest. Add hashes when catalogues are regenerated rather than inventing runtime version conversion.
+- All 19 locale files have the same keys and placeholder sequences, and the current Builder workflow terminology is localized. Some older Builder strings still intentionally use English fallback text in several locales; native contributor translations can follow without blocking behavior.
+- GitHub-hosted macOS Intel/ARM builds and DMGs pass, but no physical macOS interaction pass was available. An upstream maintainer smoke test of modal focus, popup placement, and shortcuts is desirable.
+- The release workflow's Windows build, tests, shadow JAR, and app-image `jpackage` pass in the fork. Its later installer-tool download fails HTTP 401 because the fork lacks a token accepted by `Querz/build-tools`; this is repository-secret infrastructure, not a source failure.
+- Gradle reports a future Gradle 10 incompatibility from `Task.project` access during runtime-image tasks. Address it in a packaging-focused maintenance PR.
+- Add a real filesystem-level global-config write-failure integration test if the configuration path becomes injectable. Current tests deterministically cover false and thrown writer outcomes.
 
 ## D. Upstream PR assessment
 
-The feature is technically credible and substantially safer than the earlier Builder-only implementation. It preserves the existing ReplaceBlocks text contract and legacy matching semantics, keeps catalogue data advisory, and treats world mutation failures conservatively. The implementation is larger than a typical MCA Selector UI PR, so upstream submission should be split along the boundaries above and should carry the copied-world evidence plus the concise user documentation.
+The feature is technically credible and substantially safer than a Builder-only UI addition. It preserves the ReplaceBlocks text contract and legacy matching semantics, keeps catalogue data advisory, and treats world mutation failures conservatively. The final diff is large, but it is a coherent end-to-end feature and can be reviewed as one Draft PR with the ordered guide above.
 
-Recommendation: acceptable for merge. The final automated gate passed with 151 tests, complete translations, and `build shadowJar`; the focused five-catalogue switch/reset check passed by user report on 2026-07-17 with direct empty switching, Cancel preservation, Confirm full reset, saved-preset survival, non-blocking exact-ID compatibility warnings, and regex-source protection. No remaining issue justifies reopening parser semantics, adding version-ID conversion, or upgrading JavaFX as part of this release.
+Automated evidence on `41d6a127`: 172 tests pass locally and in the applicable hosted jobs; Windows `build`, `shadowJar`, and `jpackage` pass; macOS Intel/ARM DMGs and Linux x64/ARM64 DEB/RPM packages pass. Copied-world and Minecraft load/save/reload checks are recorded in `docs/TEST_PLAN.md`.
+
+Recommendation: acceptable for upstream review after the final packaged UI rerun passes. No remaining issue justifies adding automatic version detection, cross-version ID conversion, pagination, a custom JavaFX Skin, or a JavaFX upgrade to this PR.

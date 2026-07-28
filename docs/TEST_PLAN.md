@@ -71,6 +71,7 @@ Phase 6 execution record:
 | `UI-PERF` | Passed | Low-end physical Dell Inspiron 5498, Java 21, 2026-07-25 | Previous first popup was about 1 s and first `a` 1-3 s; optimized operations felt below 200 ms, empty Biome no longer hung, and prewarmed first Builder open was below 0.5 s. The user completed the final keyboard, popup, style, preset, rule-editing, and advanced-text regression without finding an issue |
 | `AUTO-CLOSE` | Passed | Windows 11, Adoptium Java 21.0.11, 2026-07-25 | JavaFX tests cover clean restored content, reversible drafts, dirty catalogue reset, title-bar close with declined/closed/accepted confirmation, Builder Cancel, explicit action labels, and outer-field explanatory copy |
 | `UI-CLOSE` | Passed | User report, 2026-07-25 | Unchanged close, dirty Cancel/Esc/title-bar close, confirmation Cancel/X, explicit discard, catalogue-reset dirty state, outer-text preservation, and Builder OK were accepted |
+| `AUTO-PR-MATRIX` | Passed for code and packages | Commit `41d6a127`, GitHub-hosted Windows/macOS/Linux, 2026-07-28 | 172 tests plus Windows `build`/`shadowJar`/`jpackage`, macOS Intel/ARM DMG, and Linux x64/ARM64 DEB/RPM succeeded. The workflow is red only because the fork lacks a token accepted by the later Windows `Querz/build-tools` download step (HTTP 401); the Windows build and app-image package completed before it |
 
 ### Phase 6 copied-world evidence
 
